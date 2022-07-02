@@ -9,8 +9,7 @@ fn main() {
         Ok(references) => references,
         Err(e) => panic!("failed to load references: {}", e),
     };
-    let ref_names = references.names();
-    for name in ref_names {
+    for name in references.names() {
         let str_name = match name {
             Ok(str_name) => str_name,
             Err(e) => panic!("failed to get ref name: {}", e),
