@@ -1,8 +1,7 @@
 mod frontend;
 
-use frontend::main_window::OGFWindow;
-use slint::ComponentHandle;
+use frontend::main_window;
 
 fn main() {
-    OGFWindow::new().run();
+    main_window::main();
 }
