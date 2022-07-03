@@ -1,5 +1,7 @@
-use futures::executor::ThreadPool;
-use futures::task::SpawnExt;
+use futures::executor;
+use git2::Repository;
+// use futures::executor::ThreadPool;
+// use futures::task::SpawnExt;
 use crate::backend::main_back;
 
 slint::slint! {
@@ -26,15 +28,24 @@ slint::slint! {
     }
 }
 
+static mut repo: Option<Repository> = None;
+
 pub fn main() {
     let ogf_window = OGFWindow::new();
-    let pool = ThreadPool::new().unwrap();
+    // let pool = ThreadPool::new().unwrap();
     ogf_window.on_openBtn_pressed(move || {
-        pool.spawn(main_back::open_repo()).expect("Thread failed to spawn!");
-        // executor::block_on(main_back::open_repo());
+        // pool.spawn(main_back::open_repo()).expect("Thread failed to spawn!");
+        let repo_temp = executor::block_on(main_back::open_repo());
+        unsafe {
+            repo = repo_temp;
+        }
     });
     ogf_window.on_fetchBtn_pressed(move || {
-        main_back::git_fetch();
+        let mut repo_temp: &Option<Repository> = &None;
+        unsafe {
+            repo_temp = &repo;
+        }
+        main_back::git_fetch(repo_temp);
     });
     ogf_window.run();
 }
