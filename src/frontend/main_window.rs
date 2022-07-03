@@ -5,6 +5,8 @@ slint::slint! {
     import { Button } from "std-widgets.slint";
     OGFWindow := Window {
         title: "Orange Git Fish";
+        width: 800px;
+        height: 600px;
         callback fetchBtn-pressed <=> fetchBtn.clicked;
         callback openBtn-pressed <=> openBtn.clicked;
         GridLayout {
@@ -31,10 +33,10 @@ pub fn main() {
             Some(repo) => {
                 match repo.path().to_str() {
                     Some(path_str) => println!("{}", path_str),
-                    None => (),
+                    None => println!("Repo Path String returned None."),
                 }
             },
-            None => (),
+            None => println!("Repo returned None."),
         }
     });
     ogf_window.on_fetchBtn_pressed(move || {

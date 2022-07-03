@@ -9,7 +9,7 @@ pub async fn open_repo() -> Option<Repository> {
     let path = file_handle.path().to_str()?;
     match Repository::open(path) {
         Ok(some_repo) => Some(some_repo),
-        Err(e) => panic!("failed to open: {}", e),
+        Err(e) => panic!("Repository not found at given path: {}", e),
     }
 }
 
