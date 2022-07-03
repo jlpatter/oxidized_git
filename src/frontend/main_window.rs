@@ -28,7 +28,7 @@ slint::slint! {
     }
 }
 
-static mut repo: Option<Repository> = None;
+static mut REPO: Option<Repository> = None;
 
 pub fn main() {
     let ogf_window = OGFWindow::new();
@@ -37,13 +37,13 @@ pub fn main() {
         // pool.spawn(main_back::open_repo()).expect("Thread failed to spawn!");
         let repo_temp = executor::block_on(main_back::open_repo());
         unsafe {
-            repo = repo_temp;
+            REPO = repo_temp;
         }
     });
     ogf_window.on_fetchBtn_pressed(move || {
-        let mut repo_temp: &Option<Repository> = &None;
+        let repo_temp: &Option<Repository>;
         unsafe {
-            repo_temp = &repo;
+            repo_temp = &REPO;
         }
         main_back::git_fetch(repo_temp);
     });
