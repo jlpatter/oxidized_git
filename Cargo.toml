@@ -9,4 +9,4 @@ edition = "2021"
 slint = "0.2.4"
 git2 = "0.14"
 rfd = "0.9"
-futures = "0.3"
+futures = {version = "0.3", features = ["executor", "thread-pool"]}
