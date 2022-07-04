@@ -5,7 +5,7 @@
 
 mod backend;
 
-use backend::main_back;
+use backend::git_manager;
 
 fn main() {
   let context = tauri::generate_context!();
@@ -15,7 +15,7 @@ fn main() {
     } else {
       tauri::Menu::default()
     })
-    .invoke_handler(tauri::generate_handler![main_back::open_repo])
+    .invoke_handler(tauri::generate_handler![git_manager::open_repo, git_manager::git_fetch])
     .run(context)
     .expect("error while running tauri application");
 }

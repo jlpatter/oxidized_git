@@ -1,11 +1,28 @@
 import jQuery from "jquery";
 $ = window.$ = window.jQuery = jQuery;
 import {invoke} from "@tauri-apps/api";
+import {exit} from "@tauri-apps/api/process";
 
 class Main {
     run() {
-        $('#fetchBtn').click(function() {
-            invoke('open_repo').then((message) => console.log(message));
+        $('#fetchBtn').click(() => {
+            invoke('git_fetch').then((message) => {
+                if (message) {
+                    console.log(message);
+                }
+            });
+        });
+
+        $('#openBtn').click(() => {
+            invoke('open_repo').then((message) => {
+                if (message) {
+                    console.log(message);
+                }
+            });
+        });
+
+        $('#exitBtn').click(async () => {
+            await exit(0);
         });
     }
 }

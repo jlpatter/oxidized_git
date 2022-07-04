@@ -22,11 +22,24 @@ pub async fn open_repo() -> String {
     }
 }
 
-// pub fn git_fetch(repo_opt: &Option<Repository>) {
-//     match repo_opt {
-//         Some(repo) => {
-//             repo.find_remote("origin").unwrap().fetch(&["master"], None, None).unwrap();
-//         },
-//         None => (),
-//     }
-// }
+#[tauri::command]
+pub fn git_fetch() -> String {
+    let repo_temp;
+    unsafe {
+        repo_temp = &REPO;
+    }
+    match repo_temp {
+        Some(repo) => {
+            match repo.find_remote("origin") {
+                Ok(mut remote) => {
+                    match remote.fetch(&["master"], None, None) {
+                        Ok(_) => "".into(),
+                        Err(e) => format!("Error fetching: {}", e),
+                    }
+                },
+                Err(e) => format!("Error finding origin: {}", e),
+            }
+        },
+        None => "No repo to fetch for.".into(),
+    }
+}
