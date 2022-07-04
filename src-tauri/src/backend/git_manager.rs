@@ -33,17 +33,22 @@ pub fn git_fetch() -> Result<(), String> {
         Some(repo) => {
             match repo.remotes() {
                 Ok(remote_string_array) => {
-                    for remote_string in remote_string_array.iter() {
-                        match repo.find_remote(remote_string.unwrap()) {
-                            Ok(mut remote) => {
-                                let empty_refspecs: &[String] = &[];
-                                // TODO: Add callback function for authorization!
-                                match remote.fetch(empty_refspecs, None, None) {
-                                    Ok(()) => (),
-                                    Err(e) => return Err(format!("Error fetching: {}", e)),
+                    for remote_string_opt in remote_string_array.iter() {
+                        match remote_string_opt {
+                            Some(remote_string) => {
+                                match repo.find_remote(remote_string) {
+                                    Ok(mut remote) => {
+                                        let empty_refspecs: &[String] = &[];
+                                        // TODO: Add callback function for authorization!
+                                        match remote.fetch(empty_refspecs, None, None) {
+                                            Ok(()) => (),
+                                            Err(e) => return Err(format!("Error fetching: {}", e)),
+                                        }
+                                    },
+                                    Err(e) => return Err(format!("Error finding remote from remote string: {}", e)),
                                 }
                             },
-                            Err(e) => return Err(format!("Error finding remote from remote string: {}", e)),
+                            None => println!("WARNING: A remote string returned None! Possibly due to being non-utf8?"),
                         };
                     }
                     println!("Successfully completed fetch!");
