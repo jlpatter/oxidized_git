@@ -1,9 +1,9 @@
 {
   "build": {
-    "beforeBuildCommand": "",
-    "beforeDevCommand": "",
-    "devPath": "../ui",
-    "distDir": "../ui"
+    "beforeBuildCommand": "cd ui && npm run build",
+    "beforeDevCommand": "cd ui && npm run build",
+    "devPath": "../ui/dist",
+    "distDir": "../ui/dist"
   },
   "package": {
     "productName": "orange_git_fish",

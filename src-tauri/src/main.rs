@@ -3,6 +3,10 @@
   windows_subsystem = "windows"
 )]
 
+mod backend;
+
+use backend::main_back;
+
 fn main() {
   let context = tauri::generate_context!();
   tauri::Builder::default()
@@ -11,6 +15,7 @@ fn main() {
     } else {
       tauri::Menu::default()
     })
+    .invoke_handler(tauri::generate_handler![main_back::open_repo])
     .run(context)
     .expect("error while running tauri application");
 }
