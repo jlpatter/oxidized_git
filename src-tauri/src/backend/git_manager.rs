@@ -25,38 +25,33 @@ pub fn open_repo() -> Result<(), String> {
 
 #[tauri::command]
 pub fn git_fetch() -> Result<(), String> {
-    let repo_temp;
+    let repo_temp_opt;
     unsafe {
-        repo_temp = &REPO;
+        repo_temp_opt = &REPO;
     }
-    match repo_temp {
-        Some(repo) => {
-            match repo.remotes() {
-                Ok(remote_string_array) => {
-                    for remote_string_opt in remote_string_array.iter() {
-                        match remote_string_opt {
-                            Some(remote_string) => {
-                                match repo.find_remote(remote_string) {
-                                    Ok(mut remote) => {
-                                        let empty_refspecs: &[String] = &[];
-                                        // TODO: Add callback function for authorization!
-                                        match remote.fetch(empty_refspecs, None, None) {
-                                            Ok(()) => (),
-                                            Err(e) => return Err(format!("Error fetching: {}", e)),
-                                        }
-                                    },
-                                    Err(e) => return Err(format!("Error finding remote from remote string: {}", e)),
-                                }
-                            },
-                            None => println!("WARNING: A remote string returned None! Possibly due to being non-utf8?"),
-                        };
-                    }
-                    println!("Successfully completed fetch!");
-                    Ok(())
-                },
-                Err(e) => Err(format!("Error getting array of remotes: {}", e)),
-            }
-        },
-        None => Err("No repo to fetch for.".into()),
+    let repo_temp = match repo_temp_opt {
+        Some(repo) => repo,
+        None => return Err("No repo to fetch for.".into()),
+    };
+    let remote_string_array = match repo_temp.remotes() {
+        Ok(remote_string_array) => remote_string_array,
+        Err(e) => return Err(format!("Error getting array of remotes: {}", e)),
+    };
+    let empty_refspecs: &[String] = &[];
+    for remote_string_opt in remote_string_array.iter() {
+        let remote_string = match remote_string_opt {
+            Some(remote_string) => remote_string,
+            None => return Err("ERROR: A remote string returned None! Possibly due to being non-utf8?".into()),
+        };
+        let mut remote = match repo_temp.find_remote(remote_string) {
+            Ok(remote) => remote,
+            Err(e) => return Err(format!("Error finding remote from remote string: {}", e)),
+        };
+        match remote.fetch(empty_refspecs, None, None) {
+            Ok(()) => (),
+            Err(e) => return Err(format!("Error fetching: {}", e)),
+        };
     }
+    println!("Fetch successful!");
+    Ok(())
 }
