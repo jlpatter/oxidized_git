@@ -1,12 +1,12 @@
 [package]
-name = "orange_git_fish"
+name = "oxidized_git"
 version = "0.1.0"
 description = "A Tauri Git Client Application"
 authors = ["Joshua Patterson"]
 license = ""
 repository = ""
 build = "build.rs"
-default-run = "orange_git_fish"
+default-run = "oxidized_git"
 edition = "2021"
 rust-version = "1.57"
 

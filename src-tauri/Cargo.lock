@@ -1791,19 +1791,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "orange_git_fish"
-version = "0.1.0"
-dependencies = [
- "futures",
- "git2",
- "rfd",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
-]
-
-[[package]]
 name = "os_info"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1822,6 +1809,19 @@ checksum = "2c92f2b54f081d635c77e7120862d48db8e91f7f21cef23ab1b4fe9971c59f55"
 dependencies = [
  "libc",
  "winapi",
+]
+
+[[package]]
+name = "oxidized_git"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "git2",
+ "rfd",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
 ]
 
 [[package]]
