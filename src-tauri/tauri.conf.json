@@ -51,15 +51,6 @@
     },
     "updater": {
       "active": false
-    },
-    "windows": [
-      {
-        "fullscreen": false,
-        "height": 720,
-        "resizable": true,
-        "title": "Oxidized Git",
-        "width": 1280
-      }
-    ]
+    }
   }
 }

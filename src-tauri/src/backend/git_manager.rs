@@ -14,7 +14,6 @@ fn get_directory() -> Option<PathBuf> {
     FileDialog::new().set_directory(home).pick_folder()
 }
 
-#[tauri::command]
 pub fn init_repo() -> Result<(), String> {
     match get_directory() {
         Some(path_buffer) => {
@@ -34,7 +33,6 @@ pub fn init_repo() -> Result<(), String> {
     }
 }
 
-#[tauri::command]
 pub fn open_repo() -> Result<(), String> {
     match get_directory() {
         Some(path_buffer) => {
