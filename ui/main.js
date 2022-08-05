@@ -5,10 +5,10 @@ import {exit} from "@tauri-apps/api/process";
 
 class Main {
     run() {
-        $('#fetchBtn').click(() => {
-            invoke('git_fetch')
+        $('#initBtn').click(() => {
+            invoke('init_repo')
                 .then(() => {
-                    // TODO: Do something after fetch maybe?
+                    // TODO: Do something after init?
                 })
                 .catch((error) => console.error(error));
         });
@@ -21,10 +21,20 @@ class Main {
                 .catch((error) => console.error(error));
         });
 
+        $('#fetchBtn').click(() => {
+            invoke('git_fetch')
+                .then(() => {
+                    // TODO: Do something after fetch maybe?
+                })
+                .catch((error) => console.error(error));
+        });
+
         $('#exitBtn').click(async () => {
             await exit(0);
         });
     }
 }
 
-new Main().run();
+$(window).on('load', () => {
+    new Main().run();
+});

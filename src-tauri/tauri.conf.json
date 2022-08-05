@@ -6,7 +6,7 @@
     "distDir": "../ui/dist"
   },
   "package": {
-    "productName": "orange_git_fish",
+    "productName": "oxidized_git",
     "version": "0.1.0"
   },
   "tauri": {
@@ -28,7 +28,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.patterson.ogf",
+      "identifier": "com.patterson.og",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -55,10 +55,10 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
+        "height": 720,
         "resizable": true,
-        "title": "Orange Git Fish",
-        "width": 800
+        "title": "Oxidized Git",
+        "width": 1280
       }
     ]
   }

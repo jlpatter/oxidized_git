@@ -15,6 +15,26 @@ fn get_directory() -> Option<PathBuf> {
 }
 
 #[tauri::command]
+pub fn init_repo() -> Result<(), String> {
+    match get_directory() {
+        Some(path_buffer) => {
+            match Repository::init(path_buffer.as_path()) {
+                Ok(repo) => {
+                    unsafe {
+                        REPO = Some(repo);
+                    }
+                    // TODO: Remove this println once the commit view is implemented.
+                    println!("Repo initialized successfully!");
+                    Ok(())
+                },
+                Err(e) => Err(e.message().into()),
+            }
+        },
+        None => Ok(()),
+    }
+}
+
+#[tauri::command]
 pub fn open_repo() -> Result<(), String> {
     match get_directory() {
         Some(path_buffer) => {

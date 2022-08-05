@@ -15,7 +15,7 @@ fn main() {
     } else {
       tauri::Menu::default()
     })
-    .invoke_handler(tauri::generate_handler![git_manager::open_repo, git_manager::git_fetch])
+    .invoke_handler(tauri::generate_handler![git_manager::init_repo, git_manager::open_repo, git_manager::git_fetch])
     .run(context)
     .expect("error while running tauri application");
 }
