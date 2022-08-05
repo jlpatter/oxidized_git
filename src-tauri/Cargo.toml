@@ -22,6 +22,7 @@ tauri = { version = "1.0.2", features = ["api-all"] }
 git2 = "0.14"
 rfd = "0.9"
 futures = {version = "0.3", features = ["executor", "thread-pool"] }
+home = "0.5.3"
 
 [features]
 # by default Tauri runs in production mode

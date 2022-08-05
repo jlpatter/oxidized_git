@@ -1,11 +1,22 @@
+use std::path::PathBuf;
 use git2::Repository;
+use home::home_dir;
 use rfd::FileDialog;
 
 static mut REPO: Option<Repository> = None;
 
+fn get_directory() -> Option<PathBuf> {
+    let home;
+    match home_dir() {
+        Some(d) => home = d,
+        None => home = PathBuf::from("/"),
+    }
+    FileDialog::new().set_directory(home).pick_folder()
+}
+
 #[tauri::command]
 pub fn open_repo() -> Result<(), String> {
-    match FileDialog::new().set_directory("/").pick_folder() {
+    match get_directory() {
         Some(path_buffer) => {
             match Repository::open(path_buffer.as_path()) {
                 Ok(repo) => {
