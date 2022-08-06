@@ -1,6 +1,8 @@
 /**
  * A row in the svg table.
  */
+import {emit} from "@tauri-apps/api/event";
+
 export class SVGRow {
     X_OFFSET = 20;
     Y_OFFSET = 20;
@@ -231,7 +233,7 @@ export class SVGRow {
 
             const $copyShaBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-clipboard"></i> Copy SHA</button>');
             $copyShaBtn.click(function() {
-                navigator.clipboard.writeText(self.sha).then();
+                emit("copy_to_clipboard", self.sha).then();
             });
             $contextMenu.append($copyShaBtn);
 

@@ -5,6 +5,7 @@
 
 mod backend;
 
+use clipboard::{ClipboardContext, ClipboardProvider};
 use tauri::{CustomMenuItem, Manager, Menu, Submenu, WindowBuilder};
 use backend::git_manager::GitManager;
 
@@ -38,7 +39,12 @@ fn main() {
                     match init_result {
                         Ok(did_init) => {
                             if did_init {
-                                temp_main_window.emit_all("init", "Init Success").unwrap();
+                                let repo_info_result;
+                                unsafe { repo_info_result = GIT_MANAGER.get_parseable_repo_info(); }
+                                match repo_info_result {
+                                    Ok(repo_info) => temp_main_window.emit_all("init", repo_info).unwrap(),
+                                    Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+                                };
                             }
                         },
                         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
@@ -73,6 +79,16 @@ fn main() {
                 Ok(()) => (),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
             }
+        });
+        let temp_main_window = main_window.clone();
+        main_window.listen("copy_to_clipboard", move |event| {
+            match event.payload() {
+                Some(s) => {
+                    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+                    ctx.set_contents(s.into()).unwrap();
+                },
+                None => temp_main_window.emit_all("error", "Failed to copy to clipboard").unwrap(),
+            };
         });
 
         Ok(())

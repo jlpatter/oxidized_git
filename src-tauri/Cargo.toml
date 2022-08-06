@@ -23,6 +23,7 @@ git2 = "0.15"
 rfd = "0.10"
 futures = {version = "0.3", features = ["executor", "thread-pool"] }
 home = "0.5"
+clipboard = "0.5"
 
 [features]
 # by default Tauri runs in production mode

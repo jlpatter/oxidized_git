@@ -15,11 +15,10 @@ class Main {
         });
 
         listen("init", ev => {
-            console.log(ev.payload);
+            self.svgManager.updateCommitTable(ev.payload);
         }).then();
 
         listen("open", ev => {
-            console.log(ev.payload);
             self.svgManager.updateCommitTable(ev.payload);
         }).then();
 
