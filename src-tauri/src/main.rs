@@ -51,10 +51,10 @@ fn main() {
                     match open_result {
                         Ok(did_open) => {
                             if did_open {
-                                let all_commit_lines_result;
-                                unsafe { all_commit_lines_result = GIT_MANAGER.get_all_commit_lines(); }
-                                match all_commit_lines_result {
-                                    Ok(commit_lines) => temp_main_window.emit_all("open", commit_lines).unwrap(),
+                                let repo_info_result;
+                                unsafe { repo_info_result = GIT_MANAGER.get_parseable_repo_info(); }
+                                match repo_info_result {
+                                    Ok(repo_info) => temp_main_window.emit_all("open", repo_info).unwrap(),
                                     Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
                                 };
                             }

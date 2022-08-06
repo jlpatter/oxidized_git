@@ -1,10 +1,13 @@
 import jQuery from "jquery";
 $ = window.$ = window.jQuery = jQuery;
 import {emit, listen} from "@tauri-apps/api/event";
+import {SVGManager} from "./svg_manager";
 
 class Main {
     run() {
-        this.showCommitControls();
+        const self = this;
+        self.showCommitControls();
+        self.svgManager = new SVGManager();
 
         listen("init", ev => {
             console.log(ev.payload);
@@ -12,9 +15,11 @@ class Main {
 
         listen("open", ev => {
             console.log(ev.payload);
+            self.svgManager.updateCommitTable(ev.payload);
         }).then();
 
         listen("error", ev => {
+            // TODO: Maybe make a modal for errors instead?
             alert(ev.payload);
         }).then();
 
