@@ -5,25 +5,28 @@ use home::home_dir;
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
 
-pub enum StringOrStringVec {
+pub enum CommitInfoValue {
     SomeString(String),
     SomeStringVec(Vec<String>),
+    SomeInt(u64),
 }
 
-impl Serialize for StringOrStringVec {
+impl Serialize for CommitInfoValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         match &self {
-            StringOrStringVec::SomeString(st) => st.serialize(serializer),
-            StringOrStringVec::SomeStringVec(v) => v.serialize(serializer),
+            CommitInfoValue::SomeString(st) => st.serialize(serializer),
+            CommitInfoValue::SomeStringVec(v) => v.serialize(serializer),
+            CommitInfoValue::SomeInt(i) => i.serialize(serializer),
         }
     }
 }
 
-impl Clone for StringOrStringVec {
+impl Clone for CommitInfoValue {
     fn clone(&self) -> Self {
         match &self {
-            StringOrStringVec::SomeString(s) => StringOrStringVec::SomeString(s.clone()),
-            StringOrStringVec::SomeStringVec(v) => StringOrStringVec::SomeStringVec(v.clone()),
+            CommitInfoValue::SomeString(s) => CommitInfoValue::SomeString(s.clone()),
+            CommitInfoValue::SomeStringVec(v) => CommitInfoValue::SomeStringVec(v.clone()),
+            CommitInfoValue::SomeInt(i) => CommitInfoValue::SomeInt(i.clone()),
         }
     }
 }
@@ -91,22 +94,75 @@ impl GitManager {
         Ok(oid_list)
     }
 
-    fn get_commit_info_list(&self, oid_list: Vec<Oid>) -> Result<Vec<HashMap<String, StringOrStringVec>>, Box<dyn std::error::Error>> {
+    fn get_oid_refs(&self) -> Result<HashMap<String, Vec<String>>, Box<dyn std::error::Error>> {
         let repo_temp_opt = &self.repo;
         let repo_temp = match repo_temp_opt {
             Some(repo) => repo,
             None => return Err("No repo to get repo info for.".into()),
         };
 
-        let mut commit_list: Vec<HashMap<String, StringOrStringVec>> = vec![];
+        // Get HashMap of Oids and their refs
+        let mut oid_refs: HashMap<String, Vec<String>> = HashMap::new();
+        for reference_result in repo_temp.references()? {
+            let reference = reference_result?;
+            let ref_name = match reference.name() {
+                Some(n) => n,
+                None => return Err("Ref has name that's not utf-8 valid.".into()),
+            };
+            match reference.target() {
+                Some(oid) => {
+                    match oid_refs.get_mut(&*oid.to_string()) {
+                        Some(oid_ref_vec) => {
+                            oid_ref_vec.push(ref_name.into());
+                        },
+                        None => {
+                            oid_refs.insert(oid.to_string(), vec![ref_name.into()]);
+                        },
+                    };
+                },
+                None => (),
+            };
+        }
+        Ok(oid_refs)
+    }
+
+    fn get_commit_info_list(&self, oid_list: Vec<Oid>) -> Result<Vec<HashMap<String, CommitInfoValue>>, Box<dyn std::error::Error>> {
+        let repo_temp_opt = &self.repo;
+        let repo_temp = match repo_temp_opt {
+            Some(repo) => repo,
+            None => return Err("No repo to get repo info for.".into()),
+        };
+
+        let mut commit_list: Vec<HashMap<String, CommitInfoValue>> = vec![];
+        let oid_refs_hm = self.get_oid_refs()?;
 
         let mut children_oids: HashMap<String, Vec<String>> = HashMap::new();
-        for oid in oid_list {
-            let mut commit_info: HashMap<String, StringOrStringVec> = HashMap::new();
-            commit_info.insert("oid".into(), StringOrStringVec::SomeString(oid.to_string()));
+        for (i, oid) in oid_list.iter().enumerate() {
+            let mut commit_info: HashMap<String, CommitInfoValue> = HashMap::new();
+            commit_info.insert("oid".into(), CommitInfoValue::SomeString(oid.to_string()));
+            commit_info.insert("x".into(), CommitInfoValue::SomeInt(0u64));
+            commit_info.insert("y".into(), CommitInfoValue::SomeInt(i as u64));
 
+            let commit = repo_temp.find_commit(*oid)?;
+
+            // Get commit summary
+            match commit.summary() {
+                Some(s) => commit_info.insert("summary".into(), CommitInfoValue::SomeString(s.into())),
+                None => return Err("Commit summary didn't use proper utf-8!".into()),
+            };
+
+            // Get branches pointing to this commit
+            match oid_refs_hm.get(&*oid.to_string()) {
+                Some(ref_vec) => {
+                    commit_info.insert("branches_and_tags".into(), CommitInfoValue::SomeStringVec(ref_vec.clone()));
+                },
+                None => {
+                    commit_info.insert("branches_and_tags".into(), CommitInfoValue::SomeStringVec(vec![]));
+                },
+            };
+
+            // Get parent Oids
             let mut parent_oids: Vec<String> = vec![];
-            let commit = repo_temp.find_commit(oid)?;
             for parent in commit.parents() {
                 parent_oids.push(parent.id().to_string());
                 match children_oids.get_mut(&*parent.id().to_string()) {
@@ -117,8 +173,8 @@ impl GitManager {
                 };
             }
 
-            commit_info.insert("parent_oids".into(), StringOrStringVec::SomeStringVec(parent_oids));
-            commit_info.insert("child_oids".into(), StringOrStringVec::SomeStringVec(vec![]));
+            commit_info.insert("parent_oids".into(), CommitInfoValue::SomeStringVec(parent_oids));
+            commit_info.insert("child_oids".into(), CommitInfoValue::SomeStringVec(vec![]));
             commit_list.push(commit_info);
         }
 
@@ -128,15 +184,16 @@ impl GitManager {
             let oid_string = match commit_hm.get("oid") {
                 Some(oid) => {
                     match oid {
-                        StringOrStringVec::SomeString(oid_string) => oid_string,
-                        StringOrStringVec::SomeStringVec(_some_vector) => return Err("Oid was stored as a vector instead of a string.".into()),
+                        CommitInfoValue::SomeString(oid_string) => oid_string,
+                        CommitInfoValue::SomeStringVec(_some_vector) => return Err("Oid was stored as a vector instead of a string.".into()),
+                        CommitInfoValue::SomeInt(_some_int) => return Err("Oid was stored as an int instead of a string.".into()),
                     }
                 },
                 None => return Err("Commit found with no oid, shouldn't be possible...".into()),
             };
             match children_oids.get(oid_string) {
                 Some(v) => {
-                    commit_hm.insert("child_oids".into(), StringOrStringVec::SomeStringVec(v.clone()));
+                    commit_hm.insert("child_oids".into(), CommitInfoValue::SomeStringVec(v.clone()));
                 },
                 None => (),
             };
@@ -145,7 +202,7 @@ impl GitManager {
         Ok(commit_list)
     }
 
-    pub fn get_parseable_repo_info(&self) -> Result<Vec<HashMap<String, StringOrStringVec>>, Box<dyn std::error::Error>> {
+    pub fn get_parseable_repo_info(&self) -> Result<Vec<HashMap<String, CommitInfoValue>>, Box<dyn std::error::Error>> {
         let oid_list = self.git_revwalk()?;
         let repo_info = self.get_commit_info_list(oid_list)?;
         Ok(repo_info)

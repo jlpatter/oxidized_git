@@ -9,14 +9,14 @@ export class SVGManager {
      */
     constructor() {
         this.$commitTableSVG = $('#commitTableSVG');
-        this.entryResults = [];
+        this.repoInfo = [];
     }
 
     /**
      * Refreshes the commit table with new entry results.
      */
-    updateCommitTable(entryResults) {
-        this.entryResults = entryResults;
+    updateCommitTable(repoInfo) {
+        this.repoInfo = repoInfo;
         this.refreshCommitTable();
     }
 
@@ -27,11 +27,11 @@ export class SVGManager {
         const self = this;
 
         self.$commitTableSVG.empty();
-        self.$commitTableSVG.attr('height', self.entryResults.length * 30);
+        self.$commitTableSVG.attr('height', self.repoInfo.length * 30);
 
         const svgRows = [];
-        for (const entry of self.entryResults) {
-            svgRows.push(new SVGRow(entry[1][2], entry[1][3], entry[1][4], entry[1][0][0], entry[1][0][1], entry));
+        for (const commit of self.repoInfo) {
+            svgRows.push(new SVGRow(commit['oid'], commit['summary'], commit['branches_and_tags'], commit['parent_oids'], commit['child_oids'], commit['x'], commit['y']));
         }
 
         let maxWidth = 0;

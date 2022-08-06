@@ -15,20 +15,22 @@ export class SVGRow {
     /**
      * Construct the svg row
      * @param {string} sha
+     * @param {string} summary
+     * @param {Array<string>} branchesAndTags
      * @param {Array<string>} parentShas
      * @param {Array<string>} childrenShas
      * @param {int} x
      * @param {int} y
-     * @param {Array<Array<Array<string|Array<number>>>|string>} entry
      */
-    constructor(sha, parentShas, childrenShas, x, y, entry) {
+    constructor(sha, summary, branchesAndTags, parentShas, childrenShas, x, y) {
         this.sha = sha;
+        this.summary = summary;
+        this.branchesAndTags = branchesAndTags;
         this.parentShas = parentShas;
         this.childrenShas = childrenShas;
         this.x = x;
         this.y = y;
         this.width = 0;
-        this.entry = entry;
     }
 
     /**
@@ -145,10 +147,10 @@ export class SVGRow {
         }
         let currentX = (largestXValue + 1) * self.X_SPACING + self.X_OFFSET;
         const contextFunction = self.getContextFunction();
-        self.entry[0].forEach(function(branch) {
-            let branchText = '(' + branch[0] + ')';
-            if (branch[0].startsWith('refs/tags')) {
-                branchText = '(' + branch[0].slice(10) + ')';
+        self.branchesAndTags.forEach(function(branch) {
+            let branchText = '(' + branch + ')';
+            if (branch.startsWith('refs/tags')) {
+                branchText = '(' + branch.slice(10) + ')';
             }
             const svgTextElem = self.makeSVG('text', {x: currentX, y: pixelY + self.TEXT_Y_ALIGNMENT, fill: color});
             svgTextElem.textContent = branchText;
@@ -159,7 +161,7 @@ export class SVGRow {
 
         // Draw the summary text.
         const entryElem = self.makeSVG('text', {x: currentX, y: pixelY + self.TEXT_Y_ALIGNMENT, fill: 'white'});
-        entryElem.textContent = self.entry[1][1];
+        entryElem.textContent = self.summary;
         entryElem.oncontextmenu = contextFunction;
         $commitTableSVG.append(entryElem);
         self.width = currentX + entryElem.getBBox().width;
