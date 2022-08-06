@@ -6,7 +6,9 @@
 mod backend;
 
 use tauri::{CustomMenuItem, Manager, Menu, Submenu, WindowBuilder};
-use backend::git_manager;
+use backend::git_manager::GitManager;
+
+static mut GIT_MANAGER: GitManager = GitManager::new();
 
 fn main() {
     tauri::Builder::default()
@@ -32,29 +34,50 @@ fn main() {
         main_window.on_menu_event(move |event| {
             match event.menu_item_id() {
                 "init" => {
-                    match git_manager::init_repo() {
-                        Ok(()) => temp_main_window.emit_all("init", "Init Success").unwrap(),
-                        Err(e) => temp_main_window.emit_all("error", e).unwrap(),
+                    let init_result;
+                    unsafe { init_result = GIT_MANAGER.init_repo(); }
+                    match init_result {
+                        Ok(did_init) => {
+                            if did_init {
+                                temp_main_window.emit_all("init", "Init Success").unwrap();
+                            }
+                        },
+                        Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
                     };
                 },
                 "open" => {
-                    match git_manager::open_repo() {
-                        Ok(()) => {
-                            match git_manager::get_all_commit_lines() {
-                                Ok(commit_lines) => temp_main_window.emit_all("open", commit_lines).unwrap(),
-                                Err(e) => temp_main_window.emit_all("error", e).unwrap(),
-                            };
+                    let open_result;
+                    unsafe { open_result = GIT_MANAGER.open_repo(); }
+                    match open_result {
+                        Ok(did_open) => {
+                            if did_open {
+                                let all_commit_lines_result;
+                                unsafe { all_commit_lines_result = GIT_MANAGER.get_all_commit_lines(); }
+                                match all_commit_lines_result {
+                                    Ok(commit_lines) => temp_main_window.emit_all("open", commit_lines).unwrap(),
+                                    Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+                                };
+                            }
                         },
-                        Err(e) => temp_main_window.emit_all("error", e).unwrap(),
+                        Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
                     };
                 },
                 &_ => {},
             };
         });
 
+        let temp_main_window = main_window.clone();
+        main_window.listen("fetch", move |_event| {
+            let fetch_result;
+            unsafe { fetch_result = GIT_MANAGER.git_fetch(); }
+            match fetch_result {
+                Ok(()) => (),
+                Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+            }
+        });
+
         Ok(())
     })
-    .invoke_handler(tauri::generate_handler![git_manager::git_fetch])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

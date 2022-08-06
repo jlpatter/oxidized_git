@@ -1,7 +1,6 @@
 import jQuery from "jquery";
 $ = window.$ = window.jQuery = jQuery;
-import {invoke} from "@tauri-apps/api";
-import {listen} from "@tauri-apps/api/event";
+import {emit, listen} from "@tauri-apps/api/event";
 import {exit} from "@tauri-apps/api/process";
 
 class Main {
@@ -19,11 +18,7 @@ class Main {
         }).then();
 
         $('#fetchBtn').click(() => {
-            invoke('git_fetch')
-                .then(() => {
-                    // TODO: Do something after fetch maybe?
-                })
-                .catch((error) => console.error(error));
+            emit("fetch").then();
         });
 
         $('#exitBtn').click(async () => {
