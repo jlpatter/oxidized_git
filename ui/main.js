@@ -6,8 +6,13 @@ import {SVGManager} from "./svg_manager";
 class Main {
     run() {
         const self = this;
+        $('#contextMenu').hide();
         self.showCommitControls();
         self.svgManager = new SVGManager();
+
+        $(window).click(function() {
+            $('#contextMenu').hide();
+        });
 
         listen("init", ev => {
             console.log(ev.payload);

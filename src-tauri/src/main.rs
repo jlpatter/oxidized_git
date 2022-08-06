@@ -26,8 +26,7 @@ fn main() {
                 ])).into(),
             ])
         )
-        .inner_size(1280 as f64, 720 as f64)
-        .center()
+        .maximized(true)
         .build()?;
 
         let temp_main_window = main_window.clone();

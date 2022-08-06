@@ -211,6 +211,7 @@ export class SVGRow {
     getContextFunction() {
         const self = this;
         return function(event) {
+            event.preventDefault();
             const $contextMenu = $('#contextMenu');
             $contextMenu.empty();
             $contextMenu.css('left', event.pageX + 'px');
