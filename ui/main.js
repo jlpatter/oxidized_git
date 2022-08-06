@@ -14,6 +14,10 @@ class Main {
             console.log(ev.payload);
         }).then();
 
+        listen("error", ev => {
+            alert(ev.payload);
+        }).then();
+
         $('#fetchBtn').click(() => {
             invoke('git_fetch')
                 .then(() => {

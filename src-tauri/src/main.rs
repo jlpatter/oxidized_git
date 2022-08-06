@@ -32,18 +32,21 @@ fn main() {
         main_window.on_menu_event(move |event| {
             match event.menu_item_id() {
                 "init" => {
-                    let result = git_manager::init_repo();
-                    match result {
+                    match git_manager::init_repo() {
                         Ok(()) => temp_main_window.emit_all("init", "Init Success").unwrap(),
-                        Err(e) => temp_main_window.emit_all("init", e).unwrap(),
+                        Err(e) => temp_main_window.emit_all("error", e).unwrap(),
                     };
                 },
                 "open" => {
-                    let result = git_manager::open_repo();
-                    match result {
-                        Ok(()) => temp_main_window.emit_all("open", "Open Success").unwrap(),
-                        Err(e) => temp_main_window.emit_all("open", e).unwrap(),
-                    }
+                    match git_manager::open_repo() {
+                        Ok(()) => {
+                            match git_manager::get_all_commit_lines() {
+                                Ok(commit_lines) => temp_main_window.emit_all("open", commit_lines).unwrap(),
+                                Err(e) => temp_main_window.emit_all("error", e).unwrap(),
+                            };
+                        },
+                        Err(e) => temp_main_window.emit_all("error", e).unwrap(),
+                    };
                 },
                 &_ => {},
             };

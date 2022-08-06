@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use git2::Repository;
+use git2::{Oid, Repository, Sort};
 use home::home_dir;
 use rfd::FileDialog;
 
@@ -50,6 +50,52 @@ pub fn open_repo() -> Result<(), String> {
         },
         None => Ok(()),
     }
+}
+
+pub fn get_all_commit_lines() -> Result<Vec<String>, String> {
+    let repo_temp_opt;
+    unsafe {
+        repo_temp_opt = &REPO;
+    }
+    let repo_temp = match repo_temp_opt {
+        Some(repo) => repo,
+        None => return Err("No repo to fetch for.".into()),
+    };
+    let branches = match repo_temp.branches(None) {
+        Ok(b) => b,
+        Err(e) => return Err(format!("Error getting list of branches from repo: {}", e)),
+    };
+    let mut revwalk = match repo_temp.revwalk() {
+        Ok(r) => r,
+        Err(e) => return Err(format!("Error getting revwalk object from repo: {}", e)),
+    };
+    for branch_result in branches {
+        let (branch, _) = branch_result.unwrap();
+        let reference = branch.get();
+        match reference.target() {
+            Some(oid) => revwalk.push(oid).unwrap(),
+            None => (),
+        };
+    };
+    match revwalk.set_sorting(Sort::TOPOLOGICAL) {
+        Ok(()) => (),
+        Err(e) => return Err(format!("Error setting the sort of the revwalk: {}", e)),
+    };
+    let mut oid_list: Vec<Oid> = vec![];
+    for commit_oid_result in revwalk {
+        match commit_oid_result {
+            Ok(oid) => oid_list.push(oid),
+            Err(e) => return Err(format!("Error getting oid from revwalk: {}", e)),
+        };
+    }
+    let mut message_list: Vec<String> = vec![];
+    for oid in oid_list {
+        match repo_temp.find_commit(oid) {
+            Ok(commit) => message_list.push(commit.summary().unwrap().parse().unwrap()),
+            Err(e) => return Err(format!("Error finding commit in repo: {}", e)),
+        };
+    }
+    Ok(message_list)
 }
 
 #[tauri::command]
