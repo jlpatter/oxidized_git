@@ -1,10 +1,11 @@
 import jQuery from "jquery";
 $ = window.$ = window.jQuery = jQuery;
 import {emit, listen} from "@tauri-apps/api/event";
-import {exit} from "@tauri-apps/api/process";
 
 class Main {
     run() {
+        this.showCommitControls();
+
         listen("init", ev => {
             console.log(ev.payload);
         }).then();
@@ -20,10 +21,24 @@ class Main {
         $('#fetchBtn').click(() => {
             emit("fetch").then();
         });
+    }
 
-        $('#exitBtn').click(async () => {
-            await exit(0);
-        });
+    showCommitControls() {
+        $('#commitControls').show();
+        $('#mergeControls').hide();
+        $('#cherrypickControls').hide();
+    }
+
+    showMergeControls() {
+        $('#commitControls').hide();
+        $('#mergeControls').show();
+        $('#cherrypickControls').hide();
+    }
+
+    showCherrypickControls() {
+        $('#commitControls').hide();
+        $('#mergeControls').hide();
+        $('#cherrypickControls').show();
     }
 }
 

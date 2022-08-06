@@ -17,8 +17,127 @@
         <button id="fetchBtn" type="button" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-down"></i>Fetch</button>
     </div>
 
-    <div class="container">
-        <button id="exitBtn" type="button" class="btn btn-danger btn-sm right"><i class="bi bi-door-open"></i>Exit</button>
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <button class="nav-link active" id="commits-tab" data-bs-toggle="tab" data-bs-target="#commits" type="button" role="tab" aria-controls="commits" aria-selected="true">Commit Tree</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="changes-tab" data-bs-toggle="tab" data-bs-target="#changes" type="button" role="tab" aria-controls="changes" aria-selected="true">Changes</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="commits" role="tabpanel" aria-labelledby="commits-tab">
+            <div id="mainTable" class="container-fluid">
+                <div class="row">
+                    <div class="col-3">
+                        <div id="branchColumn">
+                            <table class="table table-borderless">
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        <table id="localTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
+                                            <tbody id="localTableBody">
+                                            <tr>
+                                                <th><h6>Local Branches</h6></th>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table id="remoteTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
+                                            <tbody id="remoteTableBody">
+                                            <tr>
+                                                <th><h6>Remote Branches</h6></th>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table id="tagTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
+                                            <tbody id="tagTableBody">
+                                            <tr>
+                                                <th><h6>Tags</h6></th>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-9">
+                        <div id="commitColumn">
+                            <h4>Commits</h4>
+                            <svg id="commitTableSVG" width="500" height="500"></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="changes" role="tabpanel" aria-labelledby="changes-tab">
+            <div class="col-3">
+                <table class="table table-borderless container">
+                    <tbody>
+                    <tr>
+                        <td>
+                            <table id="unstagedTable" class="table table-borderless table-responsive table-dark table-sm">
+                                <tbody id="unstagedTableBody">
+                                <tr>
+                                    <th><h6>Unstaged Changes</h6></th>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table id="stagedTable" class="table table-borderless table-responsive table-dark table-sm">
+                                <tbody id="stagedTableBody">
+                                <tr>
+                                    <th><h6>Staged Changes</h6></th>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="commitControls" class="input-group">
+                                <input type="text" class="form-control" placeholder="Message" id="messageTxt">
+                                <div class="input-group-btn">
+                                    <button id="commitBtn" class="btn btn-primary" type="button">
+                                        <i class="bi bi-check-circle"></i> Commit
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="mergeControls" class="input-group">
+                                <div class="input-group-btn">
+                                    <button id="abortMergeBtn" class="btn btn-danger btn-sm" type="button">Abort Merge</button>
+                                </div>
+                                <div class="input-group-btn">
+                                    <button id="continueMergeBtn" class="btn btn-success btn-sm" type="button">Continue Merge</button>
+                                </div>
+                            </div>
+                            <div id="cherrypickControls" class="input-group">
+                                <div class="input-group-btn">
+                                    <button id="abortCherrypickBtn" class="btn btn-danger btn-sm" type="button">Abort Cherrypick</button>
+                                </div>
+                                <div class="input-group-btn">
+                                    <button id="continueCherrypickBtn" class="btn btn-success btn-sm" type="button">Continue Cherrypick</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </body>
 </html>
