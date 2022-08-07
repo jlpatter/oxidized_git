@@ -49,7 +49,6 @@ class Main {
                 branchResultHTML = '<tr class="unselectable"><td>' + branchResult['branch_name'] + '</td></tr>';
             } else {
                 branchResultHTML = '<tr class="unselectable"><td>' + branchResult['branch_name'] + ' ';
-                // TODO: These might be backwards.
                 if (branchResult['behind'] !== '0') {
                     branchResultHTML += '<span class="right"><i class="bi bi-arrow-down"></i>' + branchResult['behind'] + '</span>';
                 }
