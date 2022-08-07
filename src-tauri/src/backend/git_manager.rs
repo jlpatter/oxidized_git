@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use git2::{Oid, Repository, Sort};
+use git2::{BranchType, Oid, Repository, Sort};
 use home::home_dir;
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
@@ -30,6 +30,29 @@ impl Clone for CommitInfoValue {
             CommitInfoValue::SomeStringVec(v) => CommitInfoValue::SomeStringVec(v.clone()),
             CommitInfoValue::SomeHashMapVec(v) => CommitInfoValue::SomeHashMapVec(v.clone()),
             CommitInfoValue::SomeInt(i) => CommitInfoValue::SomeInt(i.clone()),
+        }
+    }
+}
+
+pub enum RepoInfoValue {
+    SomeCommitInfo(Vec<HashMap<String, CommitInfoValue>>),
+    SomeBranchInfo(Vec<HashMap<String, String>>),
+}
+
+impl Serialize for RepoInfoValue {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        match &self {
+            RepoInfoValue::SomeCommitInfo(c) => c.serialize(serializer),
+            RepoInfoValue::SomeBranchInfo(b) => b.serialize(serializer),
+        }
+    }
+}
+
+impl Clone for RepoInfoValue {
+    fn clone(&self) -> Self {
+        match &self {
+            RepoInfoValue::SomeCommitInfo(c) => RepoInfoValue::SomeCommitInfo(c.clone()),
+            RepoInfoValue::SomeBranchInfo(b) => RepoInfoValue::SomeBranchInfo(b.clone()),
         }
     }
 }
@@ -177,7 +200,7 @@ impl GitManager {
         let repo_temp_opt = &self.repo;
         let repo_temp = match repo_temp_opt {
             Some(repo) => repo,
-            None => return Err("No repo to get repo info for.".into()),
+            None => return Err("No repo to get commit info for.".into()),
         };
 
         let mut commit_list: Vec<HashMap<String, CommitInfoValue>> = vec![];
@@ -250,8 +273,72 @@ impl GitManager {
         Ok(commit_list)
     }
 
-    pub fn get_parseable_repo_info(&self) -> Result<Vec<HashMap<String, CommitInfoValue>>, Box<dyn std::error::Error>> {
-        let repo_info = self.get_commit_info_list(self.git_revwalk()?)?;
+    fn get_branch_info_list(&self) -> Result<Vec<HashMap<String, String>>, Box<dyn std::error::Error>> {
+        let repo_temp_opt = &self.repo;
+        let repo_temp = match repo_temp_opt {
+            Some(repo) => repo,
+            None => return Err("No repo to get branch info for.".into()),
+        };
+
+        let mut branch_info_list: Vec<HashMap<String, String>> = vec![];
+
+        for reference_result in repo_temp.references()? {
+            let reference = reference_result?;
+            let mut branch_info: HashMap<String, String> = HashMap::new();
+
+            // Get branch name
+            let branch_name = match reference.shorthand() {
+                Some(n) => n,
+                None => return Err("Branch name has invalid utf-8!".into()),
+            };
+            branch_info.insert("branch_name".to_string(), branch_name.to_string());
+
+            // Get branch type
+            if reference.is_branch() {
+                branch_info.insert("branch_type".to_string(), "local".to_string());
+            } else if reference.is_remote() {
+                branch_info.insert("branch_type".to_string(), "remote".to_string());
+            } else if reference.is_tag() {
+                branch_info.insert("branch_type".to_string(), "tag".to_string());
+            }
+
+            // Get ahead/behind counts
+            branch_info.insert("ahead".to_string(), "0".to_string());
+            branch_info.insert("behind".to_string(), "0".to_string());
+            if reference.is_branch() {
+                let branch_name = match reference.shorthand() {
+                    Some(n) => n,
+                    None => return Err("Branch name has invalid utf-8!".into()),
+                };
+
+                let local_branch = repo_temp.find_branch(branch_name, BranchType::Local)?;
+                let remote_branch = local_branch.upstream()?;
+
+                match local_branch.get().target() {
+                    Some(local_oid) => {
+                        match remote_branch.get().target() {
+                            Some(remote_oid) => {
+                                let (ahead, behind) = repo_temp.graph_ahead_behind(local_oid, remote_oid)?;
+                                branch_info.insert("ahead".to_string(), ahead.to_string());
+                                branch_info.insert("behind".to_string(), behind.to_string());
+                            },
+                            None => (),
+                        };
+                    },
+                    None => (),
+                };
+            }
+
+            branch_info_list.push(branch_info);
+        }
+
+        Ok(branch_info_list)
+    }
+
+    pub fn get_parseable_repo_info(&self) -> Result<HashMap<String, RepoInfoValue>, Box<dyn std::error::Error>> {
+        let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
+        repo_info.insert("commit_info_list".to_string(), RepoInfoValue::SomeCommitInfo(self.get_commit_info_list(self.git_revwalk()?)?));
+        repo_info.insert("branch_info_list".to_string(), RepoInfoValue::SomeBranchInfo(self.get_branch_info_list()?));
         Ok(repo_info)
     }
 
