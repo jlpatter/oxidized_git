@@ -103,25 +103,59 @@ impl GitManager {
 
         // Get HashMap of Oids and their refs
         let mut oid_refs: HashMap<String, Vec<String>> = HashMap::new();
-        for reference_result in repo_temp.references()? {
-            let reference = reference_result?;
-            let ref_name = match reference.name() {
+
+        // Iterate over branches
+        for branch_result in repo_temp.branches(None)? {
+            let (branch, _) = branch_result?;
+            let mut branch_string = String::new();
+            if branch.is_head() {
+                branch_string.push_str("* ");
+            }
+
+            let reference = branch.get();
+            let ref_name = match reference.shorthand() {
                 Some(n) => n,
                 None => return Err("Ref has name that's not utf-8 valid.".into()),
             };
+            branch_string.push_str(ref_name);
             match reference.target() {
                 Some(oid) => {
                     match oid_refs.get_mut(&*oid.to_string()) {
                         Some(oid_ref_vec) => {
-                            oid_ref_vec.push(ref_name.into());
+                            oid_ref_vec.push(branch_string);
                         },
                         None => {
-                            oid_refs.insert(oid.to_string(), vec![ref_name.into()]);
+                            oid_refs.insert(oid.to_string(), vec![branch_string]);
                         },
                     };
                 },
                 None => (),
             };
+        }
+
+        // Iterate over tags
+        for reference_result in repo_temp.references()? {
+            let reference = reference_result?;
+            if reference.is_tag() {
+                let ref_name = match reference.name() {
+                    Some(n) => n,
+                    None => return Err("Tag has name that's not utf-8 valid.".into()),
+                };
+
+                match reference.target() {
+                    Some(oid) => {
+                        match oid_refs.get_mut(&*oid.to_string()) {
+                            Some(oid_ref_vec) => {
+                                oid_ref_vec.push(ref_name.to_string());
+                            },
+                            None => {
+                                oid_refs.insert(oid.to_string(), vec![ref_name.to_string()]);
+                            },
+                        };
+                    },
+                    None => (),
+                }
+            }
         }
         Ok(oid_refs)
     }
