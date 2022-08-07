@@ -31,11 +31,11 @@ td {
     border-radius: 15px;
 }
 
-svg rect {
+svg .backgroundRect {
     opacity: 0;
 }
 
-svg rect:hover {
+svg .backgroundRect:hover {
     opacity: 0.75;
 }
 

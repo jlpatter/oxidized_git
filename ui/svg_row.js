@@ -149,17 +149,26 @@ export class SVGRow {
         }
         let currentX = (largestXValue + 1) * self.X_SPACING + self.X_OFFSET;
         const contextFunction = self.getContextFunction();
-        self.branchesAndTags.forEach(function(branch) {
-            let branchText = '(' + branch + ')';
-            if (branch.startsWith('refs/tags')) {
-                branchText = '(' + branch.slice(10) + ')';
-            }
-            const svgTextElem = self.makeSVG('text', {x: currentX, y: pixelY + self.TEXT_Y_ALIGNMENT, fill: color});
-            svgTextElem.textContent = branchText;
+        for (let i = 0; i < self.branchesAndTags.length; i++) {
+            const svgTextElem = self.makeSVG('text', {x: currentX, y: pixelY + self.TEXT_Y_ALIGNMENT, fill: 'white'});
+            svgTextElem.textContent = self.branchesAndTags[i]['branch_name'];
             svgTextElem.oncontextmenu = contextFunction;
+            const branchRectId = 'branch_rect_' + i + '_' + self.sha;
+            let branchRectColor = 'yellow';
+            if (self.branchesAndTags[i]['branch_type'] === 'local') {
+                branchRectColor = 'red';
+            } else if (self.branchesAndTags[i]['branch_type'] === 'remote') {
+                branchRectColor = 'green';
+            } else if (self.branchesAndTags[i]['branch_type'] === 'tag') {
+                branchRectColor = 'grey';
+            }
+            const svgRectElem = self.makeSVG('rect', {id: branchRectId, x: currentX - 5, y: pixelY + self.RECT_Y_OFFSET, rx: 10, ry: 10, width: 0, height: self.RECT_HEIGHT, style: 'fill:' + branchRectColor + ';fill-opacity:0.5;'});
+            $commitTableSVG.append(svgRectElem);
             $commitTableSVG.append(svgTextElem);
-            currentX += svgTextElem.getBBox().width + self.BRANCH_TEXT_SPACING;
-        });
+            const box_width = svgTextElem.getBBox().width + 10;
+            $('#' + branchRectId).attr('width', box_width);
+            currentX += box_width + self.BRANCH_TEXT_SPACING;
+        }
 
         // Draw the summary text.
         const entryElem = self.makeSVG('text', {x: currentX, y: pixelY + self.TEXT_Y_ALIGNMENT, fill: 'white'});
@@ -168,7 +177,7 @@ export class SVGRow {
         $commitTableSVG.append(entryElem);
         self.width = currentX + entryElem.getBBox().width;
 
-        const rectElem = self.makeSVG('rect', {x: pixelX, y: pixelY + self.RECT_Y_OFFSET, width: self.width, height: self.RECT_HEIGHT, style: 'fill:white;fill-opacity:0.1;'});
+        const rectElem = self.makeSVG('rect', {class: 'backgroundRect', x: pixelX, y: pixelY + self.RECT_Y_OFFSET, width: self.width, height: self.RECT_HEIGHT, style: 'fill:white;fill-opacity:0.1;'});
         rectElem.oncontextmenu = contextFunction;
         $commitTableSVG.append(rectElem);
     }

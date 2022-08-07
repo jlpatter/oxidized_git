@@ -8,6 +8,7 @@ use serde::{Serialize, Serializer};
 pub enum CommitInfoValue {
     SomeString(String),
     SomeStringVec(Vec<String>),
+    SomeHashMapVec(Vec<HashMap<String, String>>),
     SomeInt(u64),
 }
 
@@ -16,6 +17,7 @@ impl Serialize for CommitInfoValue {
         match &self {
             CommitInfoValue::SomeString(st) => st.serialize(serializer),
             CommitInfoValue::SomeStringVec(v) => v.serialize(serializer),
+            CommitInfoValue::SomeHashMapVec(v) => v.serialize(serializer),
             CommitInfoValue::SomeInt(i) => i.serialize(serializer),
         }
     }
@@ -26,6 +28,7 @@ impl Clone for CommitInfoValue {
         match &self {
             CommitInfoValue::SomeString(s) => CommitInfoValue::SomeString(s.clone()),
             CommitInfoValue::SomeStringVec(v) => CommitInfoValue::SomeStringVec(v.clone()),
+            CommitInfoValue::SomeHashMapVec(v) => CommitInfoValue::SomeHashMapVec(v.clone()),
             CommitInfoValue::SomeInt(i) => CommitInfoValue::SomeInt(i.clone()),
         }
     }
@@ -94,15 +97,15 @@ impl GitManager {
         Ok(oid_list)
     }
 
-    fn get_oid_refs(&self) -> Result<HashMap<String, Vec<String>>, Box<dyn std::error::Error>> {
+    fn get_oid_refs(&self) -> Result<HashMap<String, Vec<HashMap<String, String>>>, Box<dyn std::error::Error>> {
         let repo_temp_opt = &self.repo;
         let repo_temp = match repo_temp_opt {
             Some(repo) => repo,
             None => return Err("No repo to get repo info for.".into()),
         };
 
-        // Get HashMap of Oids and their refs
-        let mut oid_refs: HashMap<String, Vec<String>> = HashMap::new();
+        // Get HashMap of Oids and their refs based on type (local, remote, or tag)
+        let mut oid_refs: HashMap<String, Vec<HashMap<String, String>>> = HashMap::new();
 
         // Iterate over branches
         for branch_result in repo_temp.branches(None)? {
@@ -120,14 +123,21 @@ impl GitManager {
             branch_string.push_str(ref_name);
             match reference.target() {
                 Some(oid) => {
+                    let mut branch_info_hm: HashMap<String, String> = HashMap::new();
+                    branch_info_hm.insert("branch_name".to_string(), branch_string);
+                    if reference.is_remote() {
+                        branch_info_hm.insert("branch_type".to_string(), "remote".to_string());
+                    } else {
+                        branch_info_hm.insert("branch_type".to_string(), "local".to_string());
+                    }
                     match oid_refs.get_mut(&*oid.to_string()) {
                         Some(oid_ref_vec) => {
-                            oid_ref_vec.push(branch_string);
-                        },
+                            oid_ref_vec.push(branch_info_hm);
+                        }
                         None => {
-                            oid_refs.insert(oid.to_string(), vec![branch_string]);
+                            oid_refs.insert(oid.to_string(), vec![branch_info_hm]);
                         },
-                    };
+                    }
                 },
                 None => (),
             };
@@ -137,19 +147,22 @@ impl GitManager {
         for reference_result in repo_temp.references()? {
             let reference = reference_result?;
             if reference.is_tag() {
-                let ref_name = match reference.name() {
+                let ref_name = match reference.shorthand() {
                     Some(n) => n,
                     None => return Err("Tag has name that's not utf-8 valid.".into()),
                 };
 
                 match reference.target() {
                     Some(oid) => {
+                        let mut tag_info_hm: HashMap<String, String> = HashMap::new();
+                        tag_info_hm.insert("branch_name".to_string(), ref_name.to_string());
+                        tag_info_hm.insert("branch_type".to_string(), "tag".to_string());
                         match oid_refs.get_mut(&*oid.to_string()) {
                             Some(oid_ref_vec) => {
-                                oid_ref_vec.push(ref_name.to_string());
-                            },
+                                oid_ref_vec.push(tag_info_hm);
+                            }
                             None => {
-                                oid_refs.insert(oid.to_string(), vec![ref_name.to_string()]);
+                                oid_refs.insert(oid.to_string(), vec![tag_info_hm]);
                             },
                         };
                     },
@@ -188,10 +201,10 @@ impl GitManager {
             // Get branches pointing to this commit
             match oid_refs_hm.get(&*oid.to_string()) {
                 Some(ref_vec) => {
-                    commit_info.insert("branches_and_tags".into(), CommitInfoValue::SomeStringVec(ref_vec.clone()));
-                },
+                    commit_info.insert("branches_and_tags".into(), CommitInfoValue::SomeHashMapVec(ref_vec.clone()));
+                }
                 None => {
-                    commit_info.insert("branches_and_tags".into(), CommitInfoValue::SomeStringVec(vec![]));
+                    commit_info.insert("branches_and_tags".into(), CommitInfoValue::SomeHashMapVec(vec![]));
                 },
             };
 
@@ -220,6 +233,7 @@ impl GitManager {
                     match oid {
                         CommitInfoValue::SomeString(oid_string) => oid_string,
                         CommitInfoValue::SomeStringVec(_some_vector) => return Err("Oid was stored as a vector instead of a string.".into()),
+                        CommitInfoValue::SomeHashMapVec(_some_hm) => return Err("Oid was stored as a hashmap instead of a string.".into()),
                         CommitInfoValue::SomeInt(_some_int) => return Err("Oid was stored as an int instead of a string.".into()),
                     }
                 },
@@ -237,8 +251,7 @@ impl GitManager {
     }
 
     pub fn get_parseable_repo_info(&self) -> Result<Vec<HashMap<String, CommitInfoValue>>, Box<dyn std::error::Error>> {
-        let oid_list = self.git_revwalk()?;
-        let repo_info = self.get_commit_info_list(oid_list)?;
+        let repo_info = self.get_commit_info_list(self.git_revwalk()?)?;
         Ok(repo_info)
     }
 
