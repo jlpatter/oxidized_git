@@ -308,6 +308,19 @@ impl GitManager {
             };
             branch_info.insert("full_branch_name".to_string(), full_branch_name.to_string());
 
+            // Get if branch is head
+            branch_info.insert("is_head".to_string(), false.to_string());
+            if reference.is_branch() {
+                let branch_name = match reference.shorthand() {
+                    Some(n) => n,
+                    None => return Err("Branch name has invalid utf-8!".into()),
+                };
+                let local_branch = repo_temp.find_branch(branch_name, BranchType::Local)?;
+                if local_branch.is_head() {
+                    branch_info.insert("is_head".to_string(), true.to_string());
+                }
+            }
+
             // Get branch type
             if reference.is_branch() {
                 branch_info.insert("branch_type".to_string(), "local".to_string());

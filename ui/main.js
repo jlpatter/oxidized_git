@@ -54,18 +54,18 @@ class Main {
 
         repo_info['branch_info_list'].forEach((branchResult) => {
             let branchResultHTML;
-            if (branchResult['ahead'] === '0' && branchResult['behind'] === '0') {
-                branchResultHTML = '<tr class="unselectable"><td>' + branchResult['branch_name'] + '</td></tr>';
-            } else {
-                branchResultHTML = '<tr class="unselectable"><td>' + branchResult['branch_name'];
-                if (branchResult['behind'] !== '0') {
-                    branchResultHTML += '<span class="right"><i class="bi bi-arrow-down"></i>' + branchResult['behind'] + '</span>';
-                }
-                if (branchResult['ahead'] !== '0') {
-                    branchResultHTML += '<span class="right"><i class="bi bi-arrow-up"></i>' + branchResult['ahead'] + '</span>';
-                }
-                branchResultHTML += '</td></tr>';
+            branchResultHTML = '<tr class="unselectable"><td>';
+            if (branchResult['is_head'] === 'true') {
+                branchResultHTML += '* ';
             }
+            branchResultHTML += branchResult['branch_name'];
+            if (branchResult['behind'] !== '0') {
+                branchResultHTML += '<span class="right"><i class="bi bi-arrow-down"></i>' + branchResult['behind'] + '</span>';
+            }
+            if (branchResult['ahead'] !== '0') {
+                branchResultHTML += '<span class="right"><i class="bi bi-arrow-up"></i>' + branchResult['ahead'] + '</span>';
+            }
+            branchResultHTML += '</td></tr>';
             const $branchResult = $(branchResultHTML);
 
             if (branchResult['branch_type'] === 'remote') {
