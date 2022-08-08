@@ -465,6 +465,7 @@ impl GitManager {
         Ok(())
     }
 
+    #[allow(unused_unsafe)]
     fn get_remote_callbacks(&self) -> RemoteCallbacks {
         let mut callbacks = RemoteCallbacks::new();
         callbacks.credentials(|_url, _username_from_url, _allowed_types| {
@@ -489,6 +490,7 @@ impl GitManager {
         callbacks
     }
 
+    #[allow(unused_unsafe)]
     pub fn set_credentials(&self, credentials_json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
         let credentials_json: HashMap<String, String> = serde_json::from_str(credentials_json_string)?;
         let username = match credentials_json.get("username") {
