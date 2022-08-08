@@ -22,7 +22,6 @@
 * Install NodeJS: `sudo pacman -S nodejs npm`
 ### All
 * Create the `oxidized_git/ui/dist` directory (so tauri doesn't get confused when compiling)
-* You will need to compile the Rust stuff in the src-tauri directory. I use CLion for development which handles it automatically.
 * Run `cargo install tauri-cli`
 * Run `npm install` inside the `ui` directory
 * Run `cargo tauri dev` in the project root to run the dev environment or `cargo tauri build` to package the application
