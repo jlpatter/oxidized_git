@@ -105,14 +105,21 @@ impl GitManager {
             None => return Err("No repo to get commit lines for.".into()),
         };
         let mut revwalk = repo_temp.revwalk()?;
+        let mut oid_vec: Vec<Oid> = vec![];
         for branch_result in repo_temp.branches(None)? {
             let (branch, _) = branch_result?;
-            let reference = branch.get();
-            match reference.target() {
-                Some(oid) => revwalk.push(oid)?,
+            match branch.get().target() {
+                Some(oid) => oid_vec.push(oid),
                 None => (),
             };
         };
+        // Sort Oids by date first
+        oid_vec.sort_by(|a, b| {
+            repo_temp.find_commit(*b).unwrap().time().seconds().partial_cmp(&repo_temp.find_commit(*a).unwrap().time().seconds()).unwrap()
+        });
+        for oid in oid_vec {
+            revwalk.push(oid)?;
+        }
         revwalk.set_sorting(Sort::TOPOLOGICAL)?;
         let mut oid_list: Vec<Oid> = vec![];
         for commit_oid_result in revwalk {
