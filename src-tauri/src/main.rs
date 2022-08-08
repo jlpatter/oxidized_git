@@ -34,6 +34,9 @@ fn main() {
                     CustomMenuItem::new("init", "Init New Repo").into(),
                     CustomMenuItem::new("open", "Open Repo").into(),
                 ])).into(),
+                Submenu::new("Security", Menu::with_items([
+                    CustomMenuItem::new("credentials", "Set Credentials").into(),
+                ])).into(),
             ])
         )
         .maximized(true)
@@ -66,6 +69,9 @@ fn main() {
                         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
                     };
                 },
+                "credentials" => {
+                    temp_main_window.emit_all("get-credentials", "").unwrap();
+                }
                 &_ => {},
             };
         });
@@ -99,11 +105,25 @@ fn main() {
             }
         });
         let temp_main_window = main_window.clone();
+        main_window.listen("send-credentials", move |event| {
+            match event.payload() {
+                Some(s) => {
+                    let set_credentials_result;
+                    unsafe { set_credentials_result = GIT_MANAGER.set_credentials(s); }
+                    match set_credentials_result {
+                        Ok(()) => (),
+                        Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+                    };
+                },
+                None => temp_main_window.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+            }
+        });
+        let temp_main_window = main_window.clone();
         main_window.listen("fetch", move |_event| {
             let fetch_result;
             unsafe { fetch_result = GIT_MANAGER.git_fetch(); }
             match fetch_result {
-                Ok(()) => (),
+                Ok(()) => emit_update_all(&temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
             }
         });

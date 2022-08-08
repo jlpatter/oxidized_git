@@ -141,6 +141,26 @@
         </div>
     </div>
 
+    <div class="modal fade" id="credentialsModal" tabindex="-1" aria-labelledby="credentialsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="credentialsModalLabel">Set Credentials</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Note: If you already have credentials stored in the keychain, this will overwrite them.</h6>
+                    <label for="usernameTxt">Username: </label><input type="text" class="form-control" id="usernameTxt">
+                    <label for="passwordTxt">Password: </label><input type="password" class="form-control" id="passwordTxt">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button id="saveCredentialsBtn" type="button" class="btn btn-success btn-sm">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="contextMenu" class="bg-dark gy-0 rounded-0">
         <button type="button" class="btn btn-outline-light rounded-0 btn-sm" onclick="alert('BLURG');">
             ERROR! Do not click!

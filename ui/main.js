@@ -18,10 +18,24 @@ class Main {
             self.updateCommitsAndBranches(ev.payload);
         }).then();
 
+        listen("get-credentials", ev => {
+            // TODO: This isn't working!
+            $('#credentialsModal').show();
+        }).then();
+
         listen("error", ev => {
             // TODO: Maybe make a modal for errors instead?
             alert(ev.payload);
         }).then();
+
+        $('#saveCredentialsBtn').click(() => {
+            let $usernameTxt = $('#usernameTxt'),
+                $passwordTxt = $('#passwordTxt');
+            emit("send-credentials", {username: $usernameTxt.val(), password: $passwordTxt.val()}).then();
+            $usernameTxt.val("");
+            $passwordTxt.val("");
+            $('#credentialsModal').hide();
+        });
 
         $('#fetchBtn').click(() => {
             emit("fetch").then();

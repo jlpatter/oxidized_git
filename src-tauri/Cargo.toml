@@ -24,6 +24,7 @@ rfd = "0.10"
 futures = {version = "0.3", features = ["executor", "thread-pool"] }
 home = "0.5"
 clipboard = "0.5"
+keytar = "0.1"
 
 [features]
 # by default Tauri runs in production mode

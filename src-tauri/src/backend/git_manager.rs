@@ -1,6 +1,7 @@
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use git2::{BranchType, Oid, Repository, Sort};
+use git2::{AutotagOption, BranchType, Cred, FetchOptions, Oid, RemoteCallbacks, Repository, Sort};
 use home::home_dir;
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
@@ -436,9 +437,54 @@ impl GitManager {
                 None => return Err("There is a remote name that uses invalid utf-8!".into()),
             };
             let mut remote = repo_temp.find_remote(remote_string)?;
-            remote.fetch(empty_refspecs, None, None)?;
+            let mut fetch_options = FetchOptions::new();
+            fetch_options.download_tags(AutotagOption::All);
+            fetch_options.remote_callbacks(self.get_remote_callbacks());
+            remote.fetch(empty_refspecs, Some(fetch_options.borrow_mut()), None)?;
         }
-        println!("Fetch successful!");
+        Ok(())
+    }
+
+    fn get_remote_callbacks(&self) -> RemoteCallbacks {
+        let mut callbacks = RemoteCallbacks::new();
+        callbacks.credentials(|_url, _username_from_url, _allowed_types| {
+            let username;
+            let pass;
+            unsafe {
+                username = match keytar::get_password("oxidized_git", "username") {
+                    Ok(p) => p,
+                    Err(_) => return Err(git2::Error::from_str("Error finding username in keychain!")),
+                };
+                pass = match keytar::get_password("oxidized_git", "password") {
+                    Ok(p) => p,
+                    Err(_) => return Err(git2::Error::from_str("Error finding password in keychain!")),
+                };
+            }
+            if username.success && pass.success {
+                Cred::userpass_plaintext(&*username.password, &*pass.password)
+            } else {
+                Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials"))
+            }
+        });
+        callbacks
+    }
+
+    pub fn set_credentials(&self, credentials_json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let credentials_json: HashMap<String, String> = serde_json::from_str(credentials_json_string)?;
+        let username = match credentials_json.get("username") {
+            Some(u) => u,
+            None => return Err("No username supplied".into()),
+        };
+        let password = match credentials_json.get("password") {
+            Some(p) => p,
+            None => return Err("No password supplied".into()),
+        };
+
+        unsafe {
+            keytar::set_password("oxidized_git", "username", username)?;
+            keytar::set_password("oxidized_git", "password", password)?;
+        }
+
         Ok(())
     }
 }
