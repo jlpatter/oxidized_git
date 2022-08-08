@@ -5,7 +5,6 @@
 
 mod backend;
 
-use clipboard::{ClipboardContext, ClipboardProvider};
 use tauri::{CustomMenuItem, Manager, Menu, Submenu, Window, WindowBuilder, Wry};
 use backend::git_manager::GitManager;
 
@@ -126,16 +125,6 @@ fn main() {
                 Ok(()) => emit_update_all(&temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
             }
-        });
-        let temp_main_window = main_window.clone();
-        main_window.listen("copy_to_clipboard", move |event| {
-            match event.payload() {
-                Some(s) => {
-                    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-                    ctx.set_contents(s.into()).unwrap();
-                },
-                None => temp_main_window.emit_all("error", "Failed to receive payload from front-end").unwrap(),
-            };
         });
 
         Ok(())
