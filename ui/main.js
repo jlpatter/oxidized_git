@@ -19,8 +19,7 @@ class Main {
         }).then();
 
         listen("get-credentials", ev => {
-            // TODO: This isn't working!
-            $('#credentialsModal').show();
+            $('#credentialsModal').modal('show');
         }).then();
 
         listen("error", ev => {
@@ -34,7 +33,7 @@ class Main {
             emit("send-credentials", {username: $usernameTxt.val(), password: $passwordTxt.val()}).then();
             $usernameTxt.val("");
             $passwordTxt.val("");
-            $('#credentialsModal').hide();
+            $('#credentialsModal').modal('hide');
         });
 
         $('#fetchBtn').click(() => {
