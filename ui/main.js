@@ -14,11 +14,7 @@ class Main {
             $('#contextMenu').hide();
         });
 
-        listen("init", ev => {
-            self.updateCommitsAndBranches(ev.payload);
-        }).then();
-
-        listen("open", ev => {
+        listen("update_all", ev => {
             self.updateCommitsAndBranches(ev.payload);
         }).then();
 
@@ -48,7 +44,7 @@ class Main {
             if (branchResult['ahead'] === '0' && branchResult['behind'] === '0') {
                 branchResultHTML = '<tr class="unselectable"><td>' + branchResult['branch_name'] + '</td></tr>';
             } else {
-                branchResultHTML = '<tr class="unselectable"><td>' + branchResult['branch_name'] + ' ';
+                branchResultHTML = '<tr class="unselectable"><td>' + branchResult['branch_name'];
                 if (branchResult['behind'] !== '0') {
                     branchResultHTML += '<span class="right"><i class="bi bi-arrow-down"></i>' + branchResult['behind'] + '</span>';
                 }
@@ -65,7 +61,7 @@ class Main {
                     self.showContextMenu(e, branchResult['branch_name']);
                 });
                 $branchResult.on('dblclick', function() {
-                    // TODO: Insert git checkout here!
+                    emit("checkout-remote", {full_branch_name: branchResult['full_branch_name'], branch_name: branchResult['branch_name']}).then();
                 });
                 $('#remoteTableBody').append($branchResult);
             } else if (branchResult['branch_type'] === 'tag') {
@@ -76,7 +72,7 @@ class Main {
                     self.showContextMenu(e, branchResult['branch_name']);
                 });
                 $branchResult.on('dblclick', function() {
-                    // TODO: Insert git checkout here!
+                    emit("checkout", branchResult['full_branch_name']).then();
                 });
                 $('#localTableBody').append($branchResult);
             }

@@ -6,10 +6,19 @@
 mod backend;
 
 use clipboard::{ClipboardContext, ClipboardProvider};
-use tauri::{CustomMenuItem, Manager, Menu, Submenu, WindowBuilder};
+use tauri::{CustomMenuItem, Manager, Menu, Submenu, Window, WindowBuilder, Wry};
 use backend::git_manager::GitManager;
 
 static mut GIT_MANAGER: GitManager = GitManager::new();
+
+fn emit_update_all(temp_main_window: &Window<Wry>) {
+    let repo_info_result;
+    unsafe { repo_info_result = GIT_MANAGER.get_parseable_repo_info(); }
+    match repo_info_result {
+        Ok(repo_info) => temp_main_window.emit_all("update_all", repo_info).unwrap(),
+        Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+    };
+}
 
 fn main() {
     tauri::Builder::default()
@@ -39,12 +48,7 @@ fn main() {
                     match init_result {
                         Ok(did_init) => {
                             if did_init {
-                                let repo_info_result;
-                                unsafe { repo_info_result = GIT_MANAGER.get_parseable_repo_info(); }
-                                match repo_info_result {
-                                    Ok(repo_info) => temp_main_window.emit_all("init", repo_info).unwrap(),
-                                    Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
-                                };
+                                emit_update_all(&temp_main_window);
                             }
                         },
                         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
@@ -56,12 +60,7 @@ fn main() {
                     match open_result {
                         Ok(did_open) => {
                             if did_open {
-                                let repo_info_result;
-                                unsafe { repo_info_result = GIT_MANAGER.get_parseable_repo_info(); }
-                                match repo_info_result {
-                                    Ok(repo_info) => temp_main_window.emit_all("open", repo_info).unwrap(),
-                                    Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
-                                };
+                                emit_update_all(&temp_main_window);
                             }
                         },
                         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
@@ -71,6 +70,34 @@ fn main() {
             };
         });
 
+        let temp_main_window = main_window.clone();
+        main_window.listen("checkout", move |event| {
+            match event.payload() {
+                Some(s) => {
+                    let checkout_result;
+                    unsafe { checkout_result = GIT_MANAGER.git_checkout(s); }
+                    match checkout_result {
+                        Ok(()) => emit_update_all(&temp_main_window),
+                        Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+                    };
+                },
+                None => temp_main_window.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+            }
+        });
+        let temp_main_window = main_window.clone();
+        main_window.listen("checkout-remote", move |event| {
+            match event.payload() {
+                Some(s) => {
+                    let checkout_result;
+                    unsafe { checkout_result = GIT_MANAGER.git_checkout_remote(s); }
+                    match checkout_result {
+                        Ok(()) => emit_update_all(&temp_main_window),
+                        Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+                    };
+                },
+                None => temp_main_window.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+            }
+        });
         let temp_main_window = main_window.clone();
         main_window.listen("fetch", move |_event| {
             let fetch_result;
@@ -87,7 +114,7 @@ fn main() {
                     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
                     ctx.set_contents(s.into()).unwrap();
                 },
-                None => temp_main_window.emit_all("error", "Failed to copy to clipboard").unwrap(),
+                None => temp_main_window.emit_all("error", "Failed to receive payload from front-end").unwrap(),
             };
         });
 

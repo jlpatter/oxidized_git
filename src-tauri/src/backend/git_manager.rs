@@ -293,6 +293,13 @@ impl GitManager {
             };
             branch_info.insert("branch_name".to_string(), branch_name.to_string());
 
+            // Get full branch name
+            let full_branch_name = match reference.name() {
+                Some(n) => n,
+                None => return Err("Branch name has invalid utf-8!".into()),
+            };
+            branch_info.insert("full_branch_name".to_string(), full_branch_name.to_string());
+
             // Get branch type
             if reference.is_branch() {
                 branch_info.insert("branch_type".to_string(), "local".to_string());
@@ -312,20 +319,24 @@ impl GitManager {
                 };
 
                 let local_branch = repo_temp.find_branch(branch_name, BranchType::Local)?;
-                let remote_branch = local_branch.upstream()?;
-
-                match local_branch.get().target() {
-                    Some(local_oid) => {
-                        match remote_branch.get().target() {
-                            Some(remote_oid) => {
-                                let (ahead, behind) = repo_temp.graph_ahead_behind(local_oid, remote_oid)?;
-                                branch_info.insert("ahead".to_string(), ahead.to_string());
-                                branch_info.insert("behind".to_string(), behind.to_string());
+                // This throws an error when an upstream isn't found, which is why I'm not returning the error.
+                match local_branch.upstream() {
+                    Ok(remote_branch) => {
+                        match local_branch.get().target() {
+                            Some(local_oid) => {
+                                match remote_branch.get().target() {
+                                    Some(remote_oid) => {
+                                        let (ahead, behind) = repo_temp.graph_ahead_behind(local_oid, remote_oid)?;
+                                        branch_info.insert("ahead".to_string(), ahead.to_string());
+                                        branch_info.insert("behind".to_string(), behind.to_string());
+                                    },
+                                    None => (),
+                                };
                             },
                             None => (),
                         };
                     },
-                    None => (),
+                    Err(_) => (),
                 };
             }
 
@@ -340,6 +351,75 @@ impl GitManager {
         repo_info.insert("commit_info_list".to_string(), RepoInfoValue::SomeCommitInfo(self.get_commit_info_list(self.git_revwalk()?)?));
         repo_info.insert("branch_info_list".to_string(), RepoInfoValue::SomeBranchInfo(self.get_branch_info_list()?));
         Ok(repo_info)
+    }
+
+    pub fn git_checkout(&self, branch_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let repo_temp_opt = &self.repo;
+        let repo_temp = match repo_temp_opt {
+            Some(repo) => repo,
+            None => return Err("No repo to checkout for.".into()),
+        };
+
+        repo_temp.set_head(branch_name)?;
+        repo_temp.checkout_head(None)?;
+        Ok(())
+    }
+
+    pub fn git_checkout_remote(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let repo_temp_opt = &self.repo;
+        let repo_temp = match repo_temp_opt {
+            Some(repo) => repo,
+            None => return Err("No repo to checkout for.".into()),
+        };
+
+        let json_data: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let remote_branch_name = match json_data.get("branch_name") {
+            Some(n) => n,
+            None => return Err("JSON Data is missing branch_name attribute.".into()),
+        };
+        let remote_branch_full_name = match json_data.get("full_branch_name") {
+            Some(n) => n,
+            None => return Err("JSON Data is missing full_branch_name attribute.".into()),
+        };
+
+        // Look for a local branch that already exists for the specified remote branch. If one exists,
+        // check it out instead.
+        for local_b_result in repo_temp.branches(Some(BranchType::Local))? {
+            let (local_b, _) = local_b_result?;
+            match local_b.upstream()?.get().name() {
+                Some(local_remote_full_name) => {
+                    if local_remote_full_name.eq(remote_branch_full_name) {
+                        return match local_b.get().name() {
+                            Some(n) => self.git_checkout(n),
+                            None => Err("Local branch has name with invalid utf-8!".into()),
+                        }
+                    }
+                },
+                None => return Err("Local branch has name with invalid utf-8!".into()),
+            }
+        }
+
+        // If there's no local branch, create a new one with the name used by the remote branch.
+        let remote_branch_name_parts: Vec<&str> = remote_branch_name.split("/").collect();
+        let mut local_branch_name = String::new();
+        for i in 1..remote_branch_name_parts.len() {
+            local_branch_name.push_str(remote_branch_name_parts[i]);
+            if i < remote_branch_name_parts.len() - 1 {
+                local_branch_name.push('/');
+            }
+        }
+        let remote_branch = repo_temp.find_branch(remote_branch_name, BranchType::Remote)?;
+        let commit = match remote_branch.get().target() {
+            Some(oid) => repo_temp.find_commit(oid)?,
+            None => return Err("Selected remote branch isn't targeting a commit, can't checkout!".into()),
+        };
+        let mut local_branch = repo_temp.branch(&*local_branch_name, &commit, false)?;
+        local_branch.set_upstream(Some(remote_branch_name))?;
+
+        match local_branch.get().name() {
+            Some(n) => self.git_checkout(n),
+            None => Err("Local branch (that was just now created) has name with invalid utf-8!".into()),
+        }
     }
 
     pub fn git_fetch(&self) -> Result<(), Box<dyn std::error::Error>> {
