@@ -6,7 +6,7 @@
 * Install WebView2 https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
 * Install Rust https://www.rust-lang.org/tools/install
 * Install NodeJS https://nodejs.org/en/
-### Mac (Untested)
+### Mac
 * Install xcode
 * Install homebrew
 * Install Rust: https://www.rust-lang.org/tools/install
