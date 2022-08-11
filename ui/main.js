@@ -39,6 +39,18 @@ class Main {
         $('#fetchBtn').click(() => {
             emit("fetch").then();
         });
+
+        $('#pullBtn').click(() => {
+            emit("pull").then();
+        });
+
+        $('#pushBtn').click(() => {
+            emit("push").then();
+        });
+
+        $('#forcePushBtn').click(() => {
+            emit("forcePush").then();
+        });
     }
 
     updateCommitsAndBranches(repo_info) {

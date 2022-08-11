@@ -1,7 +1,7 @@
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use git2::{AutotagOption, BranchType, Cred, FetchOptions, Oid, RemoteCallbacks, Repository, Sort};
+use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, Oid, Reference, RemoteCallbacks, Repository, Sort};
 use home::home_dir;
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
@@ -374,15 +374,35 @@ impl GitManager {
         Ok(repo_info)
     }
 
-    pub fn git_checkout(&self, branch_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference, Box<dyn std::error::Error>> {
+        let repo_temp_opt = &self.repo;
+        let repo_temp = match repo_temp_opt {
+            Some(repo) => repo,
+            None => return Err("No repo to get branch name from.".into()),
+        };
+
+        Ok(repo_temp.find_reference(ref_full_name)?)
+    }
+
+    pub fn git_checkout(&self, local_ref: &Reference) -> Result<(), Box<dyn std::error::Error>> {
         let repo_temp_opt = &self.repo;
         let repo_temp = match repo_temp_opt {
             Some(repo) => repo,
             None => return Err("No repo to checkout for.".into()),
         };
 
-        repo_temp.set_head(branch_name)?;
-        repo_temp.checkout_head(None)?;
+        let local_full_name = match local_ref.name() {
+            Some(n) => n,
+            None => return Err("Trying to check out local branch that doesn't have a name with valid utf-8!".into()),
+        };
+        let commit = match local_ref.target() {
+            Some(oid) => repo_temp.find_commit(oid)?,
+            None => return Err("Trying to check out branch that has no target commit.".into()),
+        };
+        let tree = commit.tree()?;
+
+        repo_temp.checkout_tree(tree.as_object(), None)?;
+        repo_temp.set_head(local_full_name)?;
         Ok(())
     }
 
@@ -394,7 +414,7 @@ impl GitManager {
         };
 
         let json_data: HashMap<String, String> = serde_json::from_str(json_string)?;
-        let remote_branch_name = match json_data.get("branch_name") {
+        let remote_branch_shortname = match json_data.get("branch_name") {
             Some(n) => n,
             None => return Err("JSON Data is missing branch_name attribute.".into()),
         };
@@ -410,10 +430,7 @@ impl GitManager {
             match local_b.upstream()?.get().name() {
                 Some(local_remote_full_name) => {
                     if local_remote_full_name.eq(remote_branch_full_name) {
-                        return match local_b.get().name() {
-                            Some(n) => self.git_checkout(n),
-                            None => Err("Local branch has name with invalid utf-8!".into()),
-                        }
+                        return self.git_checkout(local_b.get());
                     }
                 },
                 None => return Err("Local branch has name with invalid utf-8!".into()),
@@ -421,26 +438,23 @@ impl GitManager {
         }
 
         // If there's no local branch, create a new one with the name used by the remote branch.
-        let remote_branch_name_parts: Vec<&str> = remote_branch_name.split("/").collect();
-        let mut local_branch_name = String::new();
+        let remote_branch_name_parts: Vec<&str> = remote_branch_shortname.split("/").collect();
+        let mut local_branch_shortname = String::new();
         for i in 1..remote_branch_name_parts.len() {
-            local_branch_name.push_str(remote_branch_name_parts[i]);
+            local_branch_shortname.push_str(remote_branch_name_parts[i]);
             if i < remote_branch_name_parts.len() - 1 {
-                local_branch_name.push('/');
+                local_branch_shortname.push('/');
             }
         }
-        let remote_branch = repo_temp.find_branch(remote_branch_name, BranchType::Remote)?;
+        let remote_branch = repo_temp.find_branch(remote_branch_shortname, BranchType::Remote)?;
         let commit = match remote_branch.get().target() {
             Some(oid) => repo_temp.find_commit(oid)?,
             None => return Err("Selected remote branch isn't targeting a commit, can't checkout!".into()),
         };
-        let mut local_branch = repo_temp.branch(&*local_branch_name, &commit, false)?;
-        local_branch.set_upstream(Some(remote_branch_name))?;
+        let mut local_branch = repo_temp.branch(&*local_branch_shortname, &commit, false)?;
+        local_branch.set_upstream(Some(remote_branch_shortname))?;
 
-        match local_branch.get().name() {
-            Some(n) => self.git_checkout(n),
-            None => Err("Local branch (that was just now created) has name with invalid utf-8!".into()),
-        }
+        self.git_checkout(local_branch.get())
     }
 
     pub fn git_fetch(&self) -> Result<(), Box<dyn std::error::Error>> {
@@ -463,6 +477,97 @@ impl GitManager {
             remote.fetch(empty_refspecs, Some(fetch_options.borrow_mut()), None)?;
         }
         Ok(())
+    }
+
+    fn get_staged_changes(&self) -> Result<Diff, Box<dyn std::error::Error>> {
+        let repo_temp_opt = &self.repo;
+        let repo_temp = match repo_temp_opt {
+            Some(repo) => repo,
+            None => return Err("No repo to get staged changes for.".into()),
+        };
+
+        let head_ref = repo_temp.head()?;
+        let commit = match head_ref.target() {
+            Some(oid) => Some(repo_temp.find_commit(oid)?),
+            None => None,
+        };
+        let tree = match commit {
+            Some(c) => Some(c.tree()?),
+            None => None,
+        };
+
+        let diff = repo_temp.diff_tree_to_index(tree.as_ref(), None, None)?;
+
+        Ok(diff)
+    }
+
+    pub fn git_pull(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let repo_temp_opt = &self.repo;
+        let repo_temp = match repo_temp_opt {
+            Some(repo) => repo,
+            None => return Err("No repo to pull for.".into()),
+        };
+
+        // Fetch first to make sure everything's up to date.
+        self.git_fetch()?;
+
+        let mut local_ref = repo_temp.head()?;
+        let local_branch = match local_ref.shorthand() {
+            Some(n) => repo_temp.find_branch(n, BranchType::Local)?,
+            None => return Err("Could not find head branch in repo.".into()),
+        };
+
+        let remote_branch = local_branch.upstream()?;
+        let remote_ref = remote_branch.get();
+        let remote_target = match remote_ref.target() {
+            Some(oid) => oid,
+            None => return Err("Remote branch is not targeting a commit, cannot pull.".into()),
+        };
+        let remote_ac = repo_temp.find_annotated_commit(remote_target)?;
+
+        let (ma, mp) = repo_temp.merge_analysis(&[&remote_ac])?;
+
+        if ma.is_none() {
+            return Err("Merge analysis indicates no merge is possible. If you're reading this, your repository may be corrupted.".into());
+        } else if ma.is_unborn() {
+            return Err("The HEAD of the current repository is “unborn” and does not point to a valid commit. No pull can be performed, but the caller may wish to simply set HEAD to the target commit(s).".into());
+        } else if ma.is_up_to_date() {
+            return Ok(());
+        } else if ma.is_fast_forward() && !mp.is_no_fast_forward() {
+            println!("Performing fast forward merge for pull!");
+            let commit = match remote_ref.target() {
+                Some(oid) => repo_temp.find_commit(oid)?,
+                None => return Err("Trying to check out branch that has no target commit.".into()),
+            };
+            let tree = commit.tree()?;
+            repo_temp.checkout_tree(tree.as_object(), None)?;
+            local_ref.set_target(remote_target, "oxidized_git pull: setting new target for local ref")?;
+            return Ok(());
+        } else if ma.is_normal() && !mp.is_fastforward_only() {
+            println!("Performing non-fast-forward merge for pull!");
+            // TODO: Switch to rebasing instead of merging!
+            // let mut merge_options = MergeOptions::new();
+            // merge_options.fail_on_conflict(true);
+            // repo_temp.merge(&[&remote_ac], Some(&mut merge_options), None)?;
+            //
+            // let diff = self.get_staged_changes()?;
+            // if diff.stats()?.files_changed() > 0 {
+            //     repo_temp.cleanup_state()?;
+            //     return Err("Cannot pull when the local branch contains changes that the remote branch does not.".into());
+            // }
+            return Ok(());
+        } else if (ma.is_fast_forward() && mp.is_no_fast_forward()) || (ma.is_normal() && mp.is_fastforward_only()) {
+            return Err("It looks like a pull may be possible, but your MergePreference(s) are preventing it. If you have --no-ff AND/OR --ff-only enabled, consider disabling one or both.".into());
+        }
+        Err("Merge analysis failed to make any determination on how to proceed with the pull. If you're reading this, your repository may be corrupted.".into())
+    }
+
+    pub fn git_push(&self) -> Result<(), Box<dyn std::error::Error>> {
+        todo!()
+    }
+
+    pub fn git_force_push(&self) -> Result<(), Box<dyn std::error::Error>> {
+        todo!()
     }
 
     #[allow(unused_unsafe)]

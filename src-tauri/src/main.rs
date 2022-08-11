@@ -79,10 +79,17 @@ fn main() {
         main_window.listen("checkout", move |event| {
             match event.payload() {
                 Some(s) => {
-                    let checkout_result;
-                    unsafe { checkout_result = GIT_MANAGER.git_checkout(s); }
-                    match checkout_result {
-                        Ok(()) => emit_update_all(&temp_main_window),
+                    let ref_result;
+                    unsafe { ref_result = GIT_MANAGER.get_ref_from_name(s); }
+                    match ref_result {
+                        Ok(r) => {
+                            let checkout_result;
+                            unsafe { checkout_result = GIT_MANAGER.git_checkout(&r); }
+                            match checkout_result {
+                                Ok(()) => emit_update_all(&temp_main_window),
+                                Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+                            };
+                        },
                         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
                     };
                 },
@@ -122,6 +129,33 @@ fn main() {
             let fetch_result;
             unsafe { fetch_result = GIT_MANAGER.git_fetch(); }
             match fetch_result {
+                Ok(()) => emit_update_all(&temp_main_window),
+                Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+            }
+        });
+        let temp_main_window = main_window.clone();
+        main_window.listen("pull", move |_event| {
+            let pull_result;
+            unsafe { pull_result = GIT_MANAGER.git_pull(); }
+            match pull_result {
+                Ok(()) => emit_update_all(&temp_main_window),
+                Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+            }
+        });
+        let temp_main_window = main_window.clone();
+        main_window.listen("push", move |_event| {
+            let push_result;
+            unsafe { push_result = GIT_MANAGER.git_push(); }
+            match push_result {
+                Ok(()) => emit_update_all(&temp_main_window),
+                Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+            }
+        });
+        let temp_main_window = main_window.clone();
+        main_window.listen("forcePush", move |_event| {
+            let force_push_result;
+            unsafe { force_push_result = GIT_MANAGER.git_force_push(); }
+            match force_push_result {
                 Ok(()) => emit_update_all(&temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
             }
