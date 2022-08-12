@@ -544,17 +544,22 @@ impl GitManager {
             local_ref.set_target(remote_target, "oxidized_git pull: setting new target for local ref")?;
             return Ok(());
         } else if ma.is_normal() && !mp.is_fastforward_only() {
-            println!("Performing non-fast-forward merge for pull!");
-            // TODO: Switch to rebasing instead of merging!
-            // let mut merge_options = MergeOptions::new();
-            // merge_options.fail_on_conflict(true);
-            // repo_temp.merge(&[&remote_ac], Some(&mut merge_options), None)?;
-            //
-            // let diff = self.get_staged_changes()?;
-            // if diff.stats()?.files_changed() > 0 {
-            //     repo_temp.cleanup_state()?;
-            //     return Err("Cannot pull when the local branch contains changes that the remote branch does not.".into());
-            // }
+            println!("Performing rebase for pull!");
+            let mut rebase = repo_temp.rebase(None, None, Some(&remote_ac), None)?;
+            let mut has_conflicts = false;
+            for step in rebase.by_ref() {
+                step?;
+                let diff = repo_temp.diff_index_to_workdir(None, None)?;
+                if diff.stats()?.files_changed() > 0 {
+                    has_conflicts = true;
+                    break;
+                }
+            }
+            if has_conflicts {
+                rebase.abort()?;
+                return Err("Pull by rebase aborted because changes on local branch differ from remote branch!".into());
+            }
+            rebase.finish(None)?;
             return Ok(());
         } else if (ma.is_fast_forward() && mp.is_no_fast_forward()) || (ma.is_normal() && mp.is_fastforward_only()) {
             return Err("It looks like a pull may be possible, but your MergePreference(s) are preventing it. If you have --no-ff AND/OR --ff-only enabled, consider disabling one or both.".into());

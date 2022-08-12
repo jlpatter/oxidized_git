@@ -36,6 +36,10 @@ class Main {
             $('#credentialsModal').modal('hide');
         });
 
+        $('#refreshBtn').click(() => {
+            emit("refresh").then();
+        });
+
         $('#fetchBtn').click(() => {
             emit("fetch").then();
         });

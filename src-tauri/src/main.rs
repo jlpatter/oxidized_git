@@ -125,6 +125,10 @@ fn main() {
             }
         });
         let temp_main_window = main_window.clone();
+        main_window.listen("refresh", move |_event| {
+            emit_update_all(&temp_main_window);
+        });
+        let temp_main_window = main_window.clone();
         main_window.listen("fetch", move |_event| {
             let fetch_result;
             unsafe { fetch_result = GIT_MANAGER.git_fetch(); }

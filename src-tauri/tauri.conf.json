@@ -2,7 +2,7 @@
   "build": {
     "beforeBuildCommand": "cd ui && npm run build",
     "beforeDevCommand": "cd ui && npm run dev",
-    "devPath": "http://localhost:3000",
+    "devPath": "http://localhost:5173",
     "distDir": "../ui/dist"
   },
   "package": {
