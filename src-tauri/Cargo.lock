@@ -776,7 +776,6 @@ dependencies = [
  "futures-core",
  "futures-task",
  "futures-util",
- "num_cpus",
 ]
 
 [[package]]
@@ -1908,7 +1907,6 @@ dependencies = [
 name = "oxidized_git"
 version = "0.1.0"
 dependencies = [
- "futures",
  "git2",
  "home",
  "keytar",

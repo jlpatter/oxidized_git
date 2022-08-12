@@ -3,7 +3,7 @@ name = "oxidized_git"
 version = "0.1.0"
 description = "A Tauri Git Client Application"
 authors = ["Joshua Patterson"]
-license = ""
+license = "GPL-3.0-or-later"
 repository = ""
 build = "build.rs"
 default-run = "oxidized_git"
@@ -21,7 +21,6 @@ serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.0.2", features = ["api-all"] }
 git2 = "0.15"
 rfd = "0.10"
-futures = {version = "0.3", features = ["executor", "thread-pool"] }
 home = "0.5"
 keytar = "0.1"
 
