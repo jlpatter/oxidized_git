@@ -13,16 +13,16 @@ rust-version = "1.62"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.0.2", features = [] }
+tauri-build = { version = "1.0.*", features = [] }
 
 [dependencies]
-serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.0.2", features = ["api-all"] }
-git2 = "0.15"
-rfd = "0.10"
-home = "0.5"
-keytar = "0.1"
+serde_json = "1.0.*"
+serde = { version = "1.0.*", features = ["derive"] }
+tauri = { version = "1.0.*", features = ["api-all"] }
+git2 = "0.15.*"
+rfd = "0.10.*"
+home = "0.5.*"
+keytar = "0.1.*"
 
 [features]
 # by default Tauri runs in production mode
