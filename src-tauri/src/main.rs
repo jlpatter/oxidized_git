@@ -135,7 +135,7 @@ fn main() {
             match fetch_result {
                 Ok(()) => emit_update_all(&temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
-            }
+            };
         });
         let temp_main_window = main_window.clone();
         main_window.listen("pull", move |_event| {
@@ -144,7 +144,7 @@ fn main() {
             match pull_result {
                 Ok(()) => emit_update_all(&temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
-            }
+            };
         });
         let temp_main_window = main_window.clone();
         main_window.listen("push", move |_event| {
@@ -153,7 +153,7 @@ fn main() {
             match push_result {
                 Ok(()) => emit_update_all(&temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
-            }
+            };
         });
         let temp_main_window = main_window.clone();
         main_window.listen("forcePush", move |_event| {
@@ -162,7 +162,7 @@ fn main() {
             match force_push_result {
                 Ok(()) => emit_update_all(&temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
-            }
+            };
         });
 
         Ok(())

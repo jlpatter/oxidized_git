@@ -1,7 +1,7 @@
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, Oid, Reference, RemoteCallbacks, Repository, Sort};
+use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use home::home_dir;
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
@@ -567,12 +567,44 @@ impl GitManager {
         Err("Merge analysis failed to make any determination on how to proceed with the pull. If you're reading this, your repository may be corrupted.".into())
     }
 
+    fn push(&self, is_force: bool) -> Result<(), Box<dyn std::error::Error>> {
+        let repo_temp_opt = &self.repo;
+        let repo_temp = match repo_temp_opt {
+            Some(repo) => repo,
+            None => return Err("No repo to pull for.".into()),
+        };
+
+        let local_ref = repo_temp.head()?;
+        let mut local_full_name = match local_ref.name() {
+            Some(n) => n,
+            None => return Err("Local branch name is invalid utf-8!".into()),
+        };
+        let remote_name_buf = repo_temp.branch_upstream_remote(local_full_name)?;
+        let remote_name = match remote_name_buf.as_str() {
+            Some(n) => n,
+            None => return Err("Remote name uses invalid utf-8!".into()),
+        };
+
+        let mut remote = repo_temp.find_remote(remote_name)?;
+        let mut push_options = PushOptions::new();
+        push_options.remote_callbacks(self.get_remote_callbacks());
+
+        let mut sb = String::from(local_full_name);
+        if is_force {
+            sb.insert_str(0, "+");
+            local_full_name = sb.as_str();
+        }
+
+        remote.push(&[local_full_name], Some(push_options.borrow_mut()))?;
+        Ok(())
+    }
+
     pub fn git_push(&self) -> Result<(), Box<dyn std::error::Error>> {
-        todo!()
+        self.push(false)
     }
 
     pub fn git_force_push(&self) -> Result<(), Box<dyn std::error::Error>> {
-        todo!()
+        self.push(true)
     }
 
     #[allow(unused_unsafe)]
@@ -595,6 +627,12 @@ impl GitManager {
                 Cred::userpass_plaintext(&*username.password, &*pass.password)
             } else {
                 Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials"))
+            }
+        });
+        callbacks.push_update_reference(|_ref_name, status_msg| {
+            match status_msg {
+                Some(m) => Err(git2::Error::from_str(&*format!("Error(s) during push: {}", m))),
+                None => Ok(()),
             }
         });
         callbacks
