@@ -23,6 +23,7 @@ git2 = "0.15.*"
 rfd = "0.10.*"
 home = "0.5.*"
 keytar = "0.1.*"
+lazy_static = "1.4.*"
 
 [features]
 # by default Tauri runs in production mode

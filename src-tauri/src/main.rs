@@ -5,14 +5,17 @@
 
 mod backend;
 
+use lazy_static::lazy_static;
+use std::sync::{Arc, Mutex, MutexGuard};
 use tauri::{CustomMenuItem, Manager, Menu, Submenu, Window, WindowBuilder, Wry};
 use backend::git_manager::GitManager;
 
-static mut GIT_MANAGER: GitManager = GitManager::new();
+lazy_static! {
+    static ref GIT_MANAGER_ARC: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new()));
+}
 
-fn emit_update_all(temp_main_window: &Window<Wry>) {
-    let repo_info_result;
-    unsafe { repo_info_result = GIT_MANAGER.get_parseable_repo_info(); }
+fn emit_update_all(git_manager: &MutexGuard<GitManager>, temp_main_window: &Window<Wry>) {
+    let repo_info_result = git_manager.get_parseable_repo_info();
     match repo_info_result {
         Ok(repo_info) => temp_main_window.emit_all("update_all", repo_info).unwrap(),
         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
@@ -45,24 +48,24 @@ fn main() {
         main_window.on_menu_event(move |event| {
             match event.menu_item_id() {
                 "init" => {
-                    let init_result;
-                    unsafe { init_result = GIT_MANAGER.init_repo(); }
+                    let mut git_manager = GIT_MANAGER_ARC.lock().unwrap();
+                    let init_result = git_manager.init_repo();
                     match init_result {
                         Ok(did_init) => {
                             if did_init {
-                                emit_update_all(&temp_main_window);
+                                emit_update_all(&git_manager, &temp_main_window);
                             }
                         },
                         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
                     };
                 },
                 "open" => {
-                    let open_result;
-                    unsafe { open_result = GIT_MANAGER.open_repo(); }
+                    let mut git_manager = GIT_MANAGER_ARC.lock().unwrap();
+                    let open_result = git_manager.open_repo();
                     match open_result {
                         Ok(did_open) => {
                             if did_open {
-                                emit_update_all(&temp_main_window);
+                                emit_update_all(&git_manager, &temp_main_window);
                             }
                         },
                         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
@@ -79,14 +82,13 @@ fn main() {
         main_window.listen("checkout", move |event| {
             match event.payload() {
                 Some(s) => {
-                    let ref_result;
-                    unsafe { ref_result = GIT_MANAGER.get_ref_from_name(s); }
+                    let git_manager = GIT_MANAGER_ARC.lock().unwrap();
+                    let ref_result = git_manager.get_ref_from_name(s);
                     match ref_result {
                         Ok(r) => {
-                            let checkout_result;
-                            unsafe { checkout_result = GIT_MANAGER.git_checkout(&r); }
+                            let checkout_result = git_manager.git_checkout(&r);
                             match checkout_result {
-                                Ok(()) => emit_update_all(&temp_main_window),
+                                Ok(()) => emit_update_all(&git_manager, &temp_main_window),
                                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
                             };
                         },
@@ -100,10 +102,10 @@ fn main() {
         main_window.listen("checkout-remote", move |event| {
             match event.payload() {
                 Some(s) => {
-                    let checkout_result;
-                    unsafe { checkout_result = GIT_MANAGER.git_checkout_remote(s); }
+                    let git_manager = GIT_MANAGER_ARC.lock().unwrap();
+                    let checkout_result = git_manager.git_checkout_remote(s);
                     match checkout_result {
-                        Ok(()) => emit_update_all(&temp_main_window),
+                        Ok(()) => emit_update_all(&git_manager, &temp_main_window),
                         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
                     };
                 },
@@ -114,8 +116,8 @@ fn main() {
         main_window.listen("send-credentials", move |event| {
             match event.payload() {
                 Some(s) => {
-                    let set_credentials_result;
-                    unsafe { set_credentials_result = GIT_MANAGER.set_credentials(s); }
+                    let git_manager = GIT_MANAGER_ARC.lock().unwrap();
+                    let set_credentials_result = git_manager.set_credentials(s);
                     match set_credentials_result {
                         Ok(()) => (),
                         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
@@ -126,41 +128,42 @@ fn main() {
         });
         let temp_main_window = main_window.clone();
         main_window.listen("refresh", move |_event| {
-            emit_update_all(&temp_main_window);
+            let git_manager = GIT_MANAGER_ARC.lock().unwrap();
+            emit_update_all(&git_manager, &temp_main_window);
         });
         let temp_main_window = main_window.clone();
         main_window.listen("fetch", move |_event| {
-            let fetch_result;
-            unsafe { fetch_result = GIT_MANAGER.git_fetch(); }
+            let git_manager = GIT_MANAGER_ARC.lock().unwrap();
+            let fetch_result = git_manager.git_fetch();
             match fetch_result {
-                Ok(()) => emit_update_all(&temp_main_window),
+                Ok(()) => emit_update_all(&git_manager, &temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
             };
         });
         let temp_main_window = main_window.clone();
         main_window.listen("pull", move |_event| {
-            let pull_result;
-            unsafe { pull_result = GIT_MANAGER.git_pull(); }
+            let git_manager = GIT_MANAGER_ARC.lock().unwrap();
+            let pull_result = git_manager.git_pull();
             match pull_result {
-                Ok(()) => emit_update_all(&temp_main_window),
+                Ok(()) => emit_update_all(&git_manager, &temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
             };
         });
         let temp_main_window = main_window.clone();
         main_window.listen("push", move |_event| {
-            let push_result;
-            unsafe { push_result = GIT_MANAGER.git_push(); }
+            let git_manager = GIT_MANAGER_ARC.lock().unwrap();
+            let push_result = git_manager.git_push();
             match push_result {
-                Ok(()) => emit_update_all(&temp_main_window),
+                Ok(()) => emit_update_all(&git_manager, &temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
             };
         });
         let temp_main_window = main_window.clone();
         main_window.listen("forcePush", move |_event| {
-            let force_push_result;
-            unsafe { force_push_result = GIT_MANAGER.git_force_push(); }
+            let git_manager = GIT_MANAGER_ARC.lock().unwrap();
+            let force_push_result = git_manager.git_force_push();
             match force_push_result {
-                Ok(()) => emit_update_all(&temp_main_window),
+                Ok(()) => emit_update_all(&git_manager, &temp_main_window),
                 Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
             };
         });
