@@ -69,6 +69,13 @@ impl GitManager {
         }
     }
 
+    fn get_utf8_string<'a, 'b>(value: Option<&'a str>, str_name_type: &'b str) -> Result<&'a str, Box<dyn std::error::Error>> {
+        match value {
+            Some(n) => Ok(n),
+            None => Err(format!("{} uses invalid utf-8!", str_name_type).into()),
+        }
+    }
+
     fn get_directory(&self) -> Option<PathBuf> {
         let home;
         match home_dir() {
@@ -147,11 +154,8 @@ impl GitManager {
             }
 
             let reference = branch.get();
-            let ref_name = match reference.shorthand() {
-                Some(n) => n,
-                None => return Err("Ref has name that's not utf-8 valid.".into()),
-            };
-            branch_string.push_str(ref_name);
+            let ref_shorthand = GitManager::get_utf8_string(reference.shorthand(), "Ref Name")?;
+            branch_string.push_str(ref_shorthand);
             match reference.target() {
                 Some(oid) => {
                     let mut branch_info_hm: HashMap<String, String> = HashMap::new();
@@ -178,10 +182,7 @@ impl GitManager {
         for reference_result in repo_temp.references()? {
             let reference = reference_result?;
             if reference.is_tag() {
-                let ref_name = match reference.shorthand() {
-                    Some(n) => n,
-                    None => return Err("Tag has name that's not utf-8 valid.".into()),
-                };
+                let ref_name = GitManager::get_utf8_string(reference.shorthand(), "Tag Name")?;
 
                 match reference.target() {
                     Some(oid) => {
@@ -224,10 +225,8 @@ impl GitManager {
             let commit = repo_temp.find_commit(*oid)?;
 
             // Get commit summary
-            match commit.summary() {
-                Some(s) => commit_info.insert("summary".into(), CommitInfoValue::SomeString(s.into())),
-                None => return Err("Commit summary didn't use proper utf-8!".into()),
-            };
+            let commit_summary = GitManager::get_utf8_string(commit.summary(), "Commit Summary")?;
+            commit_info.insert("summary".into(), CommitInfoValue::SomeString(commit_summary.into()));
 
             // Get branches pointing to this commit
             match oid_refs_hm.get(&*oid.to_string()) {
@@ -295,27 +294,17 @@ impl GitManager {
             let mut branch_info: HashMap<String, String> = HashMap::new();
 
             // Get branch name
-            let branch_name = match reference.shorthand() {
-                Some(n) => n,
-                None => return Err("Branch name has invalid utf-8!".into()),
-            };
-            branch_info.insert("branch_name".to_string(), branch_name.to_string());
+            let branch_shorthand = GitManager::get_utf8_string(reference.shorthand(), "Branch Name")?;
+            branch_info.insert("branch_name".to_string(), branch_shorthand.to_string());
 
             // Get full branch name
-            let full_branch_name = match reference.name() {
-                Some(n) => n,
-                None => return Err("Branch name has invalid utf-8!".into()),
-            };
+            let full_branch_name = GitManager::get_utf8_string(reference.name(), "Branch Name")?;
             branch_info.insert("full_branch_name".to_string(), full_branch_name.to_string());
 
             // Get if branch is head
             branch_info.insert("is_head".to_string(), false.to_string());
             if reference.is_branch() {
-                let branch_name = match reference.shorthand() {
-                    Some(n) => n,
-                    None => return Err("Branch name has invalid utf-8!".into()),
-                };
-                let local_branch = repo_temp.find_branch(branch_name, BranchType::Local)?;
+                let local_branch = repo_temp.find_branch(branch_shorthand, BranchType::Local)?;
                 if local_branch.is_head() {
                     branch_info.insert("is_head".to_string(), true.to_string());
                 }
@@ -334,12 +323,7 @@ impl GitManager {
             branch_info.insert("ahead".to_string(), "0".to_string());
             branch_info.insert("behind".to_string(), "0".to_string());
             if reference.is_branch() {
-                let branch_name = match reference.shorthand() {
-                    Some(n) => n,
-                    None => return Err("Branch name has invalid utf-8!".into()),
-                };
-
-                let local_branch = repo_temp.find_branch(branch_name, BranchType::Local)?;
+                let local_branch = repo_temp.find_branch(branch_shorthand, BranchType::Local)?;
                 // This throws an error when an upstream isn't found, which is why I'm not returning the error.
                 match local_branch.upstream() {
                     Ok(remote_branch) => {
@@ -391,10 +375,7 @@ impl GitManager {
             None => return Err("No repo to checkout for.".into()),
         };
 
-        let local_full_name = match local_ref.name() {
-            Some(n) => n,
-            None => return Err("Trying to check out local branch that doesn't have a name with valid utf-8!".into()),
-        };
+        let local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
         let commit = match local_ref.target() {
             Some(oid) => repo_temp.find_commit(oid)?,
             None => return Err("Trying to check out branch that has no target commit.".into()),
@@ -427,13 +408,10 @@ impl GitManager {
         // check it out instead.
         for local_b_result in repo_temp.branches(Some(BranchType::Local))? {
             let (local_b, _) = local_b_result?;
-            match local_b.upstream()?.get().name() {
-                Some(local_remote_full_name) => {
-                    if local_remote_full_name.eq(remote_branch_full_name) {
-                        return self.git_checkout(local_b.get());
-                    }
-                },
-                None => return Err("Local branch has name with invalid utf-8!".into()),
+            let local_upstream = local_b.upstream()?;
+            let local_remote_full_name = GitManager::get_utf8_string(local_upstream.get().name(), "Branch Name")?;
+            if local_remote_full_name == remote_branch_full_name {
+                return self.git_checkout(local_b.get());
             }
         }
 
@@ -466,10 +444,7 @@ impl GitManager {
         let remote_string_array = repo_temp.remotes()?;
         let empty_refspecs: &[String] = &[];
         for remote_string_opt in remote_string_array.iter() {
-            let remote_string = match remote_string_opt {
-                Some(remote_string) => remote_string,
-                None => return Err("There is a remote name that uses invalid utf-8!".into()),
-            };
+            let remote_string = GitManager::get_utf8_string(remote_string_opt, "Remote Name")?;
             let mut remote = repo_temp.find_remote(remote_string)?;
             let mut fetch_options = FetchOptions::new();
             fetch_options.download_tags(AutotagOption::All);
@@ -512,10 +487,8 @@ impl GitManager {
         self.git_fetch()?;
 
         let mut local_ref = repo_temp.head()?;
-        let local_branch = match local_ref.shorthand() {
-            Some(n) => repo_temp.find_branch(n, BranchType::Local)?,
-            None => return Err("Could not find head branch in repo.".into()),
-        };
+        let local_shorthand = GitManager::get_utf8_string(local_ref.shorthand(), "Branch Name")?;
+        let local_branch = repo_temp.find_branch(local_shorthand, BranchType::Local)?;
 
         let remote_branch = local_branch.upstream()?;
         let remote_ref = remote_branch.get();
@@ -575,15 +548,9 @@ impl GitManager {
         };
 
         let local_ref = repo_temp.head()?;
-        let mut local_full_name = match local_ref.name() {
-            Some(n) => n,
-            None => return Err("Local branch name is invalid utf-8!".into()),
-        };
+        let mut local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
         let remote_name_buf = repo_temp.branch_upstream_remote(local_full_name)?;
-        let remote_name = match remote_name_buf.as_str() {
-            Some(n) => n,
-            None => return Err("Remote name uses invalid utf-8!".into()),
-        };
+        let remote_name = GitManager::get_utf8_string(remote_name_buf.as_str(), "Remote Name")?;
 
         let mut remote = repo_temp.find_remote(remote_name)?;
         let mut push_options = PushOptions::new();
