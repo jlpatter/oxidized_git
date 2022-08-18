@@ -48,37 +48,30 @@ fn main() {
         let main_window_c = main_window.clone();
         main_window.on_menu_event(move |event| {
             match event.menu_item_id() {
+                // Don't use a separate thread for init, open, or clone so as not to break the file dialog in Linux.
                 "init" => {
-                    let git_manager_arc_c = GIT_MANAGER_ARC.clone();
-                    let main_window_c_c = main_window_c.clone();
-                    thread::spawn(move || {
-                        let mut git_manager = git_manager_arc_c.lock().unwrap();
-                        let init_result = git_manager.init_repo();
-                        match init_result {
-                            Ok(did_init) => {
-                                if did_init {
-                                    emit_update_all(&git_manager, &main_window_c_c);
-                                }
-                            },
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
-                        };
-                    });
+                    let mut git_manager = GIT_MANAGER_ARC.lock().unwrap();
+                    let init_result = git_manager.init_repo();
+                    match init_result {
+                        Ok(did_init) => {
+                            if did_init {
+                                emit_update_all(&git_manager, &main_window_c);
+                            }
+                        },
+                        Err(e) => main_window_c.emit_all("error", e.to_string()).unwrap(),
+                    };
                 },
                 "open" => {
-                    let git_manager_arc_c = GIT_MANAGER_ARC.clone();
-                    let main_window_c_c = main_window_c.clone();
-                    thread::spawn(move || {
-                        let mut git_manager = git_manager_arc_c.lock().unwrap();
-                        let open_result = git_manager.open_repo();
-                        match open_result {
-                            Ok(did_open) => {
-                                if did_open {
-                                    emit_update_all(&git_manager, &main_window_c_c);
-                                }
-                            },
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
-                        };
-                    });
+                    let mut git_manager = GIT_MANAGER_ARC.lock().unwrap();
+                    let open_result = git_manager.open_repo();
+                    match open_result {
+                        Ok(did_open) => {
+                            if did_open {
+                                emit_update_all(&git_manager, &main_window_c);
+                            }
+                        },
+                        Err(e) => main_window_c.emit_all("error", e.to_string()).unwrap(),
+                    };
                 },
                 "credentials" => {
                     main_window_c.emit_all("get-credentials", "").unwrap();

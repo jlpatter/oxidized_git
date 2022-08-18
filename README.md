@@ -1,4 +1,10 @@
-# Oxidized Fish
+# Oxidized Git
+
+## Usage
+### Windows
+* Install WebView2 https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
+### Linux
+* You may need to install the equivalent of WebView2 on Linux (if you're having trouble getting it work, maybe try installing dependencies listed here: https://tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux)
 
 ## For Development
 ### Windows
