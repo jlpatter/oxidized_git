@@ -13,10 +13,10 @@ updates:
   - package-ecosystem: "npm"
     directory: "/ui/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
 
   # Maintain dependencies for Composer
   - package-ecosystem: "cargo"
     directory: "/src-tauri/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
