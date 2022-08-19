@@ -43,18 +43,19 @@ const CIRCLE_RADIUS: usize = 10;
 const RECT_Y_OFFSET: i32 = -12;
 const RECT_HEIGHT: usize = 24;
 const BRANCH_TEXT_SPACING: usize = 5;
+const FONT_SIZE: &str = "16px";
 
 struct SVGRow {
     sha: String,
     summary: String,
-    branches_and_tags: Vec<String>,
+    branches_and_tags: Vec<(String, String)>,
     x: usize,
     y: usize,
     width: usize,
 }
 
 impl SVGRow {
-    pub fn new(sha: String, summary: String, branches_and_tags: Vec<String>, x: usize, y: usize, width: usize) -> Self {
+    pub fn new(sha: String, summary: String, branches_and_tags: Vec<(String, String)>, x: usize, y: usize, width: usize) -> Self {
         Self {
             sha,
             summary,
@@ -199,6 +200,20 @@ impl SVGRow {
         let empty_hm = HashMap::new();
         let largest_occupied_x = main_table.get(&self.y).unwrap_or(&empty_hm).keys().max().unwrap_or(&0);
         let current_x = (largest_occupied_x + 1) * X_SPACING + X_OFFSET;
+        for (branch_name, branch_type) in &self.branches_and_tags {
+            let text_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
+                (String::from("x"), SVGRowPropertyAttrs::SomeInt(current_x)),
+                (String::from("y"), SVGRowPropertyAttrs::SomeInt(pixel_y + TEXT_Y_ALIGNMENT)),
+                (String::from("fill"), SVGRowPropertyAttrs::SomeString(String::from("white"))),
+                (String::from("font-size"), SVGRowPropertyAttrs::SomeString(String::from(FONT_SIZE))),
+            ]);
+            draw_properties.push(HashMap::from([
+                (String::from("tag"), SVGRowProperty::SomeString(String::from("text"))),
+                (String::from("attrs"), SVGRowProperty::SomeHashMap(text_attrs)),
+                (String::from("textContent"), SVGRowProperty::SomeString(branch_name.clone())),
+            ]));
+            let mut branch_rect_id = String::from("branch_rect_");
+        }
 
         Ok(draw_properties)
     }

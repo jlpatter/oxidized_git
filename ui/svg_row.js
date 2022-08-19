@@ -166,6 +166,7 @@ export class SVGRow {
             $commitTableSVG.append(svgRectElem);
             $commitTableSVG.append(svgTextElem);
             const box_width = svgTextElem.getBBox().width + 10;
+            // TODO: This may be causing slowdown. Use document.getElementById('#id');
             $('#' + branchRectId).attr('width', box_width);
             currentX += box_width + self.BRANCH_TEXT_SPACING;
         }
