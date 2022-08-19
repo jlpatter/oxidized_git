@@ -8,7 +8,7 @@ use serde::{Serialize, Serializer};
 
 enum SVGRowPropertyAttrs {
     SomeString(String),
-    SomeInt(usize),
+    SomeInt(isize),
 }
 
 impl Serialize for SVGRowPropertyAttrs {
@@ -21,6 +21,7 @@ impl Serialize for SVGRowPropertyAttrs {
 }
 
 enum SVGRowProperty {
+    SomeBool(bool),
     SomeString(String),
     SomeHashMap(HashMap<String, SVGRowPropertyAttrs>),
 }
@@ -28,47 +29,46 @@ enum SVGRowProperty {
 impl Serialize for SVGRowProperty {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         match &self {
+            SVGRowProperty::SomeBool(b) => b.serialize(serializer),
             SVGRowProperty::SomeString(st) => st.serialize(serializer),
             SVGRowProperty::SomeHashMap(hm) => hm.serialize(serializer),
         }
     }
 }
 
-const Y_OFFSET: usize = 20;
-const X_OFFSET: usize = 20;
-const X_SPACING: usize = 20;
-const Y_SPACING: usize = 30;
-const TEXT_Y_ALIGNMENT: usize = 6;
-const CIRCLE_RADIUS: usize = 10;
-const RECT_Y_OFFSET: i32 = -12;
-const RECT_HEIGHT: usize = 24;
-const BRANCH_TEXT_SPACING: usize = 5;
+const Y_OFFSET: isize = 20;
+const X_OFFSET: isize = 20;
+const X_SPACING: isize = 20;
+const Y_SPACING: isize = 30;
+const TEXT_Y_ALIGNMENT: isize = 6;
+const CIRCLE_RADIUS: isize = 10;
+const RECT_Y_OFFSET: isize = -12;
+const RECT_HEIGHT: isize = 24;
+const BRANCH_TEXT_SPACING: isize = 5;
 const FONT_SIZE: &str = "16px";
 
 struct SVGRow {
     sha: String,
     summary: String,
     branches_and_tags: Vec<(String, String)>,
-    x: usize,
-    y: usize,
-    width: usize,
+    x: isize,
+    y: isize,
 }
 
 impl SVGRow {
-    pub fn new(sha: String, summary: String, branches_and_tags: Vec<(String, String)>, x: usize, y: usize, width: usize) -> Self {
+    pub fn new(sha: String, summary: String, branches_and_tags: Vec<(String, String)>, x: isize, y: isize) -> Self {
         Self {
             sha,
             summary,
             branches_and_tags,
             x,
             y,
-            width,
         }
     }
 
     // Gets parent and children svg row values from parent and children shas
-    fn get_parent_or_child_svg_row_values(&self, all_svg_rows: HashMap<String, SVGRow>, shas: Vec<String>) -> Result<Vec<(usize, usize)>, Box<dyn std::error::Error>> {
-        let mut svg_row_values: Vec<(usize, usize)> = vec![];
+    fn get_parent_or_child_svg_row_values(&self, all_svg_rows: HashMap<String, SVGRow>, shas: Vec<String>) -> Result<Vec<(isize, isize)>, Box<dyn std::error::Error>> {
+        let mut svg_row_values: Vec<(isize, isize)> = vec![];
         for sha in shas {
             match all_svg_rows.get(&*sha) {
                 Some(s) => {
@@ -80,7 +80,7 @@ impl SVGRow {
         Ok(svg_row_values)
     }
 
-    fn get_color_string(x: usize) -> String {
+    fn get_color_string(x: isize) -> String {
         let color_num = x % 4;
         if color_num == 0 {
             String::from("#00CC19")
@@ -93,7 +93,7 @@ impl SVGRow {
         }
     }
 
-    pub fn get_draw_properties(&mut self, main_table: &mut HashMap<usize, HashMap<usize, bool>>, parent_svg_rows: Vec<(usize, usize)>, child_svg_rows: Vec<(usize, usize)>) -> Result<Vec<HashMap<String, SVGRowProperty>>, Box<dyn std::error::Error>> {
+    pub fn get_draw_properties(&mut self, main_table: &mut HashMap<isize, HashMap<isize, bool>>, parent_svg_rows: Vec<(isize, isize)>, child_svg_rows: Vec<(isize, isize)>) -> Result<Vec<HashMap<String, SVGRowProperty>>, Box<dyn std::error::Error>> {
         // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
         match main_table.get_mut(&self.y) {
             Some(hm) => {
@@ -116,7 +116,7 @@ impl SVGRow {
                 };
             },
             None => {
-                let mut temp_hm: HashMap<usize, bool> = HashMap::new();
+                let mut temp_hm: HashMap<isize, bool> = HashMap::new();
                 temp_hm.insert(self.x, true);
                 main_table.insert(self.y, temp_hm);
             },
@@ -132,7 +132,7 @@ impl SVGRow {
                         }
                     },
                     None => {
-                        let mut temp_hm: HashMap<usize, bool> = HashMap::new();
+                        let mut temp_hm: HashMap<isize, bool> = HashMap::new();
                         temp_hm.insert(self.x, true);
                         main_table.insert(i, temp_hm);
                     },
@@ -200,7 +200,7 @@ impl SVGRow {
         let empty_hm = HashMap::new();
         let largest_occupied_x = main_table.get(&self.y).unwrap_or(&empty_hm).keys().max().unwrap_or(&0);
         let current_x = (largest_occupied_x + 1) * X_SPACING + X_OFFSET;
-        for (branch_name, branch_type) in &self.branches_and_tags {
+        for (i, (branch_name, branch_type)) in self.branches_and_tags.clone().into_iter().enumerate() {
             let text_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
                 (String::from("x"), SVGRowPropertyAttrs::SomeInt(current_x)),
                 (String::from("y"), SVGRowPropertyAttrs::SomeInt(pixel_y + TEXT_Y_ALIGNMENT)),
@@ -212,7 +212,37 @@ impl SVGRow {
                 (String::from("attrs"), SVGRowProperty::SomeHashMap(text_attrs)),
                 (String::from("textContent"), SVGRowProperty::SomeString(branch_name.clone())),
             ]));
+
             let mut branch_rect_id = String::from("branch_rect_");
+            branch_rect_id.push_str(&*i.to_string());
+            branch_rect_id.push('_');
+            branch_rect_id.push_str(&*self.sha);
+            let mut branch_rect_color = "yellow";
+            if branch_type == "local" {
+                branch_rect_color = "red";
+            } else if branch_type == "remote" {
+                branch_rect_color = "green";
+            } else if branch_type == "tag" {
+                branch_rect_color = "grey";
+            }
+
+            let mut style_str = String::from("fill:");
+            style_str.push_str(branch_rect_color);
+            style_str.push_str(";fill-opacity:0.5;");
+            let rect_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
+                (String::from("id"), SVGRowPropertyAttrs::SomeString(branch_rect_id)),
+                (String::from("x"), SVGRowPropertyAttrs::SomeInt(current_x - 5)),
+                (String::from("y"), SVGRowPropertyAttrs::SomeInt(pixel_y + RECT_Y_OFFSET)),
+                (String::from("rx"), SVGRowPropertyAttrs::SomeInt(10)),
+                (String::from("ry"), SVGRowPropertyAttrs::SomeInt(10)),
+                (String::from("width"), SVGRowPropertyAttrs::SomeInt(0)),
+                (String::from("height"), SVGRowPropertyAttrs::SomeInt(RECT_HEIGHT)),
+                (String::from("style"), SVGRowPropertyAttrs::SomeString(style_str)),
+            ]);
+            draw_properties.push(HashMap::from([
+                (String::from("tag"), SVGRowProperty::SomeString(String::from("rect"))),
+                (String::from("attrs"), SVGRowProperty::SomeHashMap(rect_attrs)),
+            ]));
         }
 
         Ok(draw_properties)
