@@ -5,12 +5,14 @@ use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, Oid, PushOptions
 use home::home_dir;
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
+use crate::backend::svg_row::DrawProperty;
+use super::svg_row::SVGRow;
 
 pub enum CommitInfoValue {
     SomeString(String),
     SomeStringVec(Vec<String>),
-    SomeHashMapVec(Vec<HashMap<String, String>>),
-    SomeInt(u64),
+    SomeStringTupleVec(Vec<(String, String)>),
+    SomeInt(isize),
 }
 
 impl Serialize for CommitInfoValue {
@@ -18,7 +20,7 @@ impl Serialize for CommitInfoValue {
         match &self {
             CommitInfoValue::SomeString(st) => st.serialize(serializer),
             CommitInfoValue::SomeStringVec(v) => v.serialize(serializer),
-            CommitInfoValue::SomeHashMapVec(v) => v.serialize(serializer),
+            CommitInfoValue::SomeStringTupleVec(v) => v.serialize(serializer),
             CommitInfoValue::SomeInt(i) => i.serialize(serializer),
         }
     }
@@ -29,14 +31,14 @@ impl Clone for CommitInfoValue {
         match &self {
             CommitInfoValue::SomeString(s) => CommitInfoValue::SomeString(s.clone()),
             CommitInfoValue::SomeStringVec(v) => CommitInfoValue::SomeStringVec(v.clone()),
-            CommitInfoValue::SomeHashMapVec(v) => CommitInfoValue::SomeHashMapVec(v.clone()),
+            CommitInfoValue::SomeStringTupleVec(v) => CommitInfoValue::SomeStringTupleVec(v.clone()),
             CommitInfoValue::SomeInt(i) => CommitInfoValue::SomeInt(i.clone()),
         }
     }
 }
 
 pub enum RepoInfoValue {
-    SomeCommitInfo(Vec<HashMap<String, CommitInfoValue>>),
+    SomeCommitInfo(Vec<Vec<DrawProperty>>),
     SomeBranchInfo(Vec<HashMap<String, String>>),
 }
 
@@ -52,7 +54,7 @@ impl Serialize for RepoInfoValue {
 impl Clone for RepoInfoValue {
     fn clone(&self) -> Self {
         match &self {
-            RepoInfoValue::SomeCommitInfo(c) => RepoInfoValue::SomeCommitInfo(c.clone()),
+            RepoInfoValue::SomeCommitInfo(v) => RepoInfoValue::SomeCommitInfo(v.clone()),
             RepoInfoValue::SomeBranchInfo(b) => RepoInfoValue::SomeBranchInfo(b.clone()),
         }
     }
@@ -135,7 +137,7 @@ impl GitManager {
         Ok(oid_list)
     }
 
-    fn get_oid_refs(&self) -> Result<HashMap<String, Vec<HashMap<String, String>>>, Box<dyn std::error::Error>> {
+    fn get_oid_refs(&self) -> Result<HashMap<String, Vec<(String, String)>>, Box<dyn std::error::Error>> {
         let repo_temp_opt = &self.repo;
         let repo_temp = match repo_temp_opt {
             Some(repo) => repo,
@@ -143,7 +145,7 @@ impl GitManager {
         };
 
         // Get HashMap of Oids and their refs based on type (local, remote, or tag)
-        let mut oid_refs: HashMap<String, Vec<HashMap<String, String>>> = HashMap::new();
+        let mut oid_refs: HashMap<String, Vec<(String, String)>> = HashMap::new();
 
         // Iterate over branches
         for branch_result in repo_temp.branches(None)? {
@@ -158,19 +160,18 @@ impl GitManager {
             branch_string.push_str(ref_shorthand);
             match reference.target() {
                 Some(oid) => {
-                    let mut branch_info_hm: HashMap<String, String> = HashMap::new();
-                    branch_info_hm.insert("branch_name".to_string(), branch_string);
+                    let branch_type;
                     if reference.is_remote() {
-                        branch_info_hm.insert("branch_type".to_string(), "remote".to_string());
+                        branch_type = "remote".to_string();
                     } else {
-                        branch_info_hm.insert("branch_type".to_string(), "local".to_string());
+                        branch_type = "local".to_string();
                     }
                     match oid_refs.get_mut(&*oid.to_string()) {
                         Some(oid_ref_vec) => {
-                            oid_ref_vec.push(branch_info_hm);
+                            oid_ref_vec.push((branch_string, branch_type));
                         }
                         None => {
-                            oid_refs.insert(oid.to_string(), vec![branch_info_hm]);
+                            oid_refs.insert(oid.to_string(), vec![(branch_string, branch_type)]);
                         },
                     }
                 },
@@ -186,15 +187,12 @@ impl GitManager {
 
                 match reference.target() {
                     Some(oid) => {
-                        let mut tag_info_hm: HashMap<String, String> = HashMap::new();
-                        tag_info_hm.insert("branch_name".to_string(), ref_name.to_string());
-                        tag_info_hm.insert("branch_type".to_string(), "tag".to_string());
                         match oid_refs.get_mut(&*oid.to_string()) {
                             Some(oid_ref_vec) => {
-                                oid_ref_vec.push(tag_info_hm);
+                                oid_ref_vec.push((ref_name.to_string(), "tag".to_string()));
                             }
                             None => {
-                                oid_refs.insert(oid.to_string(), vec![tag_info_hm]);
+                                oid_refs.insert(oid.to_string(), vec![(ref_name.to_string(), "tag".to_string())]);
                             },
                         };
                     },
@@ -219,8 +217,8 @@ impl GitManager {
         for (i, oid) in oid_list.iter().enumerate() {
             let mut commit_info: HashMap<String, CommitInfoValue> = HashMap::new();
             commit_info.insert("oid".into(), CommitInfoValue::SomeString(oid.to_string()));
-            commit_info.insert("x".into(), CommitInfoValue::SomeInt(0u64));
-            commit_info.insert("y".into(), CommitInfoValue::SomeInt(i as u64));
+            commit_info.insert("x".into(), CommitInfoValue::SomeInt(0));
+            commit_info.insert("y".into(), CommitInfoValue::SomeInt(i as isize));
 
             let commit = repo_temp.find_commit(*oid)?;
 
@@ -231,10 +229,10 @@ impl GitManager {
             // Get branches pointing to this commit
             match oid_refs_hm.get(&*oid.to_string()) {
                 Some(ref_vec) => {
-                    commit_info.insert("branches_and_tags".into(), CommitInfoValue::SomeHashMapVec(ref_vec.clone()));
+                    commit_info.insert("branches_and_tags".into(), CommitInfoValue::SomeStringTupleVec(ref_vec.clone()));
                 }
                 None => {
-                    commit_info.insert("branches_and_tags".into(), CommitInfoValue::SomeHashMapVec(vec![]));
+                    commit_info.insert("branches_and_tags".into(), CommitInfoValue::SomeStringTupleVec(vec![]));
                 },
             };
 
@@ -263,7 +261,7 @@ impl GitManager {
                     match oid {
                         CommitInfoValue::SomeString(oid_string) => oid_string,
                         CommitInfoValue::SomeStringVec(_some_vector) => return Err("Oid was stored as a vector instead of a string.".into()),
-                        CommitInfoValue::SomeHashMapVec(_some_hm) => return Err("Oid was stored as a hashmap instead of a string.".into()),
+                        CommitInfoValue::SomeStringTupleVec(_some_hm) => return Err("Oid was stored as a hashmap instead of a string.".into()),
                         CommitInfoValue::SomeInt(_some_int) => return Err("Oid was stored as an int instead of a string.".into()),
                     }
                 },
@@ -353,7 +351,106 @@ impl GitManager {
 
     pub fn get_parseable_repo_info(&self) -> Result<HashMap<String, RepoInfoValue>, Box<dyn std::error::Error>> {
         let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
-        repo_info.insert("commit_info_list".to_string(), RepoInfoValue::SomeCommitInfo(self.get_commit_info_list(self.git_revwalk()?)?));
+        let commit_info_list = self.get_commit_info_list(self.git_revwalk()?)?;
+        let mut svg_row_hm: HashMap<String, SVGRow> = HashMap::new();
+        for commit_info in commit_info_list {
+            let oid = match commit_info.get("oid") {
+                Some(civ_oid) => {
+                    if let CommitInfoValue::SomeString(s) = civ_oid {
+                        s
+                    } else {
+                        return Err("Oid was not passed as a string.".into());
+                    }
+                },
+                None => return Err("Oid not found in commit_info hash map.".into()),
+            };
+            let summary = match commit_info.get("summary") {
+                Some(civ_summary) => {
+                    if let CommitInfoValue::SomeString(s) = civ_summary {
+                        s
+                    } else {
+                        return Err("Summary was not passed as a string.".into());
+                    }
+                }
+                None => return Err("Summary not found in commit_info hash map.".into()),
+            };
+            let branches_and_tags = match commit_info.get("branches_and_tags") {
+                Some(civ_branches_and_tags) => {
+                    if let CommitInfoValue::SomeStringTupleVec(v) = civ_branches_and_tags {
+                        v
+                    } else {
+                        return Err("branches_and_tags was not passed as a vector.".into());
+                    }
+                }
+                None => return Err("branches_and_tags not found in commit_info hash map.".into()),
+            };
+            let parent_oids = match commit_info.get("parent_oids") {
+                Some(civ_parent_oids) => {
+                    if let CommitInfoValue::SomeStringVec(v) = civ_parent_oids {
+                        v
+                    } else {
+                        return Err("Parent Oids was not passed as a vector.".into());
+                    }
+                }
+                None => return Err("Parent Oids not found in commit_info hash map.".into()),
+            };
+            let child_oids = match commit_info.get("child_oids") {
+                Some(civ_child_oids) => {
+                    if let CommitInfoValue::SomeStringVec(v) = civ_child_oids {
+                        v
+                    } else {
+                        return Err("Child Oids was not passed as a vector.".into());
+                    }
+                }
+                None => return Err("Child Oids not found in commit_info hash map.".into()),
+            };
+            let x = match commit_info.get("x") {
+                Some(civ_x) => {
+                    if let CommitInfoValue::SomeInt(i) = civ_x {
+                        i
+                    } else {
+                        return Err("X was not passed as an isize.".into());
+                    }
+                }
+                None => return Err("X not found in commit_info hash map.".into()),
+            };
+            let y = match commit_info.get("y") {
+                Some(civ_y) => {
+                    if let CommitInfoValue::SomeInt(i) = civ_y {
+                        i
+                    } else {
+                        return Err("Y was not passed as an isize.".into());
+                    }
+                }
+                None => return Err("Y not found in commit_info hash map.".into()),
+            };
+            svg_row_hm.insert(
+                oid.clone(),
+                SVGRow::new(
+                    oid.clone(),
+                    summary.clone(),
+                    branches_and_tags.clone(),
+                    parent_oids.clone(),
+                    child_oids.clone(),
+                    x.clone(),
+                    y.clone(),
+                ),
+            );
+        }
+
+        let mut svg_row_draw_properties: Vec<Vec<DrawProperty>> = vec![];
+
+        let mut main_table: HashMap<isize, HashMap<isize, bool>> = HashMap::new();
+        let svg_row_hm_c = svg_row_hm.clone();
+        for svg_row in svg_row_hm.values_mut() {
+            svg_row_draw_properties.push(svg_row.get_draw_properties(
+                &mut main_table,
+                svg_row.get_parent_or_child_svg_row_values(&svg_row_hm_c, String::from("parents"))?,
+                svg_row.get_parent_or_child_svg_row_values(&svg_row_hm_c, String::from("children"))?,
+            ))
+        }
+
+        repo_info.insert("commit_info_list".to_string(), RepoInfoValue::SomeCommitInfo(svg_row_draw_properties));
         repo_info.insert("branch_info_list".to_string(), RepoInfoValue::SomeBranchInfo(self.get_branch_info_list()?));
         Ok(repo_info)
     }
