@@ -1,6 +1,7 @@
-use std::borrow::BorrowMut;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::rc::Rc;
 use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use home::home_dir;
 use rfd::FileDialog;
@@ -352,7 +353,8 @@ impl GitManager {
     pub fn get_parseable_repo_info(&self) -> Result<HashMap<String, RepoInfoValue>, Box<dyn std::error::Error>> {
         let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
         let commit_info_list = self.get_commit_info_list(self.git_revwalk()?)?;
-        let mut svg_row_hm: HashMap<String, SVGRow> = HashMap::new();
+        let mut svg_rows: Vec<Rc<RefCell<SVGRow>>> = vec![];
+        let mut svg_row_hm: HashMap<String, Rc<RefCell<SVGRow>>> = HashMap::new();
         for commit_info in commit_info_list {
             let oid = match commit_info.get("oid") {
                 Some(civ_oid) => {
@@ -424,30 +426,31 @@ impl GitManager {
                 }
                 None => return Err("Y not found in commit_info hash map.".into()),
             };
-            svg_row_hm.insert(
+            let svg_row_rc: Rc<RefCell<SVGRow>> = Rc::new(RefCell::new(SVGRow::new(
                 oid.clone(),
-                SVGRow::new(
-                    oid.clone(),
-                    summary.clone(),
-                    branches_and_tags.clone(),
-                    parent_oids.clone(),
-                    child_oids.clone(),
-                    x.clone(),
-                    y.clone(),
-                ),
-            );
+                summary.clone(),
+                branches_and_tags.clone(),
+                parent_oids.clone(),
+                child_oids.clone(),
+                x.clone(),
+                y.clone(),
+            )));
+            svg_row_hm.insert(oid.clone(), svg_row_rc.clone());
+            svg_rows.push(svg_row_rc);
         }
 
         let mut svg_row_draw_properties: Vec<Vec<DrawProperty>> = vec![];
 
         let mut main_table: HashMap<isize, HashMap<isize, bool>> = HashMap::new();
-        let svg_row_hm_c = svg_row_hm.clone();
-        for svg_row in svg_row_hm.values_mut() {
-            svg_row_draw_properties.push(svg_row.get_draw_properties(
+        for svg_row_rc in svg_rows {
+            let svg_row_rc_c = svg_row_rc.clone();
+            let parent_svg_rows = svg_row_rc_c.borrow().get_parent_or_child_svg_row_values(&svg_row_hm, String::from("parents"))?;
+            let child_svg_rows = svg_row_rc_c.borrow().get_parent_or_child_svg_row_values(&svg_row_hm, String::from("children"))?;
+            svg_row_draw_properties.push(svg_row_rc.borrow_mut().get_draw_properties(
                 &mut main_table,
-                svg_row.get_parent_or_child_svg_row_values(&svg_row_hm_c, String::from("parents"))?,
-                svg_row.get_parent_or_child_svg_row_values(&svg_row_hm_c, String::from("children"))?,
-            ))
+                parent_svg_rows,
+                child_svg_rows,
+            ));
         }
 
         repo_info.insert("commit_info_list".to_string(), RepoInfoValue::SomeCommitInfo(svg_row_draw_properties));
@@ -546,7 +549,7 @@ impl GitManager {
             let mut fetch_options = FetchOptions::new();
             fetch_options.download_tags(AutotagOption::All);
             fetch_options.remote_callbacks(self.get_remote_callbacks());
-            remote.fetch(empty_refspecs, Some(fetch_options.borrow_mut()), None)?;
+            remote.fetch(empty_refspecs, Some(&mut fetch_options), None)?;
         }
         Ok(())
     }
@@ -659,7 +662,7 @@ impl GitManager {
             local_full_name = sb.as_str();
         }
 
-        remote.push(&[local_full_name], Some(push_options.borrow_mut()))?;
+        remote.push(&[local_full_name], Some(&mut push_options))?;
         Ok(())
     }
 

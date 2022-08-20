@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use serde::{Serialize, Serializer};
 
 pub enum SVGRowPropertyAttrs {
@@ -108,8 +110,8 @@ impl SVGRow {
         }
     }
 
-    pub fn get_parent_or_child_svg_row_values(&self, all_svg_rows: &HashMap<String, SVGRow>, sha_type: String) -> Result<Vec<(isize, isize)>, Box<dyn std::error::Error>> {
-        let mut svg_row_values: Vec<(isize, isize)> = vec![];
+    pub fn get_parent_or_child_svg_row_values(&self, all_svg_rows: &HashMap<String, Rc<RefCell<SVGRow>>>, sha_type: String) -> Result<Vec<Rc<RefCell<SVGRow>>>, Box<dyn std::error::Error>> {
+        let mut svg_row_values: Vec<Rc<RefCell<SVGRow>>> = vec![];
         let shas;
         if sha_type == "parents" {
             shas = &self.parent_oids;
@@ -120,8 +122,8 @@ impl SVGRow {
         }
         for sha in shas {
             match all_svg_rows.get(&*sha) {
-                Some(s) => {
-                    svg_row_values.push((s.x, s.y));
+                Some(svg_row_rc) => {
+                    svg_row_values.push(svg_row_rc.clone());
                 },
                 None => return Err("Commit had parents or children that are not present from the revwalk.".into()),
             };
@@ -142,7 +144,7 @@ impl SVGRow {
         }
     }
 
-    pub fn get_draw_properties(&mut self, main_table: &mut HashMap<isize, HashMap<isize, bool>>, parent_svg_rows: Vec<(isize, isize)>, child_svg_rows: Vec<(isize, isize)>) -> Vec<DrawProperty> {
+    pub fn get_draw_properties(&mut self, main_table: &mut HashMap<isize, HashMap<isize, bool>>, parent_svg_rows: Vec<Rc<RefCell<SVGRow>>>, child_svg_rows: Vec<Rc<RefCell<SVGRow>>>) -> Vec<DrawProperty> {
         // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
         match main_table.get_mut(&self.y) {
             Some(hm) => {
@@ -172,8 +174,8 @@ impl SVGRow {
         };
 
         // Set the space of the line from the current node to its parents as occupied.
-        for (_, parent_svg_row_y) in parent_svg_rows {
-            for i in (self.y + 1)..parent_svg_row_y {
+        for parent_svg_row in parent_svg_rows {
+            for i in (self.y + 1)..parent_svg_row.borrow().y {
                 match main_table.get_mut(&i) {
                     Some(hm) => {
                         if !hm.contains_key(&self.x) {
@@ -196,13 +198,14 @@ impl SVGRow {
         let color = SVGRow::get_color_string(self.x);
         let mut child_lines: Vec<HashMap<String, SVGRowProperty>> = vec![];
         // Draw the lines from the current node to its children.
-        for (child_svg_row_x, child_svg_row_y) in child_svg_rows {
-            let child_pixel_x = child_svg_row_x * X_SPACING + X_OFFSET;
-            let child_pixel_y = child_svg_row_y * Y_SPACING + Y_OFFSET;
+        for child_svg_row in child_svg_rows {
+            let child_svg_row_b = child_svg_row.borrow();
+            let child_pixel_x = child_svg_row_b.x * X_SPACING + X_OFFSET;
+            let child_pixel_y = child_svg_row_b.y * Y_SPACING + Y_OFFSET;
             let before_pixel_y = (self.y - 1) * Y_SPACING + Y_OFFSET;
             if before_pixel_y != child_pixel_y {
                 let mut style_str = String::from("stroke:");
-                style_str.push_str(&*SVGRow::get_color_string(child_svg_row_x));
+                style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
                 style_str.push_str(";stroke-width:4");
                 let line_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
                     (String::from("x1"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
@@ -217,7 +220,7 @@ impl SVGRow {
                 ]));
             }
             let mut style_str = String::from("stroke:");
-            style_str.push_str(&*SVGRow::get_color_string(child_svg_row_x));
+            style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
             style_str.push_str(";stroke-width:4");
             let line_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
                 (String::from("x1"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
