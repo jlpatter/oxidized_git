@@ -15,7 +15,7 @@ export class SVGManager {
         this.commitColumn = document.getElementById('commitColumn');
         this.commitTableSVG = document.getElementById('commitTableSVG');
         this.repoInfo = [];
-        this.commits = [];
+        this.rows = [];
         this.commitsTop = -1;
         this.commitsBottom = -1;
         this.oldRenderingAreaTop = 0;
@@ -43,7 +43,7 @@ export class SVGManager {
 
         self.commitTableSVG.setAttribute('height', (self.repoInfo.length * 30).toString());
 
-        self.commits = [];
+        self.rows = [];
         const renderingAreaTop = self.oldRenderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
         const renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
 
@@ -52,13 +52,19 @@ export class SVGManager {
         let currentLocation = 'above';
         for (let i = 0; i < self.repoInfo.length; i++) {
             let commit = self.repoInfo[i];
-            let row_elements = {'pixel_y': commit[1]['attrs']['cy'], 'rows': []};
+            let row = {'pixel_y': commit[1]['attrs']['cy'], 'elements': []};
             for (const childLine of commit[0]) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
-                row_elements['rows'].push(line);
+                if (childLine['row-y'] < i) {
+                    self.rows[childLine['row-y']]['elements'].push(line);
+                } else if (childLine['row-y'] === i) {
+                    row['elements'].push(line);
+                } else {
+                    console.error("ERROR: A child line is trying to be drawn after the current node!");
+                }
             }
             const circle = self.makeSVG(commit[1]['tag'], commit[1]['attrs']);
-            row_elements['rows'].push(circle);
+            row['elements'].push(circle);
 
             let currentX = -1;
             for (const branch_or_tags of commit[2]) {
@@ -72,8 +78,8 @@ export class SVGManager {
                 branch_or_tags[1]['attrs']['width'] = box_width;
                 const rectElem = self.makeSVG(branch_or_tags[1]['tag'], branch_or_tags[1]['attrs']);
                 txtElem.textContent = branch_or_tags[0]['textContent'];
-                row_elements['rows'].push(rectElem);
-                row_elements['rows'].push(txtElem);
+                row['elements'].push(rectElem);
+                row['elements'].push(txtElem);
                 currentX += box_width + self.BRANCH_TEXT_SPACING;
             }
 
@@ -83,20 +89,20 @@ export class SVGManager {
             commit[3]['attrs']['x'] = currentX;
             const summaryTxt = self.makeSVG(commit[3]['tag'], commit[3]['attrs']);
             summaryTxt.textContent = commit[3]['textContent'];
-            row_elements['rows'].push(summaryTxt);
+            row['elements'].push(summaryTxt);
 
             let width = currentX + commit[3]['textContent'].length * singleCharWidth;
             commit[4]['attrs']['width'] = width;
             const backRect = self.makeSVG(commit[4]['tag'], commit[4]['attrs']);
             backRect.oncontextmenu = contextFunction;
-            row_elements['rows'].push(backRect);
+            row['elements'].push(backRect);
 
-            self.commits.push(row_elements);
+            self.rows.push(row);
 
-            if (currentLocation === 'above' && row_elements['pixel_y'] > renderingAreaTop) {
+            if (currentLocation === 'above' && row['pixel_y'] > renderingAreaTop) {
                 self.commitsTop = i;
                 currentLocation = 'visible';
-            } else if (currentLocation === 'visible' && row_elements['pixel_y'] > renderingAreaBottom) {
+            } else if (currentLocation === 'visible' && row['pixel_y'] > renderingAreaBottom) {
                 self.commitsBottom = i - 1;
                 currentLocation = 'below';
             }
@@ -112,7 +118,7 @@ export class SVGManager {
 
         let df = document.createDocumentFragment();
         for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
-            for (const element of self.commits[i]['rows']) {
+            for (const element of self.rows[i]['elements']) {
                 df.appendChild(element);
             }
         }
@@ -125,26 +131,25 @@ export class SVGManager {
     setScrollEvent() {
         const self = this;
         self.commitColumn.addEventListener('scroll', () => {
-            if (self.commits.length > 0) {
+            if (self.rows.length > 0) {
                 let renderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
                 let renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
                 if (renderingAreaTop < self.oldRenderingAreaTop) {
                     // Scrolling Up
-                    // Remove visible commits that are below the rendering area
+                    // Remove visible rows that are below the rendering area
                     let isInRenderingArea = false;
                     while (!isInRenderingArea) {
-                        const pixel_y = self.commits[self.commitsBottom]['pixel_y'];
-                        if (pixel_y > renderingAreaBottom) {
+                        if (self.rows[self.commitsBottom]['pixel_y'] > renderingAreaBottom) {
                             self.commitsBottom--;
                         } else {
                             isInRenderingArea = true;
                         }
                     }
 
-                    // Add above commits to rendering area (if they're present there)
+                    // Add above rows to rendering area (if they're present there)
                     isInRenderingArea = false;
                     while (!isInRenderingArea) {
-                        if (self.commitsTop - 1 >= 0 && self.commits[self.commitsTop - 1]['pixel_y'] > renderingAreaTop) {
+                        if (self.commitsTop - 1 >= 0 && self.rows[self.commitsTop - 1]['pixel_y'] > renderingAreaTop) {
                             self.commitsTop--;
                         } else {
                             isInRenderingArea = true;
@@ -152,20 +157,20 @@ export class SVGManager {
                     }
                 } else if (renderingAreaTop > self.oldRenderingAreaTop) {
                     // Scrolling down
-                    // Remove visible commits that are above the rendering area
+                    // Remove visible rows that are above the rendering area
                     let isInRenderingArea = false;
                     while (!isInRenderingArea) {
-                        if (self.commits[self.commitsTop]['pixel_y'] < renderingAreaTop) {
+                        if (self.rows[self.commitsTop]['pixel_y'] < renderingAreaTop) {
                             self.commitsTop++;
                         } else {
                             isInRenderingArea = true;
                         }
                     }
 
-                    // Add below commits to rendering area (if they're present there)
+                    // Add below rows to rendering area (if they're present there)
                     isInRenderingArea = false;
                     while (!isInRenderingArea) {
-                        if (self.commitsBottom + 1 < self.commits.length && self.commits[self.commitsBottom + 1]['pixel_y'] < renderingAreaBottom) {
+                        if (self.commitsBottom + 1 < self.rows.length && self.rows[self.commitsBottom + 1]['pixel_y'] < renderingAreaBottom) {
                             self.commitsBottom++;
                         } else {
                             isInRenderingArea = true;

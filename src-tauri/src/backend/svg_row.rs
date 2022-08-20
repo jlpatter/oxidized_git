@@ -204,20 +204,26 @@ impl SVGRow {
             let child_pixel_y = child_svg_row_b.y * Y_SPACING + Y_OFFSET;
             let before_pixel_y = (self.y - 1) * Y_SPACING + Y_OFFSET;
             if before_pixel_y != child_pixel_y {
-                let mut style_str = String::from("stroke:");
-                style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
-                style_str.push_str(";stroke-width:4");
-                let line_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-                    (String::from("x1"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
-                    (String::from("y1"), SVGRowPropertyAttrs::SomeInt(child_pixel_y)),
-                    (String::from("x2"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
-                    (String::from("y2"), SVGRowPropertyAttrs::SomeInt(before_pixel_y)),
-                    (String::from("style"), SVGRowPropertyAttrs::SomeString(style_str)),
-                ]);
-                child_lines.push(HashMap::from([
-                    (String::from("tag"), SVGRowProperty::SomeString(String::from("line"))),
-                    (String::from("attrs"), SVGRowProperty::SomeHashMap(line_attrs)),
-                ]));
+                for i in child_svg_row_b.y..(self.y - 1) {
+                    let top_pixel_y = i * Y_SPACING + Y_OFFSET;
+                    let bottom_pixel_y = (i + 1) * Y_SPACING + Y_OFFSET;
+
+                    let mut style_str = String::from("stroke:");
+                    style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
+                    style_str.push_str(";stroke-width:4");
+                    let line_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
+                        (String::from("x1"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
+                        (String::from("y1"), SVGRowPropertyAttrs::SomeInt(top_pixel_y)),
+                        (String::from("x2"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
+                        (String::from("y2"), SVGRowPropertyAttrs::SomeInt(bottom_pixel_y)),
+                        (String::from("style"), SVGRowPropertyAttrs::SomeString(style_str)),
+                    ]);
+                    child_lines.push(HashMap::from([
+                        (String::from("tag"), SVGRowProperty::SomeString(String::from("line"))),
+                        (String::from("attrs"), SVGRowProperty::SomeHashMap(line_attrs)),
+                        (String::from("row-y"), SVGRowProperty::SomeInt(i + 1)),
+                    ]));
+                }
             }
             let mut style_str = String::from("stroke:");
             style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
@@ -232,6 +238,7 @@ impl SVGRow {
             child_lines.push(HashMap::from([
                 (String::from("tag"), SVGRowProperty::SomeString(String::from("line"))),
                 (String::from("attrs"), SVGRowProperty::SomeHashMap(line_attrs)),
+                (String::from("row-y"), SVGRowProperty::SomeInt(self.y)),
             ]));
         }
         draw_properties.push(DrawProperty::SomeVector(child_lines));
