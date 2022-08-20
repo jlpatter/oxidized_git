@@ -11,7 +11,7 @@ export class SVGManager {
      * Constructs the svg manager.
      */
     constructor() {
-        this.$commitTableSVG = $('#commitTableSVG');
+        this.commitTableSVG = document.getElementById('commitTableSVG');
         this.repoInfo = [];
     }
 
@@ -29,17 +29,18 @@ export class SVGManager {
     refreshCommitTable() {
         const self = this;
 
-        self.$commitTableSVG.empty();
-        self.$commitTableSVG.attr('height', self.repoInfo.length * 30);
+        self.commitTableSVG.innerHTML = '';
+        self.commitTableSVG.setAttribute('height', (self.repoInfo.length * 30).toString());
 
+        let df = document.createDocumentFragment();
         let maxWidth = 0;
         for (const commit of self.repoInfo) {
             for (const childLine of commit[0]) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
-                self.$commitTableSVG.append(line);
+                df.appendChild(line);
             }
             const circle = self.makeSVG(commit[1]['tag'], commit[1]['attrs']);
-            self.$commitTableSVG.append(circle);
+            df.appendChild(circle);
 
             let currentX = -1;
             for (const branch_or_tags of commit[2]) {
@@ -51,8 +52,8 @@ export class SVGManager {
                 const txtElem = self.makeSVG(branch_or_tags[0]['tag'], branch_or_tags[0]['attrs']);
                 const rectElem = self.makeSVG(branch_or_tags[1]['tag'], branch_or_tags[1]['attrs']);
                 txtElem.textContent = branch_or_tags[0]['textContent'];
-                self.$commitTableSVG.append(rectElem);
-                self.$commitTableSVG.append(txtElem);
+                self.commitTableSVG.appendChild(rectElem);
+                self.commitTableSVG.appendChild(txtElem);
                 const box_width = txtElem.getBBox().width + 10;
                 rectElem.setAttribute('width', box_width.toString());
                 currentX += box_width + self.BRANCH_TEXT_SPACING;
@@ -64,17 +65,18 @@ export class SVGManager {
             commit[3]['attrs']['x'] = currentX;
             const summaryTxt = self.makeSVG(commit[3]['tag'], commit[3]['attrs']);
             summaryTxt.textContent = commit[3]['textContent'];
-            self.$commitTableSVG.append(summaryTxt);
+            self.commitTableSVG.appendChild(summaryTxt);
 
             let width = currentX + summaryTxt.getBBox().width;
             commit[4]['attrs']['width'] = width;
             const backRect = self.makeSVG(commit[4]['tag'], commit[4]['attrs']);
-            self.$commitTableSVG.append(backRect);
+            df.appendChild(backRect);
 
             maxWidth = Math.max(maxWidth, width);
         }
 
-        self.$commitTableSVG.attr('width', maxWidth);
+        self.commitTableSVG.appendChild(df);
+        self.commitTableSVG.setAttribute('width', maxWidth.toString());
     }
 
     /**
