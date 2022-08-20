@@ -15,10 +15,9 @@ export class SVGManager {
         this.commitColumn = document.getElementById('commitColumn');
         this.commitTableSVG = document.getElementById('commitTableSVG');
         this.repoInfo = [];
-        // TODO: Refactor this to use 1 array with a top and bottom index.
-        this.commitsAbove = [];
-        this.commitsVisible = [];
-        this.commitsBelow = [];
+        this.commits = [];
+        this.commitsTop = -1;
+        this.commitsBottom = -1;
         this.oldRenderingAreaTop = 0;
         this.setScrollEvent();
     }
@@ -44,15 +43,15 @@ export class SVGManager {
 
         self.commitTableSVG.setAttribute('height', (self.repoInfo.length * 30).toString());
 
-        self.commitsAbove = [];
-        self.commitsVisible = [];
-        self.commitsBelow = [];
+        self.commits = [];
         const renderingAreaTop = self.oldRenderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
         const renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
 
         const contextFunction = self.getContextFunction();
         let maxWidth = 0;
-        for (const commit of self.repoInfo) {
+        let currentLocation = 'above';
+        for (let i = 0; i < self.repoInfo.length; i++) {
+            let commit = self.repoInfo[i];
             let row_elements = {'pixel_y': commit[1]['attrs']['cy'], 'rows': []};
             for (const childLine of commit[0]) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
@@ -92,12 +91,14 @@ export class SVGManager {
             backRect.oncontextmenu = contextFunction;
             row_elements['rows'].push(backRect);
 
-            if (row_elements['pixel_y'] < renderingAreaTop) {
-                self.commitsAbove.push(row_elements);
-            } else if (row_elements['pixel_y'] > renderingAreaBottom) {
-                self.commitsBelow.push(row_elements);
-            } else {
-                self.commitsVisible.push(row_elements);
+            self.commits.push(row_elements);
+
+            if (currentLocation === 'above' && row_elements['pixel_y'] > renderingAreaTop) {
+                self.commitsTop = i;
+                currentLocation = 'visible';
+            } else if (currentLocation === 'visible' && row_elements['pixel_y'] > renderingAreaBottom) {
+                self.commitsBottom = i - 1;
+                currentLocation = 'below';
             }
             maxWidth = Math.max(maxWidth, width);
         }
@@ -110,8 +111,8 @@ export class SVGManager {
         const self = this;
 
         let df = document.createDocumentFragment();
-        for (const row of self.commitsVisible) {
-            for (const element of row['rows']) {
+        for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
+            for (const element of self.commits[i]['rows']) {
                 df.appendChild(element);
             }
         }
@@ -124,82 +125,57 @@ export class SVGManager {
     setScrollEvent() {
         const self = this;
         self.commitColumn.addEventListener('scroll', () => {
-            let renderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
-            let renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
-            if (renderingAreaTop < self.oldRenderingAreaTop) {
-                // Scrolling Up
-                // Remove visible commits that are below the rendering area
-                let isInRenderingArea = false;
-                while (!isInRenderingArea) {
-                    if (self.commitsVisible.length > 0) {
-                        const pixel_y = self.commitsVisible[self.commitsVisible.length - 1]['pixel_y'];
+            if (self.commits.length > 0) {
+                let renderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
+                let renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
+                if (renderingAreaTop < self.oldRenderingAreaTop) {
+                    // Scrolling Up
+                    // Remove visible commits that are below the rendering area
+                    let isInRenderingArea = false;
+                    while (!isInRenderingArea) {
+                        const pixel_y = self.commits[self.commitsBottom]['pixel_y'];
                         if (pixel_y > renderingAreaBottom) {
-                            self.commitsBelow.unshift(self.commitsVisible.pop());
+                            self.commitsBottom--;
                         } else {
                             isInRenderingArea = true;
                         }
-                    } else {
-                        // We're not technically in the rendering area but we need to exit the loop
-                        // because there are no more visible commits.
-                        isInRenderingArea = true;
+                    }
+
+                    // Add above commits to rendering area (if they're present there)
+                    isInRenderingArea = false;
+                    while (!isInRenderingArea) {
+                        if (self.commitsTop - 1 >= 0 && self.commits[self.commitsTop - 1]['pixel_y'] > renderingAreaTop) {
+                            self.commitsTop--;
+                        } else {
+                            isInRenderingArea = true;
+                        }
+                    }
+                } else if (renderingAreaTop > self.oldRenderingAreaTop) {
+                    // Scrolling down
+                    // Remove visible commits that are above the rendering area
+                    let isInRenderingArea = false;
+                    while (!isInRenderingArea) {
+                        if (self.commits[self.commitsTop]['pixel_y'] < renderingAreaTop) {
+                            self.commitsTop++;
+                        } else {
+                            isInRenderingArea = true;
+                        }
+                    }
+
+                    // Add below commits to rendering area (if they're present there)
+                    isInRenderingArea = false;
+                    while (!isInRenderingArea) {
+                        if (self.commitsBottom + 1 < self.commits.length && self.commits[self.commitsBottom + 1]['pixel_y'] < renderingAreaBottom) {
+                            self.commitsBottom++;
+                        } else {
+                            isInRenderingArea = true;
+                        }
                     }
                 }
 
-                // Add above commits to rendering area (if they're present there)
-                isInRenderingArea = false;
-                while (!isInRenderingArea) {
-                    if (self.commitsAbove.length > 0) {
-                        const pixel_y = self.commitsAbove[self.commitsAbove.length - 1]['pixel_y'];
-                        if (pixel_y > renderingAreaTop && pixel_y < renderingAreaBottom) {
-                            self.commitsVisible.unshift(self.commitsAbove.pop());
-                        } else if (pixel_y > renderingAreaBottom) {
-                            self.commitsBelow.unshift(self.commitsAbove.pop());
-                        } else {
-                            isInRenderingArea = true;
-                        }
-                    } else {
-                        isInRenderingArea = true;
-                    }
-                }
-            } else if (renderingAreaTop > self.oldRenderingAreaTop) {
-                // Scrolling down
-                // Remove visible commits that are above the rendering area
-                let isInRenderingArea = false;
-                while (!isInRenderingArea) {
-                    if (self.commitsVisible.length > 0) {
-                        const pixel_y = self.commitsVisible[0]['pixel_y'];
-                        if (pixel_y < renderingAreaTop) {
-                            self.commitsAbove.push(self.commitsVisible.shift());
-                        } else {
-                            isInRenderingArea = true;
-                        }
-                    } else {
-                        // We're not technically in the rendering area but we need to exit the loop
-                        // because there are no more visible commits.
-                        isInRenderingArea = true;
-                    }
-                }
-
-                // Add above commits to rendering area (if they're present there)
-                isInRenderingArea = false;
-                while (!isInRenderingArea) {
-                    if (self.commitsBelow.length > 0) {
-                        const pixel_y = self.commitsBelow[0]['pixel_y'];
-                        if (pixel_y < renderingAreaBottom && pixel_y > renderingAreaTop) {
-                            self.commitsVisible.push(self.commitsBelow.shift());
-                        } else if (pixel_y < renderingAreaTop) {
-                            self.commitsAbove.push(self.commitsBelow.shift());
-                        } else {
-                            isInRenderingArea = true;
-                        }
-                    } else {
-                        isInRenderingArea = true;
-                    }
-                }
+                self.renderVisibleCommits();
+                self.oldRenderingAreaTop = renderingAreaTop;
             }
-
-            self.renderVisibleCommits();
-            self.oldRenderingAreaTop = renderingAreaTop;
         });
     }
 
