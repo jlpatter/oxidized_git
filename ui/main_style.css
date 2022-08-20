@@ -31,6 +31,10 @@ td {
     border-radius: 15px;
 }
 
+svg text {
+    font-family: monospace;
+}
+
 svg .backgroundRect {
     opacity: 0;
 }

@@ -29,6 +29,11 @@ export class SVGManager {
     refreshCommitTable() {
         const self = this;
 
+        let textSizeTest = self.makeSVG('text', {x: 0, y: 0, fill: 'white'});
+        textSizeTest.textContent = 'A';
+        self.commitTableSVG.appendChild(textSizeTest);
+        let singleCharWidth = textSizeTest.getBBox().width;
+
         self.commitTableSVG.innerHTML = '';
         self.commitTableSVG.setAttribute('height', (self.repoInfo.length * 30).toString());
 
@@ -50,12 +55,12 @@ export class SVGManager {
                 branch_or_tags[0]['attrs']['x'] = currentX;
                 branch_or_tags[1]['attrs']['x'] = currentX - 5;
                 const txtElem = self.makeSVG(branch_or_tags[0]['tag'], branch_or_tags[0]['attrs']);
+                const box_width = singleCharWidth * branch_or_tags[0]['textContent'].length + 10;
+                branch_or_tags[1]['attrs']['width'] = box_width;
                 const rectElem = self.makeSVG(branch_or_tags[1]['tag'], branch_or_tags[1]['attrs']);
                 txtElem.textContent = branch_or_tags[0]['textContent'];
-                self.commitTableSVG.appendChild(rectElem);
-                self.commitTableSVG.appendChild(txtElem);
-                const box_width = txtElem.getBBox().width + 10;
-                rectElem.setAttribute('width', box_width.toString());
+                df.appendChild(rectElem);
+                df.appendChild(txtElem);
                 currentX += box_width + self.BRANCH_TEXT_SPACING;
             }
 
@@ -65,9 +70,9 @@ export class SVGManager {
             commit[3]['attrs']['x'] = currentX;
             const summaryTxt = self.makeSVG(commit[3]['tag'], commit[3]['attrs']);
             summaryTxt.textContent = commit[3]['textContent'];
-            self.commitTableSVG.appendChild(summaryTxt);
+            df.appendChild(summaryTxt);
 
-            let width = currentX + summaryTxt.getBBox().width;
+            let width = currentX + commit[3]['textContent'].length * singleCharWidth;
             commit[4]['attrs']['width'] = width;
             const backRect = self.makeSVG(commit[4]['tag'], commit[4]['attrs']);
             df.appendChild(backRect);
