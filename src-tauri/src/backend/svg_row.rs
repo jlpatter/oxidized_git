@@ -254,7 +254,7 @@ impl SVGRow {
         let empty_hm = HashMap::new();
         let largest_occupied_x = main_table.get(&self.y).unwrap_or(&empty_hm).keys().max().unwrap_or(&0);
         let mut branch_and_tags: Vec<Vec<HashMap<String, SVGRowProperty>>> = vec![];
-        for (i, (branch_name, branch_type)) in self.branches_and_tags.clone().into_iter().enumerate() {
+        for (branch_name, branch_type) in self.branches_and_tags.clone().into_iter() {
             let mut branch_and_tag_properties: Vec<HashMap<String, SVGRowProperty>> = vec![];
             let text_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
                 (String::from("x"), SVGRowPropertyAttrs::SomeInt(0)),
@@ -268,10 +268,6 @@ impl SVGRow {
                 (String::from("largestXValue"), SVGRowProperty::SomeInt(*largest_occupied_x)),
             ]));
 
-            let mut branch_rect_id = String::from("branch_rect_");
-            branch_rect_id.push_str(&*i.to_string());
-            branch_rect_id.push('_');
-            branch_rect_id.push_str(&*self.sha);
             let mut branch_rect_color = "yellow";
             if branch_type == "local" {
                 branch_rect_color = "red";
@@ -285,7 +281,6 @@ impl SVGRow {
             style_str.push_str(branch_rect_color);
             style_str.push_str(";fill-opacity:0.5;");
             let rect_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-                (String::from("id"), SVGRowPropertyAttrs::SomeString(branch_rect_id)),
                 (String::from("x"), SVGRowPropertyAttrs::SomeInt(0)),
                 (String::from("y"), SVGRowPropertyAttrs::SomeInt(pixel_y + RECT_Y_OFFSET)),
                 (String::from("rx"), SVGRowPropertyAttrs::SomeInt(10)),

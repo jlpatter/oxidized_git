@@ -54,8 +54,7 @@ export class SVGManager {
                 self.$commitTableSVG.append(rectElem);
                 self.$commitTableSVG.append(txtElem);
                 const box_width = txtElem.getBBox().width + 10;
-                const rectElemInHTML = document.getElementById(branch_or_tags[1]['attrs']['id'].toString());
-                rectElemInHTML.setAttribute('width', box_width.toString());
+                rectElem.setAttribute('width', box_width.toString());
                 currentX += box_width + self.BRANCH_TEXT_SPACING;
             }
 
