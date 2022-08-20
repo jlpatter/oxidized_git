@@ -38,6 +38,7 @@ export class SVGManager {
         self.commitTableSVG.setAttribute('height', (self.repoInfo.length * 30).toString());
 
         let df = document.createDocumentFragment();
+        const contextFunction = self.getContextFunction();
         let maxWidth = 0;
         for (const commit of self.repoInfo) {
             for (const childLine of commit[0]) {
@@ -75,6 +76,7 @@ export class SVGManager {
             let width = currentX + commit[3]['textContent'].length * singleCharWidth;
             commit[4]['attrs']['width'] = width;
             const backRect = self.makeSVG(commit[4]['tag'], commit[4]['attrs']);
+            backRect.oncontextmenu = contextFunction;
             df.appendChild(backRect);
 
             maxWidth = Math.max(maxWidth, width);
