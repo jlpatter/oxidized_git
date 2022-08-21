@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
+use directories::BaseDirs;
 use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
-use home::home_dir;
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
 use crate::backend::svg_row::DrawProperty;
@@ -80,12 +80,11 @@ impl GitManager {
     }
 
     fn get_directory(&self) -> Option<PathBuf> {
-        let home;
-        match home_dir() {
-            Some(d) => home = d,
-            None => home = PathBuf::from("/"),
+        let bd_opt = BaseDirs::new();
+        match bd_opt {
+            Some(bd) => FileDialog::new().set_directory(bd.home_dir()).pick_folder(),
+            None => FileDialog::new().set_directory(PathBuf::from("/")).pick_folder(),
         }
-        FileDialog::new().set_directory(home).pick_folder()
     }
 
     pub fn init_repo(&mut self) -> Result<bool, Box<dyn std::error::Error>> {

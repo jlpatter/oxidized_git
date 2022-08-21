@@ -8,8 +8,10 @@ mod backend;
 use lazy_static::lazy_static;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
-use tauri::{CustomMenuItem, Manager, Menu, Submenu, Window, WindowBuilder, Wry};
+use tauri::{CustomMenuItem, Manager, Menu, MenuItem, Submenu, Window, WindowBuilder, Wry};
+use tauri::MenuEntry::NativeItem;
 use backend::git_manager::GitManager;
+use backend::config_manager;
 
 lazy_static! {
     static ref GIT_MANAGER_ARC: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new()));
@@ -26,13 +28,12 @@ fn emit_update_all(git_manager: &MutexGuard<GitManager>, temp_main_window: &Wind
 fn main() {
     tauri::Builder::default()
     .setup(|app| {
-        let main_window = WindowBuilder::new(
-            app,
-            "main-window".to_string(),
-            tauri::WindowUrl::App("index.html".into()),
-        )
-        .menu(
-            Menu::with_items([
+        let menu;
+        if std::env::consts::OS == "macos" {
+            menu = Menu::with_items([
+                Submenu::new("App", Menu::with_items([
+                    CustomMenuItem::new("preferences", "Preferences").into(),
+                ])).into(),
                 Submenu::new("File", Menu::with_items([
                     CustomMenuItem::new("init", "Init New Repo").into(),
                     CustomMenuItem::new("open", "Open Repo").into(),
@@ -40,14 +41,43 @@ fn main() {
                 Submenu::new("Security", Menu::with_items([
                     CustomMenuItem::new("credentials", "Set Credentials").into(),
                 ])).into(),
-            ])
+            ]);
+        } else {
+            menu = Menu::with_items([
+                Submenu::new("File", Menu::with_items([
+                    CustomMenuItem::new("init", "Init New Repo").into(),
+                    CustomMenuItem::new("open", "Open Repo").into(),
+                    NativeItem(MenuItem::Separator),
+                    CustomMenuItem::new("preferences", "Preferences").into(),
+                ])).into(),
+                Submenu::new("Security", Menu::with_items([
+                    CustomMenuItem::new("credentials", "Set Credentials").into(),
+                ])).into(),
+            ]);
+        }
+
+        let main_window = WindowBuilder::new(
+            app,
+            "main-window".to_string(),
+            tauri::WindowUrl::App("index.html".into()),
         )
+        .menu(menu)
         .maximized(true)
         .build()?;
 
         let main_window_c = main_window.clone();
         main_window.on_menu_event(move |event| {
             match event.menu_item_id() {
+                "preferences" => {
+                    let preferences = match config_manager::get_preferences() {
+                        Ok(p) => p,
+                        Err(e) => {
+                            main_window_c.emit_all("error", e.to_string()).unwrap();
+                            return;
+                        },
+                    };
+                    main_window_c.emit_all("show-preferences", preferences).unwrap();
+                },
                 // Don't use a separate thread for init, open, or clone so as not to break the file dialog in Linux.
                 "init" => {
                     let mut git_manager = GIT_MANAGER_ARC.lock().unwrap();
@@ -123,7 +153,19 @@ fn main() {
             });
         });
         let main_window_c = main_window.clone();
-        main_window.listen("send-credentials", move |event| {
+        main_window.listen("save-preferences", move |event| {
+            match event.payload() {
+                Some(s) => {
+                    match config_manager::save_preferences(s) {
+                        Ok(()) => (),
+                        Err(e) => main_window_c.emit_all("error", e.to_string()).unwrap(),
+                    };
+                },
+                None => main_window_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+            };
+        });
+        let main_window_c = main_window.clone();
+        main_window.listen("save-credentials", move |event| {
             let git_manager_arc_c = GIT_MANAGER_ARC.clone();
             let main_window_c_c = main_window_c.clone();
             thread::spawn(move || {

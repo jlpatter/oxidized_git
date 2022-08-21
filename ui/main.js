@@ -22,15 +22,26 @@ class Main {
             $('#credentialsModal').modal('show');
         }).then();
 
+        listen("show-preferences", ev => {
+            $('#commitCountNumber').val(ev.payload['commit_count']);
+            $('#preferencesModal').modal('show');
+        }).then();
+
         listen("error", ev => {
             // TODO: Maybe make a modal for errors instead?
             alert(ev.payload);
         }).then();
 
+        $('#savePreferencesBtn').click(() => {
+            const $commitCountNumber = $('#commitCountNumber');
+            emit("save-preferences", {commitCount: $commitCountNumber.val()}).then();
+            $('#preferencesModal').modal('hide');
+        });
+
         $('#saveCredentialsBtn').click(() => {
-            let $usernameTxt = $('#usernameTxt'),
+            const $usernameTxt = $('#usernameTxt'),
                 $passwordTxt = $('#passwordTxt');
-            emit("send-credentials", {username: $usernameTxt.val(), password: $passwordTxt.val()}).then();
+            emit("save-credentials", {username: $usernameTxt.val(), password: $passwordTxt.val()}).then();
             $usernameTxt.val("");
             $passwordTxt.val("");
             $('#credentialsModal').modal('hide');
