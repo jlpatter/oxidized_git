@@ -10,7 +10,7 @@ use super::svg_row::DrawProperty;
 use crate::config_manager;
 use super::svg_row::SVGRow;
 
-// TODO: Try adding #[derive(Serialize, Clone)]
+#[derive(Clone)]
 pub enum CommitInfoValue {
     SomeString(String),
     SomeStringVec(Vec<String>),
@@ -29,18 +29,7 @@ impl Serialize for CommitInfoValue {
     }
 }
 
-impl Clone for CommitInfoValue {
-    fn clone(&self) -> Self {
-        match &self {
-            CommitInfoValue::SomeString(s) => CommitInfoValue::SomeString(s.clone()),
-            CommitInfoValue::SomeStringVec(v) => CommitInfoValue::SomeStringVec(v.clone()),
-            CommitInfoValue::SomeStringTupleVec(v) => CommitInfoValue::SomeStringTupleVec(v.clone()),
-            CommitInfoValue::SomeInt(i) => CommitInfoValue::SomeInt(i.clone()),
-        }
-    }
-}
-
-// TODO: Try adding #[derive(Serialize, Clone)]
+#[derive(Clone)]
 pub enum RepoInfoValue {
     SomeCommitInfo(Vec<Vec<DrawProperty>>),
     SomeBranchInfo(Vec<HashMap<String, String>>),
@@ -51,15 +40,6 @@ impl Serialize for RepoInfoValue {
         match &self {
             RepoInfoValue::SomeCommitInfo(c) => c.serialize(serializer),
             RepoInfoValue::SomeBranchInfo(b) => b.serialize(serializer),
-        }
-    }
-}
-
-impl Clone for RepoInfoValue {
-    fn clone(&self) -> Self {
-        match &self {
-            RepoInfoValue::SomeCommitInfo(v) => RepoInfoValue::SomeCommitInfo(v.clone()),
-            RepoInfoValue::SomeBranchInfo(b) => RepoInfoValue::SomeBranchInfo(b.clone()),
         }
     }
 }

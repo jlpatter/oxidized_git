@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use serde::{Serialize, Serializer};
 
-// TODO: Try adding #[derive(Serialize, Clone)]
+#[derive(Clone)]
 pub enum SVGRowPropertyAttrs {
     SomeString(String),
     SomeInt(isize),
@@ -18,16 +18,7 @@ impl Serialize for SVGRowPropertyAttrs {
     }
 }
 
-impl Clone for SVGRowPropertyAttrs {
-    fn clone(&self) -> Self {
-        match &self {
-            SVGRowPropertyAttrs::SomeString(s) => SVGRowPropertyAttrs::SomeString(s.clone()),
-            SVGRowPropertyAttrs::SomeInt(i) => SVGRowPropertyAttrs::SomeInt(i.clone()),
-        }
-    }
-}
-
-// TODO: Try adding #[derive(Serialize, Clone)]
+#[derive(Clone)]
 pub enum SVGRowProperty {
     SomeInt(isize),
     SomeString(String),
@@ -44,17 +35,7 @@ impl Serialize for SVGRowProperty {
     }
 }
 
-impl Clone for SVGRowProperty {
-    fn clone(&self) -> Self {
-        match &self {
-            SVGRowProperty::SomeInt(i) => SVGRowProperty::SomeInt(i.clone()),
-            SVGRowProperty::SomeString(s) => SVGRowProperty::SomeString(s.clone()),
-            SVGRowProperty::SomeHashMap(hm) => SVGRowProperty::SomeHashMap(hm.clone()),
-        }
-    }
-}
-
-// TODO: Try adding #[derive(Serialize, Clone)]
+#[derive(Clone)]
 pub enum DrawProperty {
     SomeHashMap(HashMap<String, SVGRowProperty>),
     SomeVector(Vec<HashMap<String, SVGRowProperty>>),
@@ -71,16 +52,6 @@ impl Serialize for DrawProperty {
     }
 }
 
-impl Clone for DrawProperty {
-    fn clone(&self) -> Self {
-        match &self {
-            DrawProperty::SomeHashMap(hm) => DrawProperty::SomeHashMap(hm.clone()),
-            DrawProperty::SomeVector(v) => DrawProperty::SomeVector(v.clone()),
-            DrawProperty::SomeVectorVector(v) => DrawProperty::SomeVectorVector(v.clone()),
-        }
-    }
-}
-
 const Y_OFFSET: isize = 20;
 const X_OFFSET: isize = 20;  // If changing, be sure to update on front-end too
 const X_SPACING: isize = 20;  // If changing, be sure to update on front-end too
@@ -90,7 +61,7 @@ const CIRCLE_RADIUS: isize = 10;
 const RECT_Y_OFFSET: isize = -12;
 const RECT_HEIGHT: isize = 24;
 
-// TODO: Try adding #[derive(Clone)]
+#[derive(Clone)]
 pub struct SVGRow {
     sha: String,
     summary: String,
@@ -337,19 +308,5 @@ impl SVGRow {
         ])));
 
         draw_properties
-    }
-}
-
-impl Clone for SVGRow {
-    fn clone(&self) -> Self {
-        SVGRow::new(
-            self.sha.clone(),
-            self.summary.clone(),
-            self.branches_and_tags.clone(),
-            self.parent_oids.clone(),
-            self.child_oids.clone(),
-            self.x.clone(),
-            self.y.clone(),
-        )
     }
 }
