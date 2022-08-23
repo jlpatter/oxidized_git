@@ -125,7 +125,8 @@ impl SVGRow {
                 Some(svg_row_rc) => {
                     svg_row_values.push(svg_row_rc.clone());
                 },
-                None => return Err("Commit had parents or children that are not present from the revwalk.".into()),
+                // If a parent or child is not present, ignore it. It may be outside the revwalk range.
+                None => (),
             };
         }
         Ok(svg_row_values)

@@ -7,6 +7,7 @@ use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, Oid, PushOptions
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
 use crate::backend::svg_row::DrawProperty;
+use crate::config_manager;
 use super::svg_row::SVGRow;
 
 pub enum CommitInfoValue {
@@ -130,8 +131,18 @@ impl GitManager {
             revwalk.push(oid)?;
         }
         revwalk.set_sorting(Sort::TOPOLOGICAL)?;
+
+        let preferences = config_manager::get_preferences()?;
+        let commit_count = match preferences.get("commit_count") {
+            Some(c) => *c,
+            None => return Err("commit_count not found in config file.".into()),
+        };
+
         let mut oid_list: Vec<Oid> = vec![];
-        for commit_oid_result in revwalk {
+        for (i, commit_oid_result) in revwalk.enumerate() {
+            if i >= commit_count {
+                break;
+            }
             oid_list.push(commit_oid_result?);
         }
         Ok(oid_list)
