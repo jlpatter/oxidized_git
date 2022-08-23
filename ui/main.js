@@ -23,7 +23,15 @@ class Main {
         }).then();
 
         listen("show-preferences", ev => {
-            $('#commitCountNumber').val(ev.payload['commit_count']);
+            const $limitCommitsCheckBox = $('#limitCommitsCheckBox'),
+                $commitCountNumber = $('#commitCountNumber');
+            $limitCommitsCheckBox.prop('checked', ev.payload['limit_commits']);
+            $commitCountNumber.val(ev.payload['commit_count']);
+            if ($limitCommitsCheckBox.is(':checked')) {
+                $commitCountNumber.prop('disabled', false);
+            } else {
+                $commitCountNumber.prop('disabled', true);
+            }
             $('#preferencesModal').modal('show');
         }).then();
 
@@ -32,9 +40,19 @@ class Main {
             alert(ev.payload);
         }).then();
 
+        $('#limitCommitsCheckBox').change(() => {
+            if ($('#limitCommitsCheckBox').is(':checked')) {
+                $('#commitCountNumber').prop('disabled', false);
+            } else {
+                $('#commitCountNumber').prop('disabled', true);
+            }
+        });
+
         $('#savePreferencesBtn').click(() => {
-            const $commitCountNumber = $('#commitCountNumber');
-            emit("save-preferences", {commitCount: $commitCountNumber.val()}).then();
+            emit("save-preferences", {
+                limitCommits: $('#limitCommitsCheckBox').is(':checked').toString(),
+                commitCount: $('#commitCountNumber').val(),
+            }).then();
             $('#preferencesModal').modal('hide');
         });
 

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use serde::{Serialize, Serializer};
 
+// TODO: Try adding #[derive(Serialize, Clone)]
 pub enum SVGRowPropertyAttrs {
     SomeString(String),
     SomeInt(isize),
@@ -26,6 +27,7 @@ impl Clone for SVGRowPropertyAttrs {
     }
 }
 
+// TODO: Try adding #[derive(Serialize, Clone)]
 pub enum SVGRowProperty {
     SomeInt(isize),
     SomeString(String),
@@ -52,6 +54,7 @@ impl Clone for SVGRowProperty {
     }
 }
 
+// TODO: Try adding #[derive(Serialize, Clone)]
 pub enum DrawProperty {
     SomeHashMap(HashMap<String, SVGRowProperty>),
     SomeVector(Vec<HashMap<String, SVGRowProperty>>),
@@ -87,6 +90,7 @@ const CIRCLE_RADIUS: isize = 10;
 const RECT_Y_OFFSET: isize = -12;
 const RECT_HEIGHT: isize = 24;
 
+// TODO: Try adding #[derive(Clone)]
 pub struct SVGRow {
     sha: String,
     summary: String,

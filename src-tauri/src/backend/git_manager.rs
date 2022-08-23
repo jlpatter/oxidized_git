@@ -6,10 +6,11 @@ use directories::BaseDirs;
 use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
-use crate::backend::svg_row::DrawProperty;
+use super::svg_row::DrawProperty;
 use crate::config_manager;
 use super::svg_row::SVGRow;
 
+// TODO: Try adding #[derive(Serialize, Clone)]
 pub enum CommitInfoValue {
     SomeString(String),
     SomeStringVec(Vec<String>),
@@ -39,6 +40,7 @@ impl Clone for CommitInfoValue {
     }
 }
 
+// TODO: Try adding #[derive(Serialize, Clone)]
 pub enum RepoInfoValue {
     SomeCommitInfo(Vec<Vec<DrawProperty>>),
     SomeBranchInfo(Vec<HashMap<String, String>>),
@@ -133,14 +135,12 @@ impl GitManager {
         revwalk.set_sorting(Sort::TOPOLOGICAL)?;
 
         let preferences = config_manager::get_preferences()?;
-        let commit_count = match preferences.get("commit_count") {
-            Some(c) => *c,
-            None => return Err("commit_count not found in config file.".into()),
-        };
+        let limit_commits = preferences.get_limit_commits();
+        let commit_count = preferences.get_commit_count();
 
         let mut oid_list: Vec<Oid> = vec![];
         for (i, commit_oid_result) in revwalk.enumerate() {
-            if i >= commit_count {
+            if limit_commits && i >= commit_count {
                 break;
             }
             oid_list.push(commit_oid_result?);
