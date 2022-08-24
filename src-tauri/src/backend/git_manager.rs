@@ -33,6 +33,7 @@ impl Serialize for CommitInfoValue {
 pub enum RepoInfoValue {
     SomeCommitInfo(Vec<Vec<DrawProperty>>),
     SomeBranchInfo(Vec<HashMap<String, String>>),
+    SomeRemoteInfo(Vec<String>),
 }
 
 impl Serialize for RepoInfoValue {
@@ -40,6 +41,7 @@ impl Serialize for RepoInfoValue {
         match &self {
             RepoInfoValue::SomeCommitInfo(c) => c.serialize(serializer),
             RepoInfoValue::SomeBranchInfo(b) => b.serialize(serializer),
+            RepoInfoValue::SomeRemoteInfo(v) => v.serialize(serializer),
         }
     }
 }
@@ -340,6 +342,23 @@ impl GitManager {
         Ok(branch_info_list)
     }
 
+    fn get_remote_info_list(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        let repo_temp_opt = &self.repo;
+        let repo_temp = match repo_temp_opt {
+            Some(repo) => repo,
+            None => return Err("No repo to get branch info for.".into()),
+        };
+
+        let mut remote_info_list = vec![];
+        let remote_string_array = repo_temp.remotes()?;
+
+        for remote_name_opt in remote_string_array.iter() {
+            let remote_name = GitManager::get_utf8_string(remote_name_opt, "Remote Name")?;
+            remote_info_list.push(String::from(remote_name));
+        }
+        Ok(remote_info_list)
+    }
+
     pub fn get_parseable_repo_info(&self) -> Result<HashMap<String, RepoInfoValue>, Box<dyn std::error::Error>> {
         let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
         let commit_info_list = self.get_commit_info_list(self.git_revwalk()?)?;
@@ -445,6 +464,7 @@ impl GitManager {
 
         repo_info.insert("commit_info_list".to_string(), RepoInfoValue::SomeCommitInfo(svg_row_draw_properties));
         repo_info.insert("branch_info_list".to_string(), RepoInfoValue::SomeBranchInfo(self.get_branch_info_list()?));
+        repo_info.insert("remote_info_list".to_string(), RepoInfoValue::SomeRemoteInfo(self.get_remote_info_list()?));
         Ok(repo_info)
     }
 
@@ -631,38 +651,46 @@ impl GitManager {
         Err("Merge analysis failed to make any determination on how to proceed with the pull. If you're reading this, your repository may be corrupted.".into())
     }
 
-    fn push(&self, is_force: bool) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_push(&self, push_options_json: &str) -> Result<(), Box<dyn std::error::Error>> {
         let repo_temp_opt = &self.repo;
         let repo_temp = match repo_temp_opt {
             Some(repo) => repo,
             None => return Err("No repo to pull for.".into()),
         };
 
-        let local_ref = repo_temp.head()?;
-        let mut local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
-        let remote_name_buf = repo_temp.branch_upstream_remote(local_full_name)?;
-        let remote_name = GitManager::get_utf8_string(remote_name_buf.as_str(), "Remote Name")?;
+        let push_options: HashMap<String, String> = serde_json::from_str(push_options_json)?;
+        let is_force = match push_options.get("isForcePush") {
+            Some(s) => s == "true",
+            None => return Err("isForcePush not included in payload from front-end.".into()),
+        };
+        let remote_name = match push_options.get("selectedRemote") {
+            Some(s) => s.as_str(),
+            None => return Err("selectedRemote not included in payload from front-end.".into()),
+        };
 
-        let mut remote = repo_temp.find_remote(remote_name)?;
+        let local_ref = repo_temp.head()?;
+        let local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
+
+        let mut remote = match repo_temp.branch_upstream_remote(local_full_name) {
+            Ok(b) => {
+                let remote_name = GitManager::get_utf8_string(b.as_str(), "Remote Name")?;
+                repo_temp.find_remote(remote_name)?
+            },
+            Err(_e) => {
+                repo_temp.find_remote(remote_name)?
+            },
+        };
+
         let mut push_options = PushOptions::new();
         push_options.remote_callbacks(self.get_remote_callbacks());
 
         let mut sb = String::from(local_full_name);
         if is_force {
-            sb.insert_str(0, "+");
-            local_full_name = sb.as_str();
+            sb.insert(0, '+');
         }
 
-        remote.push(&[local_full_name], Some(&mut push_options))?;
+        remote.push(&[sb.as_str()], Some(&mut push_options))?;
         Ok(())
-    }
-
-    pub fn git_push(&self) -> Result<(), Box<dyn std::error::Error>> {
-        self.push(false)
-    }
-
-    pub fn git_force_push(&self) -> Result<(), Box<dyn std::error::Error>> {
-        self.push(true)
     }
 
     #[allow(unused_unsafe)]

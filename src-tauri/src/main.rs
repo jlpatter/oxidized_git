@@ -218,28 +218,20 @@ fn main() {
             });
         });
         let main_window_c = main_window.clone();
-        main_window.listen("push", move |_event| {
+        main_window.listen("push", move |event| {
             let git_manager_arc_c = GIT_MANAGER_ARC.clone();
             let main_window_c_c = main_window_c.clone();
             thread::spawn(move || {
-                let git_manager = git_manager_arc_c.lock().unwrap();
-                let push_result = git_manager.git_push();
-                match push_result {
-                    Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                    Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
-                };
-            });
-        });
-        let main_window_c = main_window.clone();
-        main_window.listen("forcePush", move |_event| {
-            let git_manager_arc_c = GIT_MANAGER_ARC.clone();
-            let main_window_c_c = main_window_c.clone();
-            thread::spawn(move || {
-                let git_manager = git_manager_arc_c.lock().unwrap();
-                let force_push_result = git_manager.git_force_push();
-                match force_push_result {
-                    Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                    Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                match event.payload() {
+                    Some(s) => {
+                        let git_manager = git_manager_arc_c.lock().unwrap();
+                        let push_result = git_manager.git_push(s);
+                        match push_result {
+                            Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
+                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                        };
+                    },
+                    None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
                 };
             });
         });

@@ -15,7 +15,7 @@ class Main {
         });
 
         listen("update_all", ev => {
-            self.updateCommitsAndBranches(ev.payload);
+            self.updateAll(ev.payload);
         }).then();
 
         listen("get-credentials", ev => {
@@ -77,19 +77,28 @@ class Main {
             emit("pull").then();
         });
 
-        $('#pushBtn').click(() => {
-            emit("push").then();
+        $('#openPushModalBtn').click(() => {
+            $('#forcePushCheckBox').prop('checked', false);
+            $('#pushModal').modal('show');
         });
 
-        $('#forcePushBtn').click(() => {
-            emit("forcePush").then();
+        $('#pushBtn').click(() => {
+            emit("push", {
+                selectedRemote: $('#remoteSelect').val(),
+                isForcePush: $('#forcePushCheckBox').is(':checked').toString(),
+            }).then();
+            $('#pushModal').modal('hide');
         });
     }
 
-    updateCommitsAndBranches(repo_info) {
+    updateAll(repo_info) {
         const self = this;
         self.svgManager.updateCommitTable(repo_info["commit_info_list"]);
+        self.updateBranchInfo(repo_info["branch_info_list"]);
+        self.updateRemoteInfo(repo_info["remote_info_list"]);
+    }
 
+    updateBranchInfo(branch_info_list) {
         $('#localTableBody tr').remove();
         $('#remoteTableBody tr').remove();
         $('#tagTableBody tr').remove();
@@ -97,7 +106,7 @@ class Main {
         $('#remoteTableBody').append('<tr><td><h6>Remote Branches</h6></td></tr>');
         $('#tagTableBody').append('<tr><td><h6>Tags</h6></td></tr>');
 
-        repo_info['branch_info_list'].forEach((branchResult) => {
+        branch_info_list.forEach((branchResult) => {
             let branchResultHTML;
             branchResultHTML = '<tr class="unselectable"><td>';
             if (branchResult['is_head'] === 'true') {
@@ -135,6 +144,23 @@ class Main {
                 $('#localTableBody').append($branchResult);
             }
         });
+    }
+
+    updateRemoteInfo(remote_info_list) {
+        if (remote_info_list.length > 0) {
+            const $remoteSelect = $('#remoteSelect');
+            $remoteSelect.empty();
+
+            remote_info_list.forEach((remoteResult) => {
+                let $option = '';
+                if (remoteResult === 'origin') {
+                    $option = $('<option value="' + remoteResult + '" selected>' + remoteResult + '</option>');
+                } else {
+                    $option = $('<option value="' + remoteResult + '">' + remoteResult + '</option>');
+                }
+                $remoteSelect.append($option);
+            });
+        }
     }
 
     showContextMenu(event, branchName) {
