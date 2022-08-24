@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
+use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, FetchPrune, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
 use super::svg_row::DrawProperty;
@@ -538,6 +538,7 @@ impl GitManager {
             let mut remote = repo_temp.find_remote(remote_string)?;
             let mut fetch_options = FetchOptions::new();
             fetch_options.download_tags(AutotagOption::All);
+            fetch_options.prune(FetchPrune::On);
             fetch_options.remote_callbacks(self.get_remote_callbacks());
             remote.fetch(empty_refspecs, Some(&mut fetch_options), None)?;
         }
