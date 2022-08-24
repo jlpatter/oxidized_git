@@ -22,15 +22,44 @@ class Main {
             $('#credentialsModal').modal('show');
         }).then();
 
+        listen("show-preferences", ev => {
+            const $limitCommitsCheckBox = $('#limitCommitsCheckBox'),
+                $commitCountNumber = $('#commitCountNumber');
+            $limitCommitsCheckBox.prop('checked', ev.payload['limit_commits']);
+            $commitCountNumber.val(ev.payload['commit_count']);
+            if ($limitCommitsCheckBox.is(':checked')) {
+                $commitCountNumber.prop('disabled', false);
+            } else {
+                $commitCountNumber.prop('disabled', true);
+            }
+            $('#preferencesModal').modal('show');
+        }).then();
+
         listen("error", ev => {
             // TODO: Maybe make a modal for errors instead?
             alert(ev.payload);
         }).then();
 
+        $('#limitCommitsCheckBox').change(() => {
+            if ($('#limitCommitsCheckBox').is(':checked')) {
+                $('#commitCountNumber').prop('disabled', false);
+            } else {
+                $('#commitCountNumber').prop('disabled', true);
+            }
+        });
+
+        $('#savePreferencesBtn').click(() => {
+            emit("save-preferences", {
+                limitCommits: $('#limitCommitsCheckBox').is(':checked').toString(),
+                commitCount: $('#commitCountNumber').val(),
+            }).then();
+            $('#preferencesModal').modal('hide');
+        });
+
         $('#saveCredentialsBtn').click(() => {
-            let $usernameTxt = $('#usernameTxt'),
+            const $usernameTxt = $('#usernameTxt'),
                 $passwordTxt = $('#passwordTxt');
-            emit("send-credentials", {username: $usernameTxt.val(), password: $passwordTxt.val()}).then();
+            emit("save-credentials", {username: $usernameTxt.val(), password: $passwordTxt.val()}).then();
             $usernameTxt.val("");
             $passwordTxt.val("");
             $('#credentialsModal').modal('hide');

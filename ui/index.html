@@ -144,6 +144,28 @@
         </div>
     </div>
 
+<!--    Invisible Stuff Starts Here-->
+
+    <div class="modal fade text-black" id="preferencesModal" tabindex="-1" aria-labelledby="preferencesModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="preferencesModalLabel">Preferences</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>WARNING: Disabling commit limit may reduce performance</h6>
+                    <input class="form-check-input" type="checkbox" value="" id="limitCommitsCheckBox" checked><label class="form-check-label" for="limitCommitsCheckBox"> Limit Number of Commits</label>
+                    <div><label for="commitCountNumber">Commit Count: </label><input type="number" step="1" class="form-control" id="commitCountNumber"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button id="savePreferencesBtn" type="button" class="btn btn-success btn-sm">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade text-black" id="credentialsModal" tabindex="-1" aria-labelledby="credentialsModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -157,7 +179,7 @@
                     <label for="passwordTxt">Password: </label><input type="password" class="form-control" id="passwordTxt">
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                     <button id="saveCredentialsBtn" type="button" class="btn btn-success btn-sm">Save</button>
                 </div>
             </div>
