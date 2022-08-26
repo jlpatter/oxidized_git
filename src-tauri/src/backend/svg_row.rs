@@ -203,19 +203,42 @@ impl SVGRow {
             }
             let mut style_str = String::from("stroke:");
             style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
-            style_str.push_str(";stroke-width:4");
-            let line_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-                (String::from("x1"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
-                (String::from("y1"), SVGRowPropertyAttrs::SomeInt(before_pixel_y)),
-                (String::from("x2"), SVGRowPropertyAttrs::SomeInt(pixel_x)),
-                (String::from("y2"), SVGRowPropertyAttrs::SomeInt(pixel_y)),
-                (String::from("style"), SVGRowPropertyAttrs::SomeString(style_str)),
-            ]);
-            child_lines.push(HashMap::from([
-                (String::from("tag"), SVGRowProperty::SomeString(String::from("line"))),
-                (String::from("attrs"), SVGRowProperty::SomeHashMap(line_attrs)),
-                (String::from("row-y"), SVGRowProperty::SomeInt(self.y)),
-            ]));
+            style_str.push_str(";fill:transparent;stroke-width:4");
+            if child_pixel_x == pixel_x {
+                let line_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
+                    (String::from("x1"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
+                    (String::from("y1"), SVGRowPropertyAttrs::SomeInt(before_pixel_y)),
+                    (String::from("x2"), SVGRowPropertyAttrs::SomeInt(pixel_x)),
+                    (String::from("y2"), SVGRowPropertyAttrs::SomeInt(pixel_y)),
+                    (String::from("style"), SVGRowPropertyAttrs::SomeString(style_str)),
+                ]);
+                child_lines.push(HashMap::from([
+                    (String::from("tag"), SVGRowProperty::SomeString(String::from("line"))),
+                    (String::from("attrs"), SVGRowProperty::SomeHashMap(line_attrs)),
+                    (String::from("row-y"), SVGRowProperty::SomeInt(self.y)),
+                ]));
+            } else {
+                let mut d_str = format!("M {child_pixel_x} {before_pixel_y} C ");
+                if child_pixel_x < pixel_x {
+                    let start_control_point_x = child_pixel_x + X_SPACING * 3 / 4;
+                    let end_control_point_y = pixel_y - Y_SPACING * 3 / 4;
+                    d_str.push_str(&*format!("{start_control_point_x} {before_pixel_y}, {pixel_x} {end_control_point_y}, "));
+                } else {
+                    let start_control_point_y = before_pixel_y + Y_SPACING * 3 / 4;
+                    let end_control_point_x = pixel_x + X_SPACING * 3 / 4;
+                    d_str.push_str(&*format!("{child_pixel_x} {start_control_point_y}, {end_control_point_x} {pixel_y}, "));
+                }
+                d_str.push_str(&*format!("{pixel_x} {pixel_y}"));
+                let path_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
+                    (String::from("d"), SVGRowPropertyAttrs::SomeString(d_str)),
+                    (String::from("style"), SVGRowPropertyAttrs::SomeString(style_str)),
+                ]);
+                child_lines.push(HashMap::from([
+                    (String::from("tag"), SVGRowProperty::SomeString(String::from("path"))),
+                    (String::from("attrs"), SVGRowProperty::SomeHashMap(path_attrs)),
+                    (String::from("row-y"), SVGRowProperty::SomeInt(self.y)),
+                ]));
+            }
         }
         draw_properties.push(DrawProperty::SomeVector(child_lines));
 
