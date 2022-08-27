@@ -47,7 +47,6 @@ export class SVGManager {
         const renderingAreaTop = self.oldRenderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
         const renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
 
-        const contextFunction = self.getContextFunction();
         let maxWidth = 0;
         let currentLocation = 'above';
         for (let i = 0; i < self.repoInfo.length; i++) {
@@ -95,7 +94,7 @@ export class SVGManager {
             let width = currentX + elements['summary_text']['textContent'].length * singleCharWidth;
             elements['back_rect']['attrs']['width'] = width;
             const backRect = self.makeSVG(elements['back_rect']['tag'], elements['back_rect']['attrs']);
-            backRect.oncontextmenu = contextFunction;
+            backRect.oncontextmenu = self.getContextFunction(commit['sha']);
             row['elements'].push(backRect);
 
             self.rows.push(row);
@@ -204,8 +203,7 @@ export class SVGManager {
      * Gets the function to be called by oncontextmenu
      * @return {(function(*): void)|*}
      */
-    getContextFunction() {
-        const self = this;
+    getContextFunction(sha) {
         return function(event) {
             event.preventDefault();
             const $contextMenu = $('#contextMenu');
@@ -216,36 +214,41 @@ export class SVGManager {
             const $mergeBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-arrows-angle-contract"></i> Merge</button>');
             $mergeBtn.click(function() {
                 // TODO: Implement stuff here
+                alert('Not implemented yet.');
             });
             $contextMenu.append($mergeBtn);
 
             const $cherrypickBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-bullseye"></i> Cherrypick Commit</button>');
             $cherrypickBtn.click(function() {
                 // TODO: Implement stuff here
+                alert('Not implemented yet.');
             });
             $contextMenu.append($cherrypickBtn);
 
             const $copyShaBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-clipboard"></i> Copy SHA</button>');
             $copyShaBtn.click(function() {
-                writeText(self.sha).then();
+                writeText(sha).then();
             });
             $contextMenu.append($copyShaBtn);
 
             const $softResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-arrow-clockwise"></i> Soft Reset to Here</button>');
             $softResetBtn.click(function() {
                 // TODO: Implement stuff here
+                alert('Not implemented yet.');
             });
             $contextMenu.append($softResetBtn);
 
             const $mixedResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-arrow-clockwise"></i> Mixed Reset to Here</button>');
             $mixedResetBtn.click(function() {
                 // TODO: Implement stuff here
+                alert('Not implemented yet.');
             });
             $contextMenu.append($mixedResetBtn);
 
             const $hardResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-arrow-clockwise"></i> Hard Reset to Here</button>');
             $hardResetBtn.click(function() {
                 // TODO: Implement stuff here
+                alert('Not implemented yet.');
             });
             $contextMenu.append($hardResetBtn);
 

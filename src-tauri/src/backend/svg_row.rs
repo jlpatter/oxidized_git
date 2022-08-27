@@ -187,6 +187,8 @@ impl SVGRow {
         let mut row_properties: HashMap<String, RowProperty> = HashMap::new();
         let mut draw_properties: HashMap<String, DrawProperty> = HashMap::new();
 
+        row_properties.insert(String::from("sha"), RowProperty::SomeString(self.sha.clone()));
+
         let pixel_x = self.x * X_SPACING + X_OFFSET;
         let pixel_y = self.y * Y_SPACING + Y_OFFSET;
         row_properties.insert(String::from("pixel_y"), RowProperty::SomeInt(pixel_y));
