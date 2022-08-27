@@ -106,8 +106,62 @@ class Main {
         const self = this;
         self.generalInfo = repo_info['general_info'];
         self.svgManager.updateCommitTable(repo_info["commit_info_list"]);
+        self.updateFilesChangedInfo(repo_info['files_changed_info_list']);
         self.updateBranchInfo(repo_info["branch_info_list"]);
         self.updateRemoteInfo(repo_info["remote_info_list"]);
+    }
+
+    updateFilesChangedInfo(files_changed_info_list) {
+        $('#unstagedTableBody tr').remove();
+        $('#stagedTableBody tr').remove();
+        $('#unstagedTableBody').append('<tr><th><h6>Unstaged Changes</h6></th></tr>');
+        $('#stagedTableBody').append('<tr><th><h6>Staged Changes</h6></th></tr>');
+
+        // Unstaged changes
+        files_changed_info_list['unstaged_files'].forEach(function(unstagedFile) {
+            const $button = $('<button type="button" class="btn btn-success btn-sm right"><i class="bi bi-plus-lg"></i></button>');
+            $button.click(function() {
+                // TODO: Get this to work!
+                alert("Not implemented yet.");
+            });
+            const $row = $('<tr><td>' + unstagedFile['path'] + '</td></tr>');
+            if (unstagedFile['status'] === 2) {  // Deleted
+                $row.find('td').prepend('<i class="bi bi-dash-lg"></i> ');
+            } else if (unstagedFile['status'] === 3) {  // Modified
+                $row.find('td').prepend('<i class="bi bi-pen"></i> ');
+            } else if (unstagedFile['status'] === 7) {  // Untracked
+                $row.find('td').prepend('<i class="bi bi-plus-lg"></i> ');
+            } else if (unstagedFile['status'] === 10) {  // Conflicted
+                $row.find('td').prepend('<i class="bi bi-exclamation-diamond"></i> ');
+            } else {  // Everything else
+                $row.find('td').prepend('<i class="bi bi-question-circle"></i> ');
+            }
+            $row.find('td').append($button);
+            $('#unstagedTableBody').append($row);
+        });
+
+        // Staged changes
+        files_changed_info_list['staged_files'].forEach(function(stagedFile) {
+            const $button = $('<button type="button" class="btn btn-danger btn-sm right"><i class="bi bi-dash-lg"></i></button>');
+            $button.click(function() {
+                // TODO: Get this to work!
+                alert("Not implemented yet.");
+            });
+            const $row = $('<tr><td>' + stagedFile['path'] + '</td></tr>');
+            if (stagedFile['status'] === 2) {  // Deleted
+                $row.find('td').prepend('<i class="bi bi-dash-lg"></i> ');
+            } else if (stagedFile['status'] === 3) {  // Modified
+                $row.find('td').prepend('<i class="bi bi-pen"></i> ');
+            } else if (stagedFile['status'] === 1) {  // Added
+                $row.find('td').prepend('<i class="bi bi-plus-lg"></i> ');
+            } else if (stagedFile['status'] === 10) {  // Conflicted
+                $row.find('td').prepend('<i class="bi bi-exclamation-diamond"></i> ');
+            } else {  // Everything else
+                $row.find('td').prepend('<i class="bi bi-question-circle"></i> ');
+            }
+            $row.find('td').append($button);
+            $('#stagedTableBody').append($row);
+        });
     }
 
     updateBranchInfo(branch_info_list) {

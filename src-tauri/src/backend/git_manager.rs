@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, FetchPrune, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
+use git2::{AutotagOption, BranchType, Cred, Diff, DiffOptions, FetchOptions, FetchPrune, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
 use super::config_manager;
 
@@ -177,7 +177,18 @@ impl GitManager {
         Ok(())
     }
 
-    fn get_staged_changes(&self) -> Result<Diff, Box<dyn std::error::Error>> {
+    pub fn get_unstaged_changes(&self) -> Result<Diff, Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+
+        let mut diff_options = DiffOptions::new();
+        diff_options.include_untracked(true);
+        diff_options.recurse_untracked_dirs(true);
+
+        let diff = repo.diff_index_to_workdir(None, Some(&mut diff_options))?;
+        Ok(diff)
+    }
+
+    pub fn get_staged_changes(&self) -> Result<Diff, Box<dyn std::error::Error>> {
         let repo = self.get_repo()?;
 
         let head_ref = repo.head()?;

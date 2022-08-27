@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use git2::{BranchType, ErrorCode, Oid};
+use git2::{BranchType, Diff, ErrorCode, Oid};
 use serde::{Serialize, Serializer};
 use super::git_manager::GitManager;
 use super::svg_row::RowProperty;
@@ -32,6 +32,7 @@ pub enum RepoInfoValue {
     SomeBranchInfo(Vec<HashMap<String, String>>),
     SomeRemoteInfo(Vec<String>),
     SomeGeneralInfo(HashMap<String, String>),
+    SomeFilesChangedInfo(FilesChangedInfo),
 }
 
 impl Serialize for RepoInfoValue {
@@ -41,6 +42,37 @@ impl Serialize for RepoInfoValue {
             RepoInfoValue::SomeBranchInfo(b) => b.serialize(serializer),
             RepoInfoValue::SomeRemoteInfo(v) => v.serialize(serializer),
             RepoInfoValue::SomeGeneralInfo(hm) => hm.serialize(serializer),
+            RepoInfoValue::SomeFilesChangedInfo(f) => f.serialize(serializer),
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct ParseableDiffDelta {
+    status: u8,
+    path: String,
+}
+
+impl ParseableDiffDelta {
+    pub fn new(status: u8, path: String) -> Self {
+        Self {
+            status,
+            path,
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct FilesChangedInfo {
+    unstaged_files: Vec<ParseableDiffDelta>,
+    staged_files: Vec<ParseableDiffDelta>,
+}
+
+impl FilesChangedInfo {
+    pub fn new(unstaged_files: Vec<ParseableDiffDelta>, staged_files: Vec<ParseableDiffDelta>) -> Self {
+        Self {
+            unstaged_files,
+            staged_files,
         }
     }
 }
@@ -284,6 +316,30 @@ fn get_remote_info_list(git_manager: &GitManager) -> Result<Vec<String>, Box<dyn
     Ok(remote_info_list)
 }
 
+fn get_parseable_diff_delta(diff: Diff) -> Result<Vec<ParseableDiffDelta>, Box<dyn std::error::Error>> {
+    let mut files: Vec<ParseableDiffDelta> = vec![];
+    for delta in diff.deltas() {
+        let status = delta.status() as u8;
+        let path = match delta.new_file().path() {
+            Some(p) => {
+                match p.to_str() {
+                    Some(s) => s,
+                    None => return Err("File Path uses invalid unicode. Not sure how your file system isn't corrupted...".into()),
+                }
+            },
+            None => return Err("Possible invalid file path? I'm not actually sure why this error would occur. It looks like git didn't store a file path with a file or something.".into()),
+        };
+        files.push(ParseableDiffDelta::new(status, String::from(path)));
+    }
+    Ok(files)
+}
+
+fn get_files_changed_info_list(git_manager: &GitManager) -> Result<FilesChangedInfo, Box<dyn std::error::Error>> {
+    let unstaged_diff = git_manager.get_unstaged_changes()?;
+    let staged_diff = git_manager.get_staged_changes()?;
+    Ok(FilesChangedInfo::new(get_parseable_diff_delta(unstaged_diff)?, get_parseable_diff_delta(staged_diff)?))
+}
+
 pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<HashMap<String, RepoInfoValue>, Box<dyn std::error::Error>> {
     let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
     let commit_info_list = get_commit_info_list(git_manager, git_manager.git_revwalk()?)?;
@@ -391,5 +447,6 @@ pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<HashMap<Strin
     repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(svg_row_draw_properties));
     repo_info.insert(String::from("branch_info_list"), RepoInfoValue::SomeBranchInfo(get_branch_info_list(git_manager)?));
     repo_info.insert(String::from("remote_info_list"), RepoInfoValue::SomeRemoteInfo(get_remote_info_list(git_manager)?));
+    repo_info.insert(String::from("files_changed_info_list"), RepoInfoValue::SomeFilesChangedInfo(get_files_changed_info_list(git_manager)?));
     Ok(repo_info)
 }
