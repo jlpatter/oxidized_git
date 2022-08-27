@@ -6,8 +6,8 @@ use directories::BaseDirs;
 use git2::{AutotagOption, BranchType, Cred, Diff, FetchOptions, FetchPrune, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
-use super::svg_row::DrawProperty;
-use crate::config_manager;
+use super::svg_row::RowProperty;
+use super::config_manager;
 use super::svg_row::SVGRow;
 
 #[derive(Clone)]
@@ -31,7 +31,7 @@ impl Serialize for CommitInfoValue {
 
 #[derive(Clone)]
 pub enum RepoInfoValue {
-    SomeCommitInfo(Vec<HashMap<String, DrawProperty>>),
+    SomeCommitInfo(Vec<HashMap<String, RowProperty>>),
     SomeBranchInfo(Vec<HashMap<String, String>>),
     SomeRemoteInfo(Vec<String>),
 }
@@ -448,7 +448,7 @@ impl GitManager {
             svg_rows.push(svg_row_rc);
         }
 
-        let mut svg_row_draw_properties: Vec<HashMap<String, DrawProperty>> = vec![];
+        let mut svg_row_draw_properties: Vec<HashMap<String, RowProperty>> = vec![];
 
         let mut main_table: HashMap<isize, HashMap<isize, bool>> = HashMap::new();
         for svg_row_rc in svg_rows {

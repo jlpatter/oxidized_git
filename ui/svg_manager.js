@@ -51,9 +51,10 @@ export class SVGManager {
         let maxWidth = 0;
         let currentLocation = 'above';
         for (let i = 0; i < self.repoInfo.length; i++) {
-            let commit = self.repoInfo[i];
-            let row = {'pixel_y': commit['circle']['attrs']['cy'], 'elements': []};
-            for (const childLine of commit['child_lines']) {
+            const commit = self.repoInfo[i];
+            const elements = commit['elements'];
+            let row = {'pixel_y': commit['pixel_y'], 'elements': []};
+            for (const childLine of elements['child_lines']) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                 if (childLine['row-y'] < i) {
                     self.rows[childLine['row-y']]['elements'].unshift(line);
@@ -63,11 +64,11 @@ export class SVGManager {
                     console.error("ERROR: A child line is trying to be drawn after the current node!");
                 }
             }
-            const circle = self.makeSVG(commit['circle']['tag'], commit['circle']['attrs']);
+            const circle = self.makeSVG(elements['circle']['tag'], elements['circle']['attrs']);
             row['elements'].push(circle);
 
             let currentX = -1;
-            for (const branch_or_tags of commit['branch_and_tags']) {
+            for (const branch_or_tags of elements['branch_and_tags']) {
                 if (currentX === -1) {
                     currentX = (branch_or_tags[0]['largestXValue'] + 1) * self.X_SPACING + self.X_OFFSET;
                 }
@@ -84,16 +85,16 @@ export class SVGManager {
             }
 
             if (currentX === -1) {
-                currentX = (commit['summary_text']['largestXValue'] + 1) * self.X_SPACING + self.X_OFFSET;
+                currentX = (elements['summary_text']['largestXValue'] + 1) * self.X_SPACING + self.X_OFFSET;
             }
-            commit['summary_text']['attrs']['x'] = currentX;
-            const summaryTxt = self.makeSVG(commit['summary_text']['tag'], commit['summary_text']['attrs']);
-            summaryTxt.textContent = commit['summary_text']['textContent'];
+            elements['summary_text']['attrs']['x'] = currentX;
+            const summaryTxt = self.makeSVG(elements['summary_text']['tag'], elements['summary_text']['attrs']);
+            summaryTxt.textContent = elements['summary_text']['textContent'];
             row['elements'].push(summaryTxt);
 
-            let width = currentX + commit['summary_text']['textContent'].length * singleCharWidth;
-            commit['back_rect']['attrs']['width'] = width;
-            const backRect = self.makeSVG(commit['back_rect']['tag'], commit['back_rect']['attrs']);
+            let width = currentX + elements['summary_text']['textContent'].length * singleCharWidth;
+            elements['back_rect']['attrs']['width'] = width;
+            const backRect = self.makeSVG(elements['back_rect']['tag'], elements['back_rect']['attrs']);
             backRect.oncontextmenu = contextFunction;
             row['elements'].push(backRect);
 

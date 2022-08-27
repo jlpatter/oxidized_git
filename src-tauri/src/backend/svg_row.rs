@@ -4,42 +4,42 @@ use std::rc::Rc;
 use serde::{Serialize, Serializer};
 
 #[derive(Clone)]
-pub enum SVGRowPropertyAttrs {
+pub enum SVGPropertyAttrs {
     SomeString(String),
     SomeInt(isize),
 }
 
-impl Serialize for SVGRowPropertyAttrs {
+impl Serialize for SVGPropertyAttrs {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         match &self {
-            SVGRowPropertyAttrs::SomeString(st) => st.serialize(serializer),
-            SVGRowPropertyAttrs::SomeInt(i) => i.serialize(serializer),
+            SVGPropertyAttrs::SomeString(st) => st.serialize(serializer),
+            SVGPropertyAttrs::SomeInt(i) => i.serialize(serializer),
         }
     }
 }
 
 #[derive(Clone)]
-pub enum SVGRowProperty {
+pub enum SVGProperty {
     SomeInt(isize),
     SomeString(String),
-    SomeHashMap(HashMap<String, SVGRowPropertyAttrs>),
+    SomeHashMap(HashMap<String, SVGPropertyAttrs>),
 }
 
-impl Serialize for SVGRowProperty {
+impl Serialize for SVGProperty {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         match &self {
-            SVGRowProperty::SomeInt(i) => i.serialize(serializer),
-            SVGRowProperty::SomeString(st) => st.serialize(serializer),
-            SVGRowProperty::SomeHashMap(hm) => hm.serialize(serializer),
+            SVGProperty::SomeInt(i) => i.serialize(serializer),
+            SVGProperty::SomeString(st) => st.serialize(serializer),
+            SVGProperty::SomeHashMap(hm) => hm.serialize(serializer),
         }
     }
 }
 
 #[derive(Clone)]
 pub enum DrawProperty {
-    SomeHashMap(HashMap<String, SVGRowProperty>),
-    SomeVector(Vec<HashMap<String, SVGRowProperty>>),
-    SomeVectorVector(Vec<Vec<HashMap<String, SVGRowProperty>>>),
+    SomeHashMap(HashMap<String, SVGProperty>),
+    SomeVector(Vec<HashMap<String, SVGProperty>>),
+    SomeVectorVector(Vec<Vec<HashMap<String, SVGProperty>>>),
 }
 
 impl Serialize for DrawProperty {
@@ -48,6 +48,23 @@ impl Serialize for DrawProperty {
             DrawProperty::SomeHashMap(hm) => hm.serialize(serializer),
             DrawProperty::SomeVector(v) => v.serialize(serializer),
             DrawProperty::SomeVectorVector(v) => v.serialize(serializer),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum RowProperty {
+    SomeInt(isize),
+    SomeString(String),
+    SomeHashMap(HashMap<String, DrawProperty>),
+}
+
+impl Serialize for RowProperty {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        match &self {
+            RowProperty::SomeInt(i) => i.serialize(serializer),
+            RowProperty::SomeString(s) => s.serialize(serializer),
+            RowProperty::SomeHashMap(hm) => hm.serialize(serializer),
         }
     }
 }
@@ -120,7 +137,7 @@ impl SVGRow {
         }
     }
 
-    pub fn get_draw_properties(&mut self, main_table: &mut HashMap<isize, HashMap<isize, bool>>, parent_svg_rows: Vec<Rc<RefCell<SVGRow>>>, child_svg_rows: Vec<Rc<RefCell<SVGRow>>>) -> HashMap<String, DrawProperty> {
+    pub fn get_draw_properties(&mut self, main_table: &mut HashMap<isize, HashMap<isize, bool>>, parent_svg_rows: Vec<Rc<RefCell<SVGRow>>>, child_svg_rows: Vec<Rc<RefCell<SVGRow>>>) -> HashMap<String, RowProperty> {
         // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
         match main_table.get_mut(&self.y) {
             Some(hm) => {
@@ -167,12 +184,14 @@ impl SVGRow {
             }
         }
 
+        let mut row_properties: HashMap<String, RowProperty> = HashMap::new();
         let mut draw_properties: HashMap<String, DrawProperty> = HashMap::new();
 
         let pixel_x = self.x * X_SPACING + X_OFFSET;
         let pixel_y = self.y * Y_SPACING + Y_OFFSET;
+        row_properties.insert(String::from("pixel_y"), RowProperty::SomeInt(pixel_y));
         let color = SVGRow::get_color_string(self.x);
-        let mut child_lines: Vec<HashMap<String, SVGRowProperty>> = vec![];
+        let mut child_lines: Vec<HashMap<String, SVGProperty>> = vec![];
         // Draw the lines from the current node to its children.
         for child_svg_row in child_svg_rows {
             let child_svg_row_b = child_svg_row.borrow();
@@ -188,17 +207,17 @@ impl SVGRow {
                     let mut style_str = String::from("stroke:");
                     style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
                     style_str.push_str(";stroke-width:4");
-                    let line_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-                        (String::from("x1"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
-                        (String::from("y1"), SVGRowPropertyAttrs::SomeInt(top_pixel_y)),
-                        (String::from("x2"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
-                        (String::from("y2"), SVGRowPropertyAttrs::SomeInt(bottom_pixel_y)),
-                        (String::from("style"), SVGRowPropertyAttrs::SomeString(style_str)),
+                    let line_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
+                        (String::from("x1"), SVGPropertyAttrs::SomeInt(child_pixel_x)),
+                        (String::from("y1"), SVGPropertyAttrs::SomeInt(top_pixel_y)),
+                        (String::from("x2"), SVGPropertyAttrs::SomeInt(child_pixel_x)),
+                        (String::from("y2"), SVGPropertyAttrs::SomeInt(bottom_pixel_y)),
+                        (String::from("style"), SVGPropertyAttrs::SomeString(style_str)),
                     ]);
                     child_lines.push(HashMap::from([
-                        (String::from("tag"), SVGRowProperty::SomeString(String::from("line"))),
-                        (String::from("attrs"), SVGRowProperty::SomeHashMap(line_attrs)),
-                        (String::from("row-y"), SVGRowProperty::SomeInt(i + 1)),
+                        (String::from("tag"), SVGProperty::SomeString(String::from("line"))),
+                        (String::from("attrs"), SVGProperty::SomeHashMap(line_attrs)),
+                        (String::from("row-y"), SVGProperty::SomeInt(i + 1)),
                     ]));
                 }
             }
@@ -215,17 +234,17 @@ impl SVGRow {
             }
             style_str.push_str(";fill:transparent;stroke-width:4");
             if child_pixel_x == pixel_x {
-                let line_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-                    (String::from("x1"), SVGRowPropertyAttrs::SomeInt(child_pixel_x)),
-                    (String::from("y1"), SVGRowPropertyAttrs::SomeInt(before_pixel_y)),
-                    (String::from("x2"), SVGRowPropertyAttrs::SomeInt(pixel_x)),
-                    (String::from("y2"), SVGRowPropertyAttrs::SomeInt(pixel_y)),
-                    (String::from("style"), SVGRowPropertyAttrs::SomeString(style_str)),
+                let line_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
+                    (String::from("x1"), SVGPropertyAttrs::SomeInt(child_pixel_x)),
+                    (String::from("y1"), SVGPropertyAttrs::SomeInt(before_pixel_y)),
+                    (String::from("x2"), SVGPropertyAttrs::SomeInt(pixel_x)),
+                    (String::from("y2"), SVGPropertyAttrs::SomeInt(pixel_y)),
+                    (String::from("style"), SVGPropertyAttrs::SomeString(style_str)),
                 ]);
                 child_lines.push(HashMap::from([
-                    (String::from("tag"), SVGRowProperty::SomeString(String::from("line"))),
-                    (String::from("attrs"), SVGRowProperty::SomeHashMap(line_attrs)),
-                    (String::from("row-y"), SVGRowProperty::SomeInt(row_y)),
+                    (String::from("tag"), SVGProperty::SomeString(String::from("line"))),
+                    (String::from("attrs"), SVGProperty::SomeHashMap(line_attrs)),
+                    (String::from("row-y"), SVGProperty::SomeInt(row_y)),
                 ]));
             } else {
                 let mut d_str = format!("M {child_pixel_x} {before_pixel_y} C ");
@@ -239,49 +258,49 @@ impl SVGRow {
                     d_str.push_str(&*format!("{child_pixel_x} {start_control_point_y}, {end_control_point_x} {pixel_y}, "));
                 }
                 d_str.push_str(&*format!("{pixel_x} {pixel_y}"));
-                let path_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-                    (String::from("d"), SVGRowPropertyAttrs::SomeString(d_str)),
-                    (String::from("style"), SVGRowPropertyAttrs::SomeString(style_str)),
+                let path_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
+                    (String::from("d"), SVGPropertyAttrs::SomeString(d_str)),
+                    (String::from("style"), SVGPropertyAttrs::SomeString(style_str)),
                 ]);
                 child_lines.push(HashMap::from([
-                    (String::from("tag"), SVGRowProperty::SomeString(String::from("path"))),
-                    (String::from("attrs"), SVGRowProperty::SomeHashMap(path_attrs)),
-                    (String::from("row-y"), SVGRowProperty::SomeInt(row_y)),
+                    (String::from("tag"), SVGProperty::SomeString(String::from("path"))),
+                    (String::from("attrs"), SVGProperty::SomeHashMap(path_attrs)),
+                    (String::from("row-y"), SVGProperty::SomeInt(row_y)),
                 ]));
             }
         }
         draw_properties.insert(String::from("child_lines"), DrawProperty::SomeVector(child_lines));
 
         // Now get the circle
-        let circle_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-            (String::from("cx"), SVGRowPropertyAttrs::SomeInt(pixel_x)),
-            (String::from("cy"), SVGRowPropertyAttrs::SomeInt(pixel_y)),
-            (String::from("r"), SVGRowPropertyAttrs::SomeInt(CIRCLE_RADIUS)),
-            (String::from("stroke"), SVGRowPropertyAttrs::SomeString(color.clone())),
-            (String::from("stroke-width"), SVGRowPropertyAttrs::SomeInt(1)),
-            (String::from("fill"), SVGRowPropertyAttrs::SomeString(color.clone())),
+        let circle_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
+            (String::from("cx"), SVGPropertyAttrs::SomeInt(pixel_x)),
+            (String::from("cy"), SVGPropertyAttrs::SomeInt(pixel_y)),
+            (String::from("r"), SVGPropertyAttrs::SomeInt(CIRCLE_RADIUS)),
+            (String::from("stroke"), SVGPropertyAttrs::SomeString(color.clone())),
+            (String::from("stroke-width"), SVGPropertyAttrs::SomeInt(1)),
+            (String::from("fill"), SVGPropertyAttrs::SomeString(color.clone())),
         ]);
         draw_properties.insert(String::from("circle"), DrawProperty::SomeHashMap(HashMap::from([
-            (String::from("tag"), SVGRowProperty::SomeString(String::from("circle"))),
-            (String::from("attrs"), SVGRowProperty::SomeHashMap(circle_attrs)),
+            (String::from("tag"), SVGProperty::SomeString(String::from("circle"))),
+            (String::from("attrs"), SVGProperty::SomeHashMap(circle_attrs)),
         ])));
 
         // Get the branch text
         let empty_hm = HashMap::new();
         let largest_occupied_x = main_table.get(&self.y).unwrap_or(&empty_hm).keys().max().unwrap_or(&0);
-        let mut branch_and_tags: Vec<Vec<HashMap<String, SVGRowProperty>>> = vec![];
+        let mut branch_and_tags: Vec<Vec<HashMap<String, SVGProperty>>> = vec![];
         for (branch_name, branch_type) in self.branches_and_tags.clone().into_iter() {
-            let mut branch_and_tag_properties: Vec<HashMap<String, SVGRowProperty>> = vec![];
-            let text_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-                (String::from("x"), SVGRowPropertyAttrs::SomeInt(0)),
-                (String::from("y"), SVGRowPropertyAttrs::SomeInt(pixel_y + TEXT_Y_ALIGNMENT)),
-                (String::from("fill"), SVGRowPropertyAttrs::SomeString(String::from("white"))),
+            let mut branch_and_tag_properties: Vec<HashMap<String, SVGProperty>> = vec![];
+            let text_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
+                (String::from("x"), SVGPropertyAttrs::SomeInt(0)),
+                (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_ALIGNMENT)),
+                (String::from("fill"), SVGPropertyAttrs::SomeString(String::from("white"))),
             ]);
             branch_and_tag_properties.push(HashMap::from([
-                (String::from("tag"), SVGRowProperty::SomeString(String::from("text"))),
-                (String::from("attrs"), SVGRowProperty::SomeHashMap(text_attrs)),
-                (String::from("textContent"), SVGRowProperty::SomeString(branch_name.clone())),
-                (String::from("largestXValue"), SVGRowProperty::SomeInt(*largest_occupied_x)),
+                (String::from("tag"), SVGProperty::SomeString(String::from("text"))),
+                (String::from("attrs"), SVGProperty::SomeHashMap(text_attrs)),
+                (String::from("textContent"), SVGProperty::SomeString(branch_name.clone())),
+                (String::from("largestXValue"), SVGProperty::SomeInt(*largest_occupied_x)),
             ]));
 
             let mut branch_rect_color = "yellow";
@@ -296,50 +315,52 @@ impl SVGRow {
             let mut style_str = String::from("fill:");
             style_str.push_str(branch_rect_color);
             style_str.push_str(";fill-opacity:0.5;");
-            let rect_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-                (String::from("x"), SVGRowPropertyAttrs::SomeInt(0)),
-                (String::from("y"), SVGRowPropertyAttrs::SomeInt(pixel_y + RECT_Y_OFFSET)),
-                (String::from("rx"), SVGRowPropertyAttrs::SomeInt(10)),
-                (String::from("ry"), SVGRowPropertyAttrs::SomeInt(10)),
-                (String::from("width"), SVGRowPropertyAttrs::SomeInt(0)),
-                (String::from("height"), SVGRowPropertyAttrs::SomeInt(RECT_HEIGHT)),
-                (String::from("style"), SVGRowPropertyAttrs::SomeString(style_str)),
+            let rect_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
+                (String::from("x"), SVGPropertyAttrs::SomeInt(0)),
+                (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + RECT_Y_OFFSET)),
+                (String::from("rx"), SVGPropertyAttrs::SomeInt(10)),
+                (String::from("ry"), SVGPropertyAttrs::SomeInt(10)),
+                (String::from("width"), SVGPropertyAttrs::SomeInt(0)),
+                (String::from("height"), SVGPropertyAttrs::SomeInt(RECT_HEIGHT)),
+                (String::from("style"), SVGPropertyAttrs::SomeString(style_str)),
             ]);
             branch_and_tag_properties.push(HashMap::from([
-                (String::from("tag"), SVGRowProperty::SomeString(String::from("rect"))),
-                (String::from("attrs"), SVGRowProperty::SomeHashMap(rect_attrs)),
+                (String::from("tag"), SVGProperty::SomeString(String::from("rect"))),
+                (String::from("attrs"), SVGProperty::SomeHashMap(rect_attrs)),
             ]));
             branch_and_tags.push(branch_and_tag_properties);
         }
         draw_properties.insert(String::from("branch_and_tags"), DrawProperty::SomeVectorVector(branch_and_tags));
 
         // Get summary text
-        let text_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-            (String::from("x"), SVGRowPropertyAttrs::SomeInt(0)),
-            (String::from("y"), SVGRowPropertyAttrs::SomeInt(pixel_y + TEXT_Y_ALIGNMENT)),
-            (String::from("fill"), SVGRowPropertyAttrs::SomeString(String::from("white"))),
+        let text_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
+            (String::from("x"), SVGPropertyAttrs::SomeInt(0)),
+            (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_ALIGNMENT)),
+            (String::from("fill"), SVGPropertyAttrs::SomeString(String::from("white"))),
         ]);
         draw_properties.insert(String::from("summary_text"), DrawProperty::SomeHashMap(HashMap::from([
-            (String::from("tag"), SVGRowProperty::SomeString(String::from("text"))),
-            (String::from("attrs"), SVGRowProperty::SomeHashMap(text_attrs)),
-            (String::from("textContent"), SVGRowProperty::SomeString(self.summary.clone())),
-            (String::from("largestXValue"), SVGRowProperty::SomeInt(*largest_occupied_x)),
+            (String::from("tag"), SVGProperty::SomeString(String::from("text"))),
+            (String::from("attrs"), SVGProperty::SomeHashMap(text_attrs)),
+            (String::from("textContent"), SVGProperty::SomeString(self.summary.clone())),
+            (String::from("largestXValue"), SVGProperty::SomeInt(*largest_occupied_x)),
         ])));
 
         // Get background rectangle
-        let rect_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
-            (String::from("class"), SVGRowPropertyAttrs::SomeString(String::from("backgroundRect"))),
-            (String::from("x"), SVGRowPropertyAttrs::SomeInt(pixel_x)),
-            (String::from("y"), SVGRowPropertyAttrs::SomeInt(pixel_y + RECT_Y_OFFSET)),
-            (String::from("width"), SVGRowPropertyAttrs::SomeInt(0)),
-            (String::from("height"), SVGRowPropertyAttrs::SomeInt(RECT_HEIGHT)),
-            (String::from("style"), SVGRowPropertyAttrs::SomeString(String::from("fill:white;fill-opacity:0.1;"))),
+        let rect_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
+            (String::from("class"), SVGPropertyAttrs::SomeString(String::from("backgroundRect"))),
+            (String::from("x"), SVGPropertyAttrs::SomeInt(pixel_x)),
+            (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + RECT_Y_OFFSET)),
+            (String::from("width"), SVGPropertyAttrs::SomeInt(0)),
+            (String::from("height"), SVGPropertyAttrs::SomeInt(RECT_HEIGHT)),
+            (String::from("style"), SVGPropertyAttrs::SomeString(String::from("fill:white;fill-opacity:0.1;"))),
         ]);
         draw_properties.insert(String::from("back_rect"), DrawProperty::SomeHashMap(HashMap::from([
-            (String::from("tag"), SVGRowProperty::SomeString(String::from("rect"))),
-            (String::from("attrs"), SVGRowProperty::SomeHashMap(rect_attrs)),
+            (String::from("tag"), SVGProperty::SomeString(String::from("rect"))),
+            (String::from("attrs"), SVGProperty::SomeHashMap(rect_attrs)),
         ])));
 
-        draw_properties
+        row_properties.insert(String::from("elements"), RowProperty::SomeHashMap(draw_properties));
+
+        row_properties
     }
 }
