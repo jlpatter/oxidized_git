@@ -64,13 +64,15 @@ impl ParseableDiffDelta {
 
 #[derive(Clone, Serialize)]
 pub struct FilesChangedInfo {
+    files_changed: usize,
     unstaged_files: Vec<ParseableDiffDelta>,
     staged_files: Vec<ParseableDiffDelta>,
 }
 
 impl FilesChangedInfo {
-    pub fn new(unstaged_files: Vec<ParseableDiffDelta>, staged_files: Vec<ParseableDiffDelta>) -> Self {
+    pub fn new(files_changed: usize, unstaged_files: Vec<ParseableDiffDelta>, staged_files: Vec<ParseableDiffDelta>) -> Self {
         Self {
+            files_changed,
             unstaged_files,
             staged_files,
         }
@@ -337,7 +339,8 @@ fn get_parseable_diff_delta(diff: Diff) -> Result<Vec<ParseableDiffDelta>, Box<d
 fn get_files_changed_info_list(git_manager: &GitManager) -> Result<FilesChangedInfo, Box<dyn std::error::Error>> {
     let unstaged_diff = git_manager.get_unstaged_changes()?;
     let staged_diff = git_manager.get_staged_changes()?;
-    Ok(FilesChangedInfo::new(get_parseable_diff_delta(unstaged_diff)?, get_parseable_diff_delta(staged_diff)?))
+    let files_changed = unstaged_diff.stats()?.files_changed() + staged_diff.stats()?.files_changed();
+    Ok(FilesChangedInfo::new(files_changed, get_parseable_diff_delta(unstaged_diff)?, get_parseable_diff_delta(staged_diff)?))
 }
 
 pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<HashMap<String, RepoInfoValue>, Box<dyn std::error::Error>> {

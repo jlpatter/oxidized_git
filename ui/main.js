@@ -112,6 +112,12 @@ class Main {
     }
 
     updateFilesChangedInfo(files_changed_info_list) {
+        if (files_changed_info_list['files_changed'] > 0) {
+            $('#changes-tab').html('Changes (' + files_changed_info_list['files_changed'] + ')');
+        } else {
+            $('#changes-tab').html('Changes');
+        }
+
         $('#unstagedTableBody tr').remove();
         $('#stagedTableBody tr').remove();
         $('#unstagedTableBody').append('<tr><th><h6>Unstaged Changes</h6></th></tr>');
