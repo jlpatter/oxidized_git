@@ -178,9 +178,10 @@ impl SVGRow {
             let child_svg_row_b = child_svg_row.borrow();
             let child_pixel_x = child_svg_row_b.x * X_SPACING + X_OFFSET;
             let child_pixel_y = child_svg_row_b.y * Y_SPACING + Y_OFFSET;
-            let before_pixel_y = (self.y - 1) * Y_SPACING + Y_OFFSET;
+            let before_y = self.y - 1;
+            let before_pixel_y = before_y * Y_SPACING + Y_OFFSET;
             if before_pixel_y != child_pixel_y {
-                for i in child_svg_row_b.y..(self.y - 1) {
+                for i in child_svg_row_b.y..before_y {
                     let top_pixel_y = i * Y_SPACING + Y_OFFSET;
                     let bottom_pixel_y = (i + 1) * Y_SPACING + Y_OFFSET;
 
@@ -202,7 +203,16 @@ impl SVGRow {
                 }
             }
             let mut style_str = String::from("stroke:");
-            style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
+            let row_y;
+            if child_svg_row_b.x >= self.x {
+                // Sets the color for "branching" lines and straight lines
+                style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
+                row_y = self.y;
+            } else {
+                // Sets the color for "merging" lines
+                style_str.push_str(&*SVGRow::get_color_string(self.x));
+                row_y = before_y;
+            }
             style_str.push_str(";fill:transparent;stroke-width:4");
             if child_pixel_x == pixel_x {
                 let line_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
@@ -215,7 +225,7 @@ impl SVGRow {
                 child_lines.push(HashMap::from([
                     (String::from("tag"), SVGRowProperty::SomeString(String::from("line"))),
                     (String::from("attrs"), SVGRowProperty::SomeHashMap(line_attrs)),
-                    (String::from("row-y"), SVGRowProperty::SomeInt(self.y)),
+                    (String::from("row-y"), SVGRowProperty::SomeInt(row_y)),
                 ]));
             } else {
                 let mut d_str = format!("M {child_pixel_x} {before_pixel_y} C ");
@@ -236,7 +246,7 @@ impl SVGRow {
                 child_lines.push(HashMap::from([
                     (String::from("tag"), SVGRowProperty::SomeString(String::from("path"))),
                     (String::from("attrs"), SVGRowProperty::SomeHashMap(path_attrs)),
-                    (String::from("row-y"), SVGRowProperty::SomeInt(self.y)),
+                    (String::from("row-y"), SVGRowProperty::SomeInt(row_y)),
                 ]));
             }
         }

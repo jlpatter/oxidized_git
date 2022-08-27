@@ -56,7 +56,7 @@ export class SVGManager {
             for (const childLine of commit[0]) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                 if (childLine['row-y'] < i) {
-                    self.rows[childLine['row-y']]['elements'].push(line);
+                    self.rows[childLine['row-y']]['elements'].unshift(line);
                 } else if (childLine['row-y'] === i) {
                     row['elements'].push(line);
                 } else {
