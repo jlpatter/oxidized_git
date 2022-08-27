@@ -344,14 +344,20 @@ fn get_parseable_diff_delta(diff: Diff) -> Result<Vec<ParseableDiffDelta>, Box<d
     Ok(files)
 }
 
-pub fn get_files_changed_info_list(git_manager: &GitManager) -> Result<FilesChangedInfo, Box<dyn std::error::Error>> {
+pub fn get_files_changed_info_list(git_manager: &GitManager) -> Result<Option<FilesChangedInfo>, Box<dyn std::error::Error>> {
+    if !git_manager.has_open_repo() {
+        return Ok(None);
+    }
     let unstaged_diff = git_manager.get_unstaged_changes()?;
     let staged_diff = git_manager.get_staged_changes()?;
     let files_changed = unstaged_diff.stats()?.files_changed() + staged_diff.stats()?.files_changed();
-    Ok(FilesChangedInfo::new(files_changed, get_parseable_diff_delta(unstaged_diff)?, get_parseable_diff_delta(staged_diff)?))
+    Ok(Some(FilesChangedInfo::new(files_changed, get_parseable_diff_delta(unstaged_diff)?, get_parseable_diff_delta(staged_diff)?)))
 }
 
-pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<HashMap<String, RepoInfoValue>, Box<dyn std::error::Error>> {
+pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<Option<HashMap<String, RepoInfoValue>>, Box<dyn std::error::Error>> {
+    if !git_manager.has_open_repo() {
+        return Ok(None);
+    }
     let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
     let commit_info_list = get_commit_info_list(git_manager, git_manager.git_revwalk()?)?;
     let mut svg_rows: Vec<Rc<RefCell<SVGRow>>> = vec![];
@@ -458,6 +464,10 @@ pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<HashMap<Strin
     repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(svg_row_draw_properties));
     repo_info.insert(String::from("branch_info_list"), RepoInfoValue::SomeBranchInfo(get_branch_info_list(git_manager)?));
     repo_info.insert(String::from("remote_info_list"), RepoInfoValue::SomeRemoteInfo(get_remote_info_list(git_manager)?));
-    repo_info.insert(String::from("files_changed_info_list"), RepoInfoValue::SomeFilesChangedInfo(get_files_changed_info_list(git_manager)?));
-    Ok(repo_info)
+    if let Some(fcil) = get_files_changed_info_list(git_manager)? {
+        repo_info.insert(String::from("files_changed_info_list"), RepoInfoValue::SomeFilesChangedInfo(fcil));
+    } else {
+        return Err("Changes couldn't find repo but repo_info could for some reason?".into());
+    }
+    Ok(Some(repo_info))
 }

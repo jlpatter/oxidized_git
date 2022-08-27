@@ -8,7 +8,7 @@ mod backend;
 use lazy_static::lazy_static;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
-use tauri::{CustomMenuItem, Manager, Menu, MenuItem, Submenu, Window, WindowBuilder, Wry};
+use tauri::{CustomMenuItem, Manager, Menu, MenuItem, Submenu, Window, WindowBuilder, WindowEvent, Wry};
 use tauri::MenuEntry::NativeItem;
 use backend::git_manager::GitManager;
 use backend::config_manager;
@@ -16,12 +16,17 @@ use backend::parseable_info::{get_parseable_repo_info, get_files_changed_info_li
 
 lazy_static! {
     static ref GIT_MANAGER_ARC: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new()));
+    static ref JUST_GOT_REPO: Mutex<bool> = Mutex::new(false);
 }
 
 fn emit_update_all(git_manager: &MutexGuard<GitManager>, temp_main_window: &Window<Wry>) {
     let repo_info_result = get_parseable_repo_info(git_manager);
     match repo_info_result {
-        Ok(repo_info) => temp_main_window.emit_all("update_all", repo_info).unwrap(),
+        Ok(repo_info_opt) => {
+            if let Some(repo_info) = repo_info_opt {
+                temp_main_window.emit_all("update_all", repo_info).unwrap();
+            }
+        },
         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
     };
 }
@@ -29,7 +34,11 @@ fn emit_update_all(git_manager: &MutexGuard<GitManager>, temp_main_window: &Wind
 fn emit_update_changes(git_manager: &MutexGuard<GitManager>, temp_main_window: &Window<Wry>) {
     let changes_info_result = get_files_changed_info_list(git_manager);
     match changes_info_result {
-        Ok(changes_info) => temp_main_window.emit_all("update_changes", changes_info).unwrap(),
+        Ok(changes_info_opt) => {
+            if let Some(changes_info) = changes_info_opt {
+                temp_main_window.emit_all("update_changes", changes_info).unwrap();
+            }
+        },
         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
     }
 }
@@ -75,6 +84,28 @@ fn main() {
         .build()?;
 
         let main_window_c = main_window.clone();
+        main_window.on_window_event(move |event| {
+            match event {
+                WindowEvent::Focused(is_focused) => {
+                    if *is_focused {
+                        let mut just_got_repo = JUST_GOT_REPO.lock().unwrap();
+                        if *just_got_repo {
+                            *just_got_repo = false;
+                        } else {
+                            let git_manager_arc_c = GIT_MANAGER_ARC.clone();
+                            let main_window_c_c = main_window_c.clone();
+                            thread::spawn(move || {
+                                let git_manager = git_manager_arc_c.lock().unwrap();
+                                emit_update_all(&git_manager, &main_window_c_c);
+                            });
+                        }
+                    }
+                },
+                _ => {},
+            }
+        });
+
+        let main_window_c = main_window.clone();
         main_window.on_menu_event(move |event| {
             match event.menu_item_id() {
                 "preferences" => {
@@ -95,6 +126,8 @@ fn main() {
                         Ok(did_init) => {
                             if did_init {
                                 emit_update_all(&git_manager, &main_window_c);
+                                let mut just_got_repo = JUST_GOT_REPO.lock().unwrap();
+                                *just_got_repo = true;
                             }
                         },
                         Err(e) => main_window_c.emit_all("error", e.to_string()).unwrap(),
@@ -107,6 +140,8 @@ fn main() {
                         Ok(did_open) => {
                             if did_open {
                                 emit_update_all(&git_manager, &main_window_c);
+                                let mut just_got_repo = JUST_GOT_REPO.lock().unwrap();
+                                *just_got_repo = true;
                             }
                         },
                         Err(e) => main_window_c.emit_all("error", e.to_string()).unwrap(),
@@ -189,15 +224,6 @@ fn main() {
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
                 };
-            });
-        });
-        let main_window_c = main_window.clone();
-        main_window.listen("refresh", move |_event| {
-            let git_manager_arc_c = GIT_MANAGER_ARC.clone();
-            let main_window_c_c = main_window_c.clone();
-            thread::spawn(move || {
-                let git_manager = git_manager_arc_c.lock().unwrap();
-                emit_update_all(&git_manager, &main_window_c_c);
             });
         });
         let main_window_c = main_window.clone();

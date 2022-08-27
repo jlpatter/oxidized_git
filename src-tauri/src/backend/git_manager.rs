@@ -32,6 +32,13 @@ impl GitManager {
         }
     }
 
+    pub fn has_open_repo(&self) -> bool {
+        match self.get_repo() {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
+
     fn get_directory(&self) -> Option<PathBuf> {
         let bd_opt = BaseDirs::new();
         match bd_opt {
