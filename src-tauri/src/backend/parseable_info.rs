@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use git2::{BranchType, Oid};
+use git2::{BranchType, ErrorCode, Oid};
 use serde::{Serialize, Serializer};
 use super::git_manager::GitManager;
 use super::svg_row::RowProperty;
@@ -31,6 +31,7 @@ pub enum RepoInfoValue {
     SomeCommitInfo(Vec<HashMap<String, RowProperty>>),
     SomeBranchInfo(Vec<HashMap<String, String>>),
     SomeRemoteInfo(Vec<String>),
+    SomeGeneralInfo(HashMap<String, String>),
 }
 
 impl Serialize for RepoInfoValue {
@@ -39,6 +40,7 @@ impl Serialize for RepoInfoValue {
             RepoInfoValue::SomeCommitInfo(c) => c.serialize(serializer),
             RepoInfoValue::SomeBranchInfo(b) => b.serialize(serializer),
             RepoInfoValue::SomeRemoteInfo(v) => v.serialize(serializer),
+            RepoInfoValue::SomeGeneralInfo(hm) => hm.serialize(serializer),
         }
     }
 }
@@ -103,6 +105,29 @@ fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String,
         }
     }
     Ok(oid_refs)
+}
+
+fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
+    let repo = git_manager.get_repo()?;
+
+    let mut general_info: HashMap<String, String> = HashMap::new();
+    let head_ref = repo.head()?;
+    let head_branch = repo.find_branch(GitManager::get_utf8_string(head_ref.shorthand(), "Branch Name")?, BranchType::Local)?;
+
+    match head_branch.upstream() {
+        Ok(_) => {
+            general_info.insert(String::from("head_has_upstream"), true.to_string());
+        },
+        Err(e) => {
+            if e.code() == ErrorCode::NotFound {
+                general_info.insert(String::from("head_has_upstream"), false.to_string());
+            } else {
+                return Err(e.into());
+            }
+        },
+    }
+
+    Ok(general_info)
 }
 
 fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<Vec<HashMap<String, CommitInfoValue>>, Box<dyn std::error::Error>> {
@@ -216,7 +241,6 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<Vec<HashMap<String, 
         branch_info.insert("behind".to_string(), "0".to_string());
         if reference.is_branch() {
             let local_branch = repo.find_branch(branch_shorthand, BranchType::Local)?;
-            // This throws an error when an upstream isn't found, which is why I'm not returning the error.
             match local_branch.upstream() {
                 Ok(remote_branch) => {
                     match local_branch.get().target() {
@@ -233,7 +257,11 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<Vec<HashMap<String, 
                         None => (),
                     };
                 },
-                Err(_) => (),
+                Err(e) => {
+                    if e.code() != ErrorCode::NotFound {
+                        return Err(e.into());
+                    }
+                },
             };
         }
 
@@ -359,8 +387,9 @@ pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<HashMap<Strin
         ));
     }
 
-    repo_info.insert("commit_info_list".to_string(), RepoInfoValue::SomeCommitInfo(svg_row_draw_properties));
-    repo_info.insert("branch_info_list".to_string(), RepoInfoValue::SomeBranchInfo(get_branch_info_list(git_manager)?));
-    repo_info.insert("remote_info_list".to_string(), RepoInfoValue::SomeRemoteInfo(get_remote_info_list(git_manager)?));
+    repo_info.insert(String::from("general_info"), RepoInfoValue::SomeGeneralInfo(get_general_info(git_manager)?));
+    repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(svg_row_draw_properties));
+    repo_info.insert(String::from("branch_info_list"), RepoInfoValue::SomeBranchInfo(get_branch_info_list(git_manager)?));
+    repo_info.insert(String::from("remote_info_list"), RepoInfoValue::SomeRemoteInfo(get_remote_info_list(git_manager)?));
     Ok(repo_info)
 }

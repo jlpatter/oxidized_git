@@ -4,11 +4,15 @@ import {emit, listen} from "@tauri-apps/api/event";
 import {SVGManager} from "./svg_manager";
 
 class Main {
+    constructor() {
+        this.svgManager = new SVGManager();
+        this.generalInfo = {};
+    }
+
     run() {
         const self = this;
         $('#contextMenu').hide();
         self.showCommitControls();
-        self.svgManager = new SVGManager();
 
         $(window).click(function() {
             $('#contextMenu').hide();
@@ -78,11 +82,18 @@ class Main {
         });
 
         $('#openPushModalBtn').click(() => {
+            if (Object.hasOwn(self.generalInfo, 'head_has_upstream') && self.generalInfo['head_has_upstream'] === 'true') {
+                $('#remoteSelect').hide();
+            } else {
+                $('#remoteSelect').show();
+            }
             $('#forcePushCheckBox').prop('checked', false);
             $('#pushModal').modal('show');
         });
 
         $('#pushBtn').click(() => {
+            // Note: By default, pushing will try to use the local branch's upstream first
+            // instead of the selected remote from the front-end
             emit("push", {
                 selectedRemote: $('#remoteSelect').val(),
                 isForcePush: $('#forcePushCheckBox').is(':checked').toString(),
@@ -93,6 +104,7 @@ class Main {
 
     updateAll(repo_info) {
         const self = this;
+        self.generalInfo = repo_info['general_info'];
         self.svgManager.updateCommitTable(repo_info["commit_info_list"]);
         self.updateBranchInfo(repo_info["branch_info_list"]);
         self.updateRemoteInfo(repo_info["remote_info_list"]);

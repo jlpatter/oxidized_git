@@ -129,7 +129,12 @@ impl GitManager {
         // check it out instead.
         for local_b_result in repo.branches(Some(BranchType::Local))? {
             let (local_b, _) = local_b_result?;
-            let local_upstream = local_b.upstream()?;
+            let local_upstream = match local_b.upstream() {
+                Ok(b) => b,
+                Err(_) => {
+                    continue;
+                },
+            };
             let local_remote_full_name = GitManager::get_utf8_string(local_upstream.get().name(), "Branch Name")?;
             if local_remote_full_name == remote_branch_full_name {
                 return self.git_checkout(local_b.get());
@@ -258,7 +263,7 @@ impl GitManager {
             Some(s) => s == "true",
             None => return Err("isForcePush not included in payload from front-end.".into()),
         };
-        let remote_name = match push_options.get("selectedRemote") {
+        let remote_name_from_frontend = match push_options.get("selectedRemote") {
             Some(s) => s.as_str(),
             None => return Err("selectedRemote not included in payload from front-end.".into()),
         };
@@ -266,13 +271,15 @@ impl GitManager {
         let local_ref = repo.head()?;
         let local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
 
+        let mut is_creating_new_remote_branch = false;
         let mut remote = match repo.branch_upstream_remote(local_full_name) {
             Ok(b) => {
                 let remote_name = GitManager::get_utf8_string(b.as_str(), "Remote Name")?;
                 repo.find_remote(remote_name)?
             },
             Err(_e) => {
-                repo.find_remote(remote_name)?
+                is_creating_new_remote_branch = true;
+                repo.find_remote(remote_name_from_frontend)?
             },
         };
 
@@ -285,6 +292,14 @@ impl GitManager {
         }
 
         remote.push(&[sb.as_str()], Some(&mut push_options))?;
+
+        if is_creating_new_remote_branch {
+            let local_branch_shorthand = GitManager::get_utf8_string(local_ref.shorthand(), "Branch Name")?;
+            let new_remote_branch_shorthand = format!("{remote_name_from_frontend}/{local_branch_shorthand}");
+            let mut local_branch = repo.find_branch(local_branch_shorthand, BranchType::Local)?;
+            local_branch.set_upstream(Some(&*new_remote_branch_shorthand))?;
+        }
+
         Ok(())
     }
 
