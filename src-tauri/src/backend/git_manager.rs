@@ -64,6 +64,14 @@ impl GitManager {
         }
     }
 
+    fn get_repo(&self) -> Result<&Repository, Box<dyn std::error::Error>> {
+        let repo_temp_opt = &self.repo;
+        match repo_temp_opt {
+            Some(repo) => Ok(repo),
+            None => Err("No repo loaded to perform operation on.".into()),
+        }
+    }
+
     fn get_directory(&self) -> Option<PathBuf> {
         let bd_opt = BaseDirs::new();
         match bd_opt {
@@ -93,14 +101,10 @@ impl GitManager {
     }
 
     fn git_revwalk(&self) -> Result<Vec<Oid>, Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to get commit lines for.".into()),
-        };
-        let mut revwalk = repo_temp.revwalk()?;
+        let repo = self.get_repo()?;
+        let mut revwalk = repo.revwalk()?;
         let mut oid_vec: Vec<Oid> = vec![];
-        for branch_result in repo_temp.branches(None)? {
+        for branch_result in repo.branches(None)? {
             let (branch, _) = branch_result?;
             match branch.get().target() {
                 Some(oid) => oid_vec.push(oid),
@@ -109,7 +113,7 @@ impl GitManager {
         };
         // Sort Oids by date first
         oid_vec.sort_by(|a, b| {
-            repo_temp.find_commit(*b).unwrap().time().seconds().partial_cmp(&repo_temp.find_commit(*a).unwrap().time().seconds()).unwrap()
+            repo.find_commit(*b).unwrap().time().seconds().partial_cmp(&repo.find_commit(*a).unwrap().time().seconds()).unwrap()
         });
         for oid in oid_vec {
             revwalk.push(oid)?;
@@ -131,17 +135,13 @@ impl GitManager {
     }
 
     fn get_oid_refs(&self) -> Result<HashMap<String, Vec<(String, String)>>, Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to get repo info for.".into()),
-        };
+        let repo = self.get_repo()?;
 
         // Get HashMap of Oids and their refs based on type (local, remote, or tag)
         let mut oid_refs: HashMap<String, Vec<(String, String)>> = HashMap::new();
 
         // Iterate over branches
-        for branch_result in repo_temp.branches(None)? {
+        for branch_result in repo.branches(None)? {
             let (branch, _) = branch_result?;
             let mut branch_string = String::new();
             if branch.is_head() {
@@ -173,7 +173,7 @@ impl GitManager {
         }
 
         // Iterate over tags
-        for reference_result in repo_temp.references()? {
+        for reference_result in repo.references()? {
             let reference = reference_result?;
             if reference.is_tag() {
                 let ref_name = GitManager::get_utf8_string(reference.shorthand(), "Tag Name")?;
@@ -197,11 +197,7 @@ impl GitManager {
     }
 
     fn get_commit_info_list(&self, oid_list: Vec<Oid>) -> Result<Vec<HashMap<String, CommitInfoValue>>, Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to get commit info for.".into()),
-        };
+        let repo = self.get_repo()?;
 
         let mut commit_list: Vec<HashMap<String, CommitInfoValue>> = vec![];
         let oid_refs_hm = self.get_oid_refs()?;
@@ -213,7 +209,7 @@ impl GitManager {
             commit_info.insert("x".into(), CommitInfoValue::SomeInt(0));
             commit_info.insert("y".into(), CommitInfoValue::SomeInt(i as isize));
 
-            let commit = repo_temp.find_commit(*oid)?;
+            let commit = repo.find_commit(*oid)?;
 
             // Get commit summary
             let commit_summary = GitManager::get_utf8_string(commit.summary(), "Commit Summary")?;
@@ -272,15 +268,11 @@ impl GitManager {
     }
 
     fn get_branch_info_list(&self) -> Result<Vec<HashMap<String, String>>, Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to get branch info for.".into()),
-        };
+        let repo = self.get_repo()?;
 
         let mut branch_info_list: Vec<HashMap<String, String>> = vec![];
 
-        for reference_result in repo_temp.references()? {
+        for reference_result in repo.references()? {
             let reference = reference_result?;
             let mut branch_info: HashMap<String, String> = HashMap::new();
 
@@ -295,7 +287,7 @@ impl GitManager {
             // Get if branch is head
             branch_info.insert("is_head".to_string(), false.to_string());
             if reference.is_branch() {
-                let local_branch = repo_temp.find_branch(branch_shorthand, BranchType::Local)?;
+                let local_branch = repo.find_branch(branch_shorthand, BranchType::Local)?;
                 if local_branch.is_head() {
                     branch_info.insert("is_head".to_string(), true.to_string());
                 }
@@ -314,7 +306,7 @@ impl GitManager {
             branch_info.insert("ahead".to_string(), "0".to_string());
             branch_info.insert("behind".to_string(), "0".to_string());
             if reference.is_branch() {
-                let local_branch = repo_temp.find_branch(branch_shorthand, BranchType::Local)?;
+                let local_branch = repo.find_branch(branch_shorthand, BranchType::Local)?;
                 // This throws an error when an upstream isn't found, which is why I'm not returning the error.
                 match local_branch.upstream() {
                     Ok(remote_branch) => {
@@ -322,7 +314,7 @@ impl GitManager {
                             Some(local_oid) => {
                                 match remote_branch.get().target() {
                                     Some(remote_oid) => {
-                                        let (ahead, behind) = repo_temp.graph_ahead_behind(local_oid, remote_oid)?;
+                                        let (ahead, behind) = repo.graph_ahead_behind(local_oid, remote_oid)?;
                                         branch_info.insert("ahead".to_string(), ahead.to_string());
                                         branch_info.insert("behind".to_string(), behind.to_string());
                                     },
@@ -343,14 +335,10 @@ impl GitManager {
     }
 
     fn get_remote_info_list(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to get branch info for.".into()),
-        };
+        let repo = self.get_repo()?;
 
         let mut remote_info_list = vec![];
-        let remote_string_array = repo_temp.remotes()?;
+        let remote_string_array = repo.remotes()?;
 
         for remote_name_opt in remote_string_array.iter() {
             let remote_name = GitManager::get_utf8_string(remote_name_opt, "Remote Name")?;
@@ -469,40 +457,26 @@ impl GitManager {
     }
 
     pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference, Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to get branch name from.".into()),
-        };
-
-        Ok(repo_temp.find_reference(ref_full_name)?)
+        Ok(self.get_repo()?.find_reference(ref_full_name)?)
     }
 
     pub fn git_checkout(&self, local_ref: &Reference) -> Result<(), Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to checkout for.".into()),
-        };
+        let repo = self.get_repo()?;
 
         let local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
         let commit = match local_ref.target() {
-            Some(oid) => repo_temp.find_commit(oid)?,
+            Some(oid) => repo.find_commit(oid)?,
             None => return Err("Trying to check out branch that has no target commit.".into()),
         };
         let tree = commit.tree()?;
 
-        repo_temp.checkout_tree(tree.as_object(), None)?;
-        repo_temp.set_head(local_full_name)?;
+        repo.checkout_tree(tree.as_object(), None)?;
+        repo.set_head(local_full_name)?;
         Ok(())
     }
 
     pub fn git_checkout_remote(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to checkout for.".into()),
-        };
+        let repo = self.get_repo()?;
 
         let json_data: HashMap<String, String> = serde_json::from_str(json_string)?;
         let remote_branch_shortname = match json_data.get("branch_name") {
@@ -516,7 +490,7 @@ impl GitManager {
 
         // Look for a local branch that already exists for the specified remote branch. If one exists,
         // check it out instead.
-        for local_b_result in repo_temp.branches(Some(BranchType::Local))? {
+        for local_b_result in repo.branches(Some(BranchType::Local))? {
             let (local_b, _) = local_b_result?;
             let local_upstream = local_b.upstream()?;
             let local_remote_full_name = GitManager::get_utf8_string(local_upstream.get().name(), "Branch Name")?;
@@ -534,28 +508,24 @@ impl GitManager {
                 local_branch_shortname.push('/');
             }
         }
-        let remote_branch = repo_temp.find_branch(remote_branch_shortname, BranchType::Remote)?;
+        let remote_branch = repo.find_branch(remote_branch_shortname, BranchType::Remote)?;
         let commit = match remote_branch.get().target() {
-            Some(oid) => repo_temp.find_commit(oid)?,
+            Some(oid) => repo.find_commit(oid)?,
             None => return Err("Selected remote branch isn't targeting a commit, can't checkout!".into()),
         };
-        let mut local_branch = repo_temp.branch(&*local_branch_shortname, &commit, false)?;
+        let mut local_branch = repo.branch(&*local_branch_shortname, &commit, false)?;
         local_branch.set_upstream(Some(remote_branch_shortname))?;
 
         self.git_checkout(local_branch.get())
     }
 
     pub fn git_fetch(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to fetch for.".into()),
-        };
-        let remote_string_array = repo_temp.remotes()?;
+        let repo = self.get_repo()?;
+        let remote_string_array = repo.remotes()?;
         let empty_refspecs: &[String] = &[];
         for remote_string_opt in remote_string_array.iter() {
             let remote_string = GitManager::get_utf8_string(remote_string_opt, "Remote Name")?;
-            let mut remote = repo_temp.find_remote(remote_string)?;
+            let mut remote = repo.find_remote(remote_string)?;
             let mut fetch_options = FetchOptions::new();
             fetch_options.download_tags(AutotagOption::All);
             fetch_options.prune(FetchPrune::On);
@@ -566,15 +536,11 @@ impl GitManager {
     }
 
     fn get_staged_changes(&self) -> Result<Diff, Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to get staged changes for.".into()),
-        };
+        let repo = self.get_repo()?;
 
-        let head_ref = repo_temp.head()?;
+        let head_ref = repo.head()?;
         let commit = match head_ref.target() {
-            Some(oid) => Some(repo_temp.find_commit(oid)?),
+            Some(oid) => Some(repo.find_commit(oid)?),
             None => None,
         };
         let tree = match commit {
@@ -582,24 +548,20 @@ impl GitManager {
             None => None,
         };
 
-        let diff = repo_temp.diff_tree_to_index(tree.as_ref(), None, None)?;
+        let diff = repo.diff_tree_to_index(tree.as_ref(), None, None)?;
 
         Ok(diff)
     }
 
     pub fn git_pull(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to pull for.".into()),
-        };
+        let repo = self.get_repo()?;
 
         // Fetch first to make sure everything's up to date.
         self.git_fetch()?;
 
-        let mut local_ref = repo_temp.head()?;
+        let mut local_ref = repo.head()?;
         let local_shorthand = GitManager::get_utf8_string(local_ref.shorthand(), "Branch Name")?;
-        let local_branch = repo_temp.find_branch(local_shorthand, BranchType::Local)?;
+        let local_branch = repo.find_branch(local_shorthand, BranchType::Local)?;
 
         let remote_branch = local_branch.upstream()?;
         let remote_ref = remote_branch.get();
@@ -607,9 +569,9 @@ impl GitManager {
             Some(oid) => oid,
             None => return Err("Remote branch is not targeting a commit, cannot pull.".into()),
         };
-        let remote_ac = repo_temp.find_annotated_commit(remote_target)?;
+        let remote_ac = repo.find_annotated_commit(remote_target)?;
 
-        let (ma, mp) = repo_temp.merge_analysis(&[&remote_ac])?;
+        let (ma, mp) = repo.merge_analysis(&[&remote_ac])?;
 
         if ma.is_none() {
             return Err("Merge analysis indicates no merge is possible. If you're reading this, your repository may be corrupted.".into());
@@ -620,20 +582,20 @@ impl GitManager {
         } else if ma.is_fast_forward() && !mp.is_no_fast_forward() {
             println!("Performing fast forward merge for pull!");
             let commit = match remote_ref.target() {
-                Some(oid) => repo_temp.find_commit(oid)?,
+                Some(oid) => repo.find_commit(oid)?,
                 None => return Err("Trying to check out branch that has no target commit.".into()),
             };
             let tree = commit.tree()?;
-            repo_temp.checkout_tree(tree.as_object(), None)?;
+            repo.checkout_tree(tree.as_object(), None)?;
             local_ref.set_target(remote_target, "oxidized_git pull: setting new target for local ref")?;
             return Ok(());
         } else if ma.is_normal() && !mp.is_fastforward_only() {
             println!("Performing rebase for pull!");
-            let mut rebase = repo_temp.rebase(None, None, Some(&remote_ac), None)?;
+            let mut rebase = repo.rebase(None, None, Some(&remote_ac), None)?;
             let mut has_conflicts = false;
             for step in rebase.by_ref() {
                 step?;
-                let diff = repo_temp.diff_index_to_workdir(None, None)?;
+                let diff = repo.diff_index_to_workdir(None, None)?;
                 if diff.stats()?.files_changed() > 0 {
                     has_conflicts = true;
                     break;
@@ -652,11 +614,7 @@ impl GitManager {
     }
 
     pub fn git_push(&self, push_options_json: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let repo_temp_opt = &self.repo;
-        let repo_temp = match repo_temp_opt {
-            Some(repo) => repo,
-            None => return Err("No repo to pull for.".into()),
-        };
+        let repo = self.get_repo()?;
 
         let push_options: HashMap<String, String> = serde_json::from_str(push_options_json)?;
         let is_force = match push_options.get("isForcePush") {
@@ -668,16 +626,16 @@ impl GitManager {
             None => return Err("selectedRemote not included in payload from front-end.".into()),
         };
 
-        let local_ref = repo_temp.head()?;
+        let local_ref = repo.head()?;
         let local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
 
-        let mut remote = match repo_temp.branch_upstream_remote(local_full_name) {
+        let mut remote = match repo.branch_upstream_remote(local_full_name) {
             Ok(b) => {
                 let remote_name = GitManager::get_utf8_string(b.as_str(), "Remote Name")?;
-                repo_temp.find_remote(remote_name)?
+                repo.find_remote(remote_name)?
             },
             Err(_e) => {
-                repo_temp.find_remote(remote_name)?
+                repo.find_remote(remote_name)?
             },
         };
 
