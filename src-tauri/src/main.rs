@@ -12,13 +12,14 @@ use tauri::{CustomMenuItem, Manager, Menu, MenuItem, Submenu, Window, WindowBuil
 use tauri::MenuEntry::NativeItem;
 use backend::git_manager::GitManager;
 use backend::config_manager;
+use backend::parseable_info::get_parseable_repo_info;
 
 lazy_static! {
     static ref GIT_MANAGER_ARC: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new()));
 }
 
 fn emit_update_all(git_manager: &MutexGuard<GitManager>, temp_main_window: &Window<Wry>) {
-    let repo_info_result = git_manager.get_parseable_repo_info();
+    let repo_info_result = get_parseable_repo_info(git_manager);
     match repo_info_result {
         Ok(repo_info) => temp_main_window.emit_all("update_all", repo_info).unwrap(),
         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
