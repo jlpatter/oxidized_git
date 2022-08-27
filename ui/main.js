@@ -111,7 +111,27 @@ class Main {
         self.updateRemoteInfo(repo_info["remote_info_list"]);
     }
 
+    prependFileIcon($row, status) {
+        if (status === 2) {  // Deleted
+            $row.find('td').prepend('<i class="bi bi-dash-square" style="color:red;"></i> ');
+        } else if (status === 3) {  // Modified
+            $row.find('td').prepend('<i class="bi bi-pen" style="color:yellow;"></i> ');
+        } else if (status === 7 || status === 1) {  // Untracked or Added
+            $row.find('td').prepend('<i class="bi bi-plus-square" style="color:green;"></i> ');
+        } else if (status === 4) {  // Renamed
+            $row.find('td').prepend('<i class="bi bi-arrow-right-square" style="color:mediumpurple;"></i> ');
+        } else if (status === 5) {  // Copied
+            $row.find('td').prepend('<i class="bi bi-c-square" style="color:green;"></i> ');
+        } else if (status === 10) {  // Conflicted
+            $row.find('td').prepend('<i class="bi bi-exclamation-diamond" style="color:yellow;"></i> ');
+        } else {  // Everything else
+            $row.find('td').prepend('<i class="bi bi-question-diamond" style="color:blue;"></i> ');
+        }
+    }
+
     updateFilesChangedInfo(files_changed_info_list) {
+        const self = this;
+
         if (files_changed_info_list['files_changed'] > 0) {
             $('#changes-tab').html('Changes (' + files_changed_info_list['files_changed'] + ')');
         } else {
@@ -130,17 +150,7 @@ class Main {
                 emit('stage', unstagedFile).then();
             });
             const $row = $('<tr><td>' + unstagedFile['path'] + '</td></tr>');
-            if (unstagedFile['status'] === 2) {  // Deleted
-                $row.find('td').prepend('<i class="bi bi-dash-lg"></i> ');
-            } else if (unstagedFile['status'] === 3) {  // Modified
-                $row.find('td').prepend('<i class="bi bi-pen"></i> ');
-            } else if (unstagedFile['status'] === 7) {  // Untracked
-                $row.find('td').prepend('<i class="bi bi-plus-lg"></i> ');
-            } else if (unstagedFile['status'] === 10) {  // Conflicted
-                $row.find('td').prepend('<i class="bi bi-exclamation-diamond"></i> ');
-            } else {  // Everything else
-                $row.find('td').prepend('<i class="bi bi-question-circle"></i> ');
-            }
+            self.prependFileIcon($row, unstagedFile['status']);
             $row.find('td').append($button);
             $('#unstagedTableBody').append($row);
         });
@@ -152,17 +162,7 @@ class Main {
                 emit('unstage', stagedFile).then();
             });
             const $row = $('<tr><td>' + stagedFile['path'] + '</td></tr>');
-            if (stagedFile['status'] === 2) {  // Deleted
-                $row.find('td').prepend('<i class="bi bi-dash-lg"></i> ');
-            } else if (stagedFile['status'] === 3) {  // Modified
-                $row.find('td').prepend('<i class="bi bi-pen"></i> ');
-            } else if (stagedFile['status'] === 1) {  // Added
-                $row.find('td').prepend('<i class="bi bi-plus-lg"></i> ');
-            } else if (stagedFile['status'] === 10) {  // Conflicted
-                $row.find('td').prepend('<i class="bi bi-exclamation-diamond"></i> ');
-            } else {  // Everything else
-                $row.find('td').prepend('<i class="bi bi-question-circle"></i> ');
-            }
+            self.prependFileIcon($row, stagedFile['status']);
             $row.find('td').append($button);
             $('#stagedTableBody').append($row);
         });

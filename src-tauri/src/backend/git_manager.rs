@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Cred, Diff, DiffOptions, FetchOptions, FetchPrune, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
+use git2::{AutotagOption, BranchType, Cred, Diff, DiffFindOptions, DiffOptions, FetchOptions, FetchPrune, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
 use crate::backend::parseable_info::ParseableDiffDelta;
 use super::config_manager;
@@ -199,6 +199,15 @@ impl GitManager {
         Ok(())
     }
 
+    fn set_diff_find_similar(diff: &mut Diff) -> Result<(), Box<dyn std::error::Error>> {
+        let mut opts = DiffFindOptions::new();
+        opts.renames(true);
+        opts.copies(true);
+
+        diff.find_similar(Some(&mut opts))?;
+        Ok(())
+    }
+
     pub fn get_unstaged_changes(&self) -> Result<Diff, Box<dyn std::error::Error>> {
         let repo = self.get_repo()?;
 
@@ -206,7 +215,9 @@ impl GitManager {
         diff_options.include_untracked(true);
         diff_options.recurse_untracked_dirs(true);
 
-        let diff = repo.diff_index_to_workdir(None, Some(&mut diff_options))?;
+        let mut diff = repo.diff_index_to_workdir(None, Some(&mut diff_options))?;
+        GitManager::set_diff_find_similar(&mut diff)?;
+
         Ok(diff)
     }
 
@@ -223,7 +234,8 @@ impl GitManager {
             None => None,
         };
 
-        let diff = repo.diff_tree_to_index(tree.as_ref(), None, None)?;
+        let mut diff = repo.diff_tree_to_index(tree.as_ref(), None, None)?;
+        GitManager::set_diff_find_similar(&mut diff)?;
 
         Ok(diff)
     }
