@@ -36,10 +36,13 @@ export class SVGManager {
     refreshCommitTable() {
         const self = this;
 
-        const textSizeTest = self.makeSVG('text', {x: 0, y: 0, fill: 'white'});
+        const $textSizeTestContainer = $('<svg width="500" height="500"></svg>');
+        const textSizeTest = self.makeSVG('text', {id: 'textSizeTest', x: 0, y: 0, fill: 'white'});
         textSizeTest.textContent = 'A';
-        self.commitTableSVG.appendChild(textSizeTest);
+        $textSizeTestContainer.append(textSizeTest);
+        $('#mainBody').append($textSizeTestContainer);
         const singleCharWidth = textSizeTest.getBBox().width;
+        $textSizeTestContainer.remove();
 
         self.commitTableSVG.setAttribute('height', (self.repoInfo.length * 30).toString());
 
