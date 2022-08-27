@@ -12,7 +12,7 @@ use tauri::{CustomMenuItem, Manager, Menu, MenuItem, Submenu, Window, WindowBuil
 use tauri::MenuEntry::NativeItem;
 use backend::git_manager::GitManager;
 use backend::config_manager;
-use backend::parseable_info::get_parseable_repo_info;
+use backend::parseable_info::{get_parseable_repo_info, get_files_changed_info_list};
 
 lazy_static! {
     static ref GIT_MANAGER_ARC: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new()));
@@ -24,6 +24,14 @@ fn emit_update_all(git_manager: &MutexGuard<GitManager>, temp_main_window: &Wind
         Ok(repo_info) => temp_main_window.emit_all("update_all", repo_info).unwrap(),
         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
     };
+}
+
+fn emit_update_changes(git_manager: &MutexGuard<GitManager>, temp_main_window: &Window<Wry>) {
+    let changes_info_result = get_files_changed_info_list(git_manager);
+    match changes_info_result {
+        Ok(changes_info) => temp_main_window.emit_all("update_changes", changes_info).unwrap(),
+        Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+    }
 }
 
 fn main() {
@@ -202,7 +210,7 @@ fn main() {
                         let git_manager = git_manager_arc_c.lock().unwrap();
                         let stage_result = git_manager.git_stage(s);
                         match stage_result {
-                            Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
+                            Ok(()) => emit_update_changes(&git_manager, &main_window_c_c),
                             Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
                         };
                     },
@@ -220,7 +228,7 @@ fn main() {
                         let git_manager = git_manager_arc_c.lock().unwrap();
                         let stage_result = git_manager.git_unstage(s);
                         match stage_result {
-                            Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
+                            Ok(()) => emit_update_changes(&git_manager, &main_window_c_c),
                             Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
                         };
                     },

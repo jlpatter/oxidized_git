@@ -22,6 +22,10 @@ class Main {
             self.updateAll(ev.payload);
         }).then();
 
+        listen("update_changes", ev => {
+            self.updateFilesChangedInfo(ev.payload);
+        }).then();
+
         listen("get-credentials", ev => {
             $('#credentialsModal').modal('show');
         }).then();

@@ -344,7 +344,7 @@ fn get_parseable_diff_delta(diff: Diff) -> Result<Vec<ParseableDiffDelta>, Box<d
     Ok(files)
 }
 
-fn get_files_changed_info_list(git_manager: &GitManager) -> Result<FilesChangedInfo, Box<dyn std::error::Error>> {
+pub fn get_files_changed_info_list(git_manager: &GitManager) -> Result<FilesChangedInfo, Box<dyn std::error::Error>> {
     let unstaged_diff = git_manager.get_unstaged_changes()?;
     let staged_diff = git_manager.get_staged_changes()?;
     let files_changed = unstaged_diff.stats()?.files_changed() + staged_diff.stats()?.files_changed();
