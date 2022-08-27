@@ -120,7 +120,7 @@ impl SVGRow {
         }
     }
 
-    pub fn get_draw_properties(&mut self, main_table: &mut HashMap<isize, HashMap<isize, bool>>, parent_svg_rows: Vec<Rc<RefCell<SVGRow>>>, child_svg_rows: Vec<Rc<RefCell<SVGRow>>>) -> Vec<DrawProperty> {
+    pub fn get_draw_properties(&mut self, main_table: &mut HashMap<isize, HashMap<isize, bool>>, parent_svg_rows: Vec<Rc<RefCell<SVGRow>>>, child_svg_rows: Vec<Rc<RefCell<SVGRow>>>) -> HashMap<String, DrawProperty> {
         // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
         match main_table.get_mut(&self.y) {
             Some(hm) => {
@@ -167,7 +167,7 @@ impl SVGRow {
             }
         }
 
-        let mut draw_properties: Vec<DrawProperty> = vec![];
+        let mut draw_properties: HashMap<String, DrawProperty> = HashMap::new();
 
         let pixel_x = self.x * X_SPACING + X_OFFSET;
         let pixel_y = self.y * Y_SPACING + Y_OFFSET;
@@ -250,7 +250,7 @@ impl SVGRow {
                 ]));
             }
         }
-        draw_properties.push(DrawProperty::SomeVector(child_lines));
+        draw_properties.insert(String::from("child_lines"), DrawProperty::SomeVector(child_lines));
 
         // Now get the circle
         let circle_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
@@ -261,7 +261,7 @@ impl SVGRow {
             (String::from("stroke-width"), SVGRowPropertyAttrs::SomeInt(1)),
             (String::from("fill"), SVGRowPropertyAttrs::SomeString(color.clone())),
         ]);
-        draw_properties.push(DrawProperty::SomeHashMap(HashMap::from([
+        draw_properties.insert(String::from("circle"), DrawProperty::SomeHashMap(HashMap::from([
             (String::from("tag"), SVGRowProperty::SomeString(String::from("circle"))),
             (String::from("attrs"), SVGRowProperty::SomeHashMap(circle_attrs)),
         ])));
@@ -311,7 +311,7 @@ impl SVGRow {
             ]));
             branch_and_tags.push(branch_and_tag_properties);
         }
-        draw_properties.push(DrawProperty::SomeVectorVector(branch_and_tags));
+        draw_properties.insert(String::from("branch_and_tags"), DrawProperty::SomeVectorVector(branch_and_tags));
 
         // Get summary text
         let text_attrs: HashMap<String, SVGRowPropertyAttrs> = HashMap::from([
@@ -319,7 +319,7 @@ impl SVGRow {
             (String::from("y"), SVGRowPropertyAttrs::SomeInt(pixel_y + TEXT_Y_ALIGNMENT)),
             (String::from("fill"), SVGRowPropertyAttrs::SomeString(String::from("white"))),
         ]);
-        draw_properties.push(DrawProperty::SomeHashMap(HashMap::from([
+        draw_properties.insert(String::from("summary_text"), DrawProperty::SomeHashMap(HashMap::from([
             (String::from("tag"), SVGRowProperty::SomeString(String::from("text"))),
             (String::from("attrs"), SVGRowProperty::SomeHashMap(text_attrs)),
             (String::from("textContent"), SVGRowProperty::SomeString(self.summary.clone())),
@@ -335,7 +335,7 @@ impl SVGRow {
             (String::from("height"), SVGRowPropertyAttrs::SomeInt(RECT_HEIGHT)),
             (String::from("style"), SVGRowPropertyAttrs::SomeString(String::from("fill:white;fill-opacity:0.1;"))),
         ]);
-        draw_properties.push(DrawProperty::SomeHashMap(HashMap::from([
+        draw_properties.insert(String::from("back_rect"), DrawProperty::SomeHashMap(HashMap::from([
             (String::from("tag"), SVGRowProperty::SomeString(String::from("rect"))),
             (String::from("attrs"), SVGRowProperty::SomeHashMap(rect_attrs)),
         ])));

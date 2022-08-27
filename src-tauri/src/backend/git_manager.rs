@@ -31,7 +31,7 @@ impl Serialize for CommitInfoValue {
 
 #[derive(Clone)]
 pub enum RepoInfoValue {
-    SomeCommitInfo(Vec<Vec<DrawProperty>>),
+    SomeCommitInfo(Vec<HashMap<String, DrawProperty>>),
     SomeBranchInfo(Vec<HashMap<String, String>>),
     SomeRemoteInfo(Vec<String>),
 }
@@ -448,7 +448,7 @@ impl GitManager {
             svg_rows.push(svg_row_rc);
         }
 
-        let mut svg_row_draw_properties: Vec<Vec<DrawProperty>> = vec![];
+        let mut svg_row_draw_properties: Vec<HashMap<String, DrawProperty>> = vec![];
 
         let mut main_table: HashMap<isize, HashMap<isize, bool>> = HashMap::new();
         for svg_row_rc in svg_rows {
