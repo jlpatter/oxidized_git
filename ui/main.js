@@ -127,8 +127,7 @@ class Main {
         files_changed_info_list['unstaged_files'].forEach(function(unstagedFile) {
             const $button = $('<button type="button" class="btn btn-success btn-sm right"><i class="bi bi-plus-lg"></i></button>');
             $button.click(function() {
-                // TODO: Get this to work!
-                alert("Not implemented yet.");
+                emit('stage', unstagedFile).then();
             });
             const $row = $('<tr><td>' + unstagedFile['path'] + '</td></tr>');
             if (unstagedFile['status'] === 2) {  // Deleted
@@ -150,8 +149,7 @@ class Main {
         files_changed_info_list['staged_files'].forEach(function(stagedFile) {
             const $button = $('<button type="button" class="btn btn-danger btn-sm right"><i class="bi bi-dash-lg"></i></button>');
             $button.click(function() {
-                // TODO: Get this to work!
-                alert("Not implemented yet.");
+                emit('unstage', stagedFile).then();
             });
             const $row = $('<tr><td>' + stagedFile['path'] + '</td></tr>');
             if (stagedFile['status'] === 2) {  // Deleted

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use git2::{BranchType, Diff, ErrorCode, Oid};
-use serde::{Serialize, Serializer};
+use serde::{Serialize, Deserialize, Serializer};
 use super::git_manager::GitManager;
 use super::svg_row::RowProperty;
 use super::svg_row::SVGRow;
@@ -47,7 +47,7 @@ impl Serialize for RepoInfoValue {
     }
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ParseableDiffDelta {
     status: u8,
     path: String,
@@ -59,6 +59,14 @@ impl ParseableDiffDelta {
             status,
             path,
         }
+    }
+
+    pub fn get_status(&self) -> u8 {
+        self.status
+    }
+
+    pub fn get_path(&self) -> &String {
+        &self.path
     }
 }
 

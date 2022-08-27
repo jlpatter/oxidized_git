@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use directories::BaseDirs;
 use git2::{AutotagOption, BranchType, Cred, Diff, DiffOptions, FetchOptions, FetchPrune, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
+use crate::backend::parseable_info::ParseableDiffDelta;
 use super::config_manager;
 
 pub struct GitManager {
@@ -161,19 +162,40 @@ impl GitManager {
         self.git_checkout(local_branch.get())
     }
 
-    pub fn git_fetch(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_stage(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
         let repo = self.get_repo()?;
-        let remote_string_array = repo.remotes()?;
-        let empty_refspecs: &[String] = &[];
-        for remote_string_opt in remote_string_array.iter() {
-            let remote_string = GitManager::get_utf8_string(remote_string_opt, "Remote Name")?;
-            let mut remote = repo.find_remote(remote_string)?;
-            let mut fetch_options = FetchOptions::new();
-            fetch_options.download_tags(AutotagOption::All);
-            fetch_options.prune(FetchPrune::On);
-            fetch_options.remote_callbacks(self.get_remote_callbacks());
-            remote.fetch(empty_refspecs, Some(&mut fetch_options), None)?;
+        let diff_delta: ParseableDiffDelta = serde_json::from_str(json_string)?;
+
+        let mut index = repo.index()?;
+        if diff_delta.get_status() == 2 {  // If file is deleted
+            index.remove_path(diff_delta.get_path().as_ref())?;
+        } else {
+            index.add_path(diff_delta.get_path().as_ref())?;
         }
+        index.write()?;
+
+        Ok(())
+    }
+
+    pub fn git_unstage(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+        let diff_delta: ParseableDiffDelta = serde_json::from_str(json_string)?;
+
+        let mut index = repo.index()?;
+        let status = diff_delta.get_status();
+        if status == 2 || status == 3 {  // If file is deleted or modified
+            let head_commit = match repo.head()?.target() {
+                Some(oid) => {
+                    repo.find_commit(oid)?
+                },
+                None => return Err("Head has no target commit".into()),
+            };
+            repo.reset_default(Some(head_commit.as_object()), [diff_delta.get_path()])?;
+        } else {
+            index.remove_path(diff_delta.get_path().as_ref())?;
+        }
+        index.write()?;
+
         Ok(())
     }
 
@@ -204,6 +226,22 @@ impl GitManager {
         let diff = repo.diff_tree_to_index(tree.as_ref(), None, None)?;
 
         Ok(diff)
+    }
+
+    pub fn git_fetch(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+        let remote_string_array = repo.remotes()?;
+        let empty_refspecs: &[String] = &[];
+        for remote_string_opt in remote_string_array.iter() {
+            let remote_string = GitManager::get_utf8_string(remote_string_opt, "Remote Name")?;
+            let mut remote = repo.find_remote(remote_string)?;
+            let mut fetch_options = FetchOptions::new();
+            fetch_options.download_tags(AutotagOption::All);
+            fetch_options.prune(FetchPrune::On);
+            fetch_options.remote_callbacks(self.get_remote_callbacks());
+            remote.fetch(empty_refspecs, Some(&mut fetch_options), None)?;
+        }
+        Ok(())
     }
 
     pub fn git_pull(&self) -> Result<(), Box<dyn std::error::Error>> {
