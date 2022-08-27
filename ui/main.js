@@ -117,19 +117,19 @@ class Main {
 
     prependFileIcon($row, status) {
         if (status === 2) {  // Deleted
-            $row.find('td').prepend('<i class="bi bi-dash-square" style="color:red;"></i> ');
+            $row.find('td').prepend('<i class="bi bi-dash-square-fill" style="color:red;"></i> ');
         } else if (status === 3) {  // Modified
-            $row.find('td').prepend('<i class="bi bi-pen" style="color:yellow;"></i> ');
+            $row.find('td').prepend('<i class="bi bi-pen-fill" style="color:yellow;"></i> ');
         } else if (status === 7 || status === 1) {  // Untracked or Added
-            $row.find('td').prepend('<i class="bi bi-plus-square" style="color:green;"></i> ');
+            $row.find('td').prepend('<i class="bi bi-plus-square-fill" style="color:green;"></i> ');
         } else if (status === 4) {  // Renamed
-            $row.find('td').prepend('<i class="bi bi-arrow-right-square" style="color:mediumpurple;"></i> ');
+            $row.find('td').prepend('<i class="bi bi-arrow-right-square-fill" style="color:mediumpurple;"></i> ');
         } else if (status === 5) {  // Copied
-            $row.find('td').prepend('<i class="bi bi-c-square" style="color:green;"></i> ');
+            $row.find('td').prepend('<i class="bi bi-c-square-fill" style="color:green;"></i> ');
         } else if (status === 10) {  // Conflicted
-            $row.find('td').prepend('<i class="bi bi-exclamation-diamond" style="color:yellow;"></i> ');
+            $row.find('td').prepend('<i class="bi bi-exclamation-diamond-fill" style="color:yellow;"></i> ');
         } else {  // Everything else
-            $row.find('td').prepend('<i class="bi bi-question-diamond" style="color:blue;"></i> ');
+            $row.find('td').prepend('<i class="bi bi-question-diamond-fill" style="color:blue;"></i> ');
         }
     }
 
