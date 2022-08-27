@@ -22,6 +22,10 @@ class Main {
             self.updateAll(ev.payload);
         }).then();
 
+        listen("update_changes", ev => {
+            self.updateFilesChangedInfo(ev.payload);
+        }).then();
+
         listen("get-credentials", ev => {
             $('#credentialsModal').modal('show');
         }).then();
@@ -106,8 +110,66 @@ class Main {
         const self = this;
         self.generalInfo = repo_info['general_info'];
         self.svgManager.updateCommitTable(repo_info["commit_info_list"]);
+        self.updateFilesChangedInfo(repo_info['files_changed_info_list']);
         self.updateBranchInfo(repo_info["branch_info_list"]);
         self.updateRemoteInfo(repo_info["remote_info_list"]);
+    }
+
+    prependFileIcon($row, status) {
+        if (status === 2) {  // Deleted
+            $row.find('td').prepend('<i class="bi bi-dash-square" style="color:red;"></i> ');
+        } else if (status === 3) {  // Modified
+            $row.find('td').prepend('<i class="bi bi-pen" style="color:yellow;"></i> ');
+        } else if (status === 7 || status === 1) {  // Untracked or Added
+            $row.find('td').prepend('<i class="bi bi-plus-square" style="color:green;"></i> ');
+        } else if (status === 4) {  // Renamed
+            $row.find('td').prepend('<i class="bi bi-arrow-right-square" style="color:mediumpurple;"></i> ');
+        } else if (status === 5) {  // Copied
+            $row.find('td').prepend('<i class="bi bi-c-square" style="color:green;"></i> ');
+        } else if (status === 10) {  // Conflicted
+            $row.find('td').prepend('<i class="bi bi-exclamation-diamond" style="color:yellow;"></i> ');
+        } else {  // Everything else
+            $row.find('td').prepend('<i class="bi bi-question-diamond" style="color:blue;"></i> ');
+        }
+    }
+
+    updateFilesChangedInfo(files_changed_info_list) {
+        const self = this;
+
+        if (files_changed_info_list['files_changed'] > 0) {
+            $('#changes-tab').html('Changes (' + files_changed_info_list['files_changed'] + ')');
+        } else {
+            $('#changes-tab').html('Changes');
+        }
+
+        $('#unstagedTableBody tr').remove();
+        $('#stagedTableBody tr').remove();
+        $('#unstagedTableBody').append('<tr><th><h6>Unstaged Changes</h6></th></tr>');
+        $('#stagedTableBody').append('<tr><th><h6>Staged Changes</h6></th></tr>');
+
+        // Unstaged changes
+        files_changed_info_list['unstaged_files'].forEach(function(unstagedFile) {
+            const $button = $('<button type="button" class="btn btn-success btn-sm right"><i class="bi bi-plus-lg"></i></button>');
+            $button.click(function() {
+                emit('stage', unstagedFile).then();
+            });
+            const $row = $('<tr><td>' + unstagedFile['path'] + '</td></tr>');
+            self.prependFileIcon($row, unstagedFile['status']);
+            $row.find('td').append($button);
+            $('#unstagedTableBody').append($row);
+        });
+
+        // Staged changes
+        files_changed_info_list['staged_files'].forEach(function(stagedFile) {
+            const $button = $('<button type="button" class="btn btn-danger btn-sm right"><i class="bi bi-dash-lg"></i></button>');
+            $button.click(function() {
+                emit('unstage', stagedFile).then();
+            });
+            const $row = $('<tr><td>' + stagedFile['path'] + '</td></tr>');
+            self.prependFileIcon($row, stagedFile['status']);
+            $row.find('td').append($button);
+            $('#stagedTableBody').append($row);
+        });
     }
 
     updateBranchInfo(branch_info_list) {
