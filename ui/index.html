@@ -15,204 +15,188 @@
     <script type="module">import "bootstrap/dist/js/bootstrap.min.js";</script>
 </head>
 <body id="mainBody" class="bg-dark text-white">
-    <div class="container">
-        <button id="fetchBtn" type="button" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-down"></i>Fetch</button>
-        <button id="pullBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-down"></i>Pull</button>
-        <button id="openPushModalBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-up"></i>Push</button>
-    </div>
+    <div id="mainContent">
+        <div class="container">
+            <button id="fetchBtn" type="button" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-down"></i>Fetch</button>
+            <button id="pullBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-down"></i>Pull</button>
+            <button id="openPushModalBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-up"></i>Push</button>
+        </div>
 
-    <ul class="nav nav-tabs">
-        <li class="nav-item">
-            <button class="nav-link active" id="commits-tab" data-bs-toggle="tab" data-bs-target="#commits" type="button" role="tab" aria-controls="commits" aria-selected="true">Commit Tree</button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" id="changes-tab" data-bs-toggle="tab" data-bs-target="#changes" type="button" role="tab" aria-controls="changes" aria-selected="true">Changes</button>
-        </li>
-    </ul>
+        <ul class="nav nav-tabs">
+            <li class="nav-item">
+                <button class="nav-link active" id="commits-tab" data-bs-toggle="tab" data-bs-target="#commits" type="button" role="tab" aria-controls="commits" aria-selected="true">Commit Tree</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" id="changes-tab" data-bs-toggle="tab" data-bs-target="#changes" type="button" role="tab" aria-controls="changes" aria-selected="true">Changes</button>
+            </li>
+        </ul>
 
-    <div class="tab-content">
-        <div class="tab-pane fade show active" id="commits" role="tabpanel" aria-labelledby="commits-tab">
-            <div id="mainTable" class="container-fluid">
-                <div class="row">
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="commits" role="tabpanel" aria-labelledby="commits-tab">
+                <div id="commitsContainer">
+                    <div class="row">
+                        <div class="col-2">
+                            <div id="branchColumn">
+                                <table id="referenceTables" class="table table-borderless">
+                                    <tbody>
+                                    <tr>
+                                        <td>
+                                            <table id="localTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
+                                                <tbody id="localTableBody">
+                                                <tr>
+                                                    <th><h6>Local Branches</h6></th>
+                                                </tr>
+                                                </tbody>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <table id="remoteTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
+                                                <tbody id="remoteTableBody">
+                                                <tr>
+                                                    <th><h6>Remote Branches</h6></th>
+                                                </tr>
+                                                </tbody>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <table id="tagTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
+                                                <tbody id="tagTableBody">
+                                                <tr>
+                                                    <th><h6>Tags</h6></th>
+                                                </tr>
+                                                </tbody>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-10">
+                            <div id="commitColumn">
+                                <h4>Commits</h4>
+                                <svg id="commitTableSVG" width="500" height="500"></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="changes" role="tabpanel" aria-labelledby="changes-tab">
+                <div id="changesContainer">
                     <div class="col-2">
-                        <div id="branchColumn">
-                            <table id="referenceTables" class="table table-borderless">
-                                <tbody>
-                                <tr>
-                                    <td>
-                                        <table id="localTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
-                                            <tbody id="localTableBody">
-                                            <tr>
-                                                <th><h6>Local Branches</h6></th>
-                                            </tr>
-                                            </tbody>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <table id="remoteTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
-                                            <tbody id="remoteTableBody">
-                                            <tr>
-                                                <th><h6>Remote Branches</h6></th>
-                                            </tr>
-                                            </tbody>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <table id="tagTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
-                                            <tbody id="tagTableBody">
-                                            <tr>
-                                                <th><h6>Tags</h6></th>
-                                            </tr>
-                                            </tbody>
-                                        </table>
-                                    </td>
-                                </tr>
-                                </tbody>
-                            </table>
+                        <div id="unstagedChanges">
+                            <h6>Unstaged Changes</h6>
+                        </div>
+                        <div id="stagedChanges">
+                            <h6>Staged Changes</h6>
                         </div>
                     </div>
-                    <div class="col-10">
-                        <div id="commitColumn">
-                            <h4>Commits</h4>
-                            <svg id="commitTableSVG" width="500" height="500"></svg>
-                        </div>
+                    <div id="commitControls" class="controls">
+                        <input id="summaryTxt" type="text" class="form-control bg-dark text-white" placeholder="Summary">
+                        <textarea id="messageTxt" class="bg-dark text-white" rows="3" placeholder="Message"></textarea>
+                        <span class="right">
+                        <button id="commitBtn" class="btn btn-primary" type="button">
+                            <i class="bi bi-check-circle"></i> Commit
+                        </button>
+                    </span>
+                        <span class="right-padding">
+                        <button id="commitPushBtn" class="btn btn-primary" type="button">
+                            <i class="bi bi-arrow-up"></i> Commit & Push
+                        </button>
+                    </span>
+                    </div>
+                    <div id="mergeControls" class="controls">
+                    <span class="right">
+                        <button id="continueMergeBtn" class="btn btn-success btn-sm" type="button">Continue Merge</button>
+                    </span>
+                        <span class="right-padding">
+                        <button id="abortMergeBtn" class="btn btn-danger btn-sm" type="button">Abort Merge</button>
+                    </span>
+                    </div>
+                    <div id="cherrypickControls" class="controls">
+                    <span class="right">
+                        <button id="continueCherrypickBtn" class="btn btn-success btn-sm" type="button">Continue Cherrypick</button>
+                    </span>
+                        <span class="right-padding">
+                        <button id="abortCherrypickBtn" class="btn btn-danger btn-sm" type="button">Abort Cherrypick</button>
+                    </span>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="tab-pane fade" id="changes" role="tabpanel" aria-labelledby="changes-tab">
-            <div class="col-2">
-                <table class="table table-borderless container">
-                    <tbody>
-                    <tr>
-                        <td>
-                            <table id="unstagedTable" class="table table-borderless table-responsive table-dark table-sm">
-                                <tbody id="unstagedTableBody">
-                                <tr>
-                                    <th><h6>Unstaged Changes</h6></th>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <table id="stagedTable" class="table table-borderless table-responsive table-dark table-sm">
-                                <tbody id="stagedTableBody">
-                                <tr>
-                                    <th><h6>Staged Changes</h6></th>
-                                </tr>
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div id="commitControls">
-                <input id="summaryTxt" type="text" class="form-control bg-dark text-white" placeholder="Summary">
-                <textarea id="messageTxt" class="bg-dark text-white" rows="3" placeholder="Message"></textarea>
-                <span class="right-padding">
-                    <button id="commitBtn" class="btn btn-primary" type="button">
-                        <i class="bi bi-check-circle"></i> Commit
-                    </button>
-                </span>
-                <span class="right-padding">
-                    <button id="commitPushBtn" class="btn btn-primary" type="button">
-                        <i class="bi bi-arrow-up"></i> Commit & Push
-                    </button>
-                </span>
-            </div>
-            <div id="mergeControls" class="input-group">
-                <div class="input-group-btn">
-                    <button id="abortMergeBtn" class="btn btn-danger btn-sm" type="button">Abort Merge</button>
-                </div>
-                <div class="input-group-btn">
-                    <button id="continueMergeBtn" class="btn btn-success btn-sm" type="button">Continue Merge</button>
-                </div>
-            </div>
-            <div id="cherrypickControls" class="input-group">
-                <div class="input-group-btn">
-                    <button id="abortCherrypickBtn" class="btn btn-danger btn-sm" type="button">Abort Cherrypick</button>
-                </div>
-                <div class="input-group-btn">
-                    <button id="continueCherrypickBtn" class="btn btn-success btn-sm" type="button">Continue Cherrypick</button>
+
+        <!--    Invisible Stuff Starts Here-->
+
+        <div class="modal fade text-black" id="preferencesModal" tabindex="-1" aria-labelledby="preferencesModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="preferencesModalLabel">Preferences</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6>WARNING: Disabling commit limit may reduce performance</h6>
+                        <input class="form-check-input" type="checkbox" value="" id="limitCommitsCheckBox" checked><label class="form-check-label" for="limitCommitsCheckBox"> Limit Number of Commits</label>
+                        <div><label for="commitCountNumber">Commit Count: </label><input type="number" step="1" class="form-control" id="commitCountNumber"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="savePreferencesBtn" type="button" class="btn btn-success btn-sm">Save</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-<!--    Invisible Stuff Starts Here-->
-
-    <div class="modal fade text-black" id="preferencesModal" tabindex="-1" aria-labelledby="preferencesModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="preferencesModalLabel">Preferences</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <h6>WARNING: Disabling commit limit may reduce performance</h6>
-                    <input class="form-check-input" type="checkbox" value="" id="limitCommitsCheckBox" checked><label class="form-check-label" for="limitCommitsCheckBox"> Limit Number of Commits</label>
-                    <div><label for="commitCountNumber">Commit Count: </label><input type="number" step="1" class="form-control" id="commitCountNumber"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                    <button id="savePreferencesBtn" type="button" class="btn btn-success btn-sm">Save</button>
+        <div class="modal fade text-black" id="credentialsModal" tabindex="-1" aria-labelledby="credentialsModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="credentialsModalLabel">Set Credentials</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <h6>Note: If you already have credentials stored in the keychain, this will overwrite them.</h6>
+                        <label for="usernameTxt">Username: </label><input type="text" class="form-control" id="usernameTxt">
+                        <label for="passwordTxt">Password: </label><input type="password" class="form-control" id="passwordTxt">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="saveCredentialsBtn" type="button" class="btn btn-success btn-sm">Save</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="modal fade text-black" id="credentialsModal" tabindex="-1" aria-labelledby="credentialsModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="credentialsModalLabel">Set Credentials</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <h6>Note: If you already have credentials stored in the keychain, this will overwrite them.</h6>
-                    <label for="usernameTxt">Username: </label><input type="text" class="form-control" id="usernameTxt">
-                    <label for="passwordTxt">Password: </label><input type="password" class="form-control" id="passwordTxt">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                    <button id="saveCredentialsBtn" type="button" class="btn btn-success btn-sm">Save</button>
+        <div class="modal fade text-black" id="pushModal" tabindex="-1" aria-labelledby="pushModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="pushModalLabel">Push Options</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <select id="remoteSelect" class="form-select" aria-label="Remote Select">
+                            <option selected>No Remotes Detected!</option>
+                        </select>
+                        <input class="form-check-input" type="checkbox" value="" id="forcePushCheckBox"><label class="form-check-label" for="forcePushCheckBox"> Force Push</label>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="pushBtn" type="button" class="btn btn-primary btn-sm">Push</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="modal fade text-black" id="pushModal" tabindex="-1" aria-labelledby="pushModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="pushModalLabel">Push Options</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <select id="remoteSelect" class="form-select" aria-label="Remote Select">
-                        <option selected>No Remotes Detected!</option>
-                    </select>
-                    <input class="form-check-input" type="checkbox" value="" id="forcePushCheckBox"><label class="form-check-label" for="forcePushCheckBox"> Force Push</label>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                    <button id="pushBtn" type="button" class="btn btn-primary btn-sm">Push</button>
-                </div>
-            </div>
+        <div id="contextMenu" class="bg-dark gy-0 rounded-0">
+            <button type="button" class="btn btn-outline-light rounded-0 btn-sm" onclick="alert('BLURG');">
+                ERROR! Do not click!
+            </button>
         </div>
-    </div>
-
-    <div id="contextMenu" class="bg-dark gy-0 rounded-0">
-        <button type="button" class="btn btn-outline-light rounded-0 btn-sm" onclick="alert('BLURG');">
-            ERROR! Do not click!
-        </button>
     </div>
 </body>
 </html>

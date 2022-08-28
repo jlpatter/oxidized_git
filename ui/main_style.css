@@ -2,6 +2,44 @@
     font-size: 12px;
 }
 
+body {
+    display: block;
+    height: 100vh;
+    overflow: auto;
+}
+
+#mainContent {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.tab-content {
+    flex: auto;
+}
+
+#commits, #changes, #commitsContainer, #changesContainer {
+    height: 100%;
+}
+
+#commitsContainer, #changesContainer {
+    --container-padding-left: 12px;
+    --container-padding-right: 12px;
+    padding-left: var(--container-padding-left);
+    padding-right: var(--container-padding-right);
+}
+
+#changesContainer {
+    position: relative;
+}
+
+.controls {
+    position: absolute;
+    bottom: 12px;
+    /* This is a hacky way of excluding the padding from the containers since box-sizing doesn't work for some stupid reason. */
+    width: calc(100% - (var(--container-padding-left) + var(--container-padding-right)));
+}
+
 .right {
     float: right;
 }
@@ -13,18 +51,6 @@
 
 .cm-item {
     text-align: left;
-}
-
-#commitColumn, #branchColumn {
-    display: block;
-    height: calc(100vh - 110px);
-    overflow: auto;
-}
-
-#unstagedTable, #stagedTable {
-    display: table;
-    height: calc(100vh / 3);
-    overflow: auto;
 }
 
 #messageTxt {
