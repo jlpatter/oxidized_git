@@ -22,22 +22,23 @@ body {
     height: 100%;
 }
 
-#commitsContainer, #changesContainer {
-    --container-padding-left: 12px;
-    --container-padding-right: 12px;
-    padding-left: var(--container-padding-left);
-    padding-right: var(--container-padding-right);
+#changesContainer {
+    display: flex;
+    flex-flow: column;
 }
 
-#changesContainer {
-    position: relative;
+#changesColumn {
+    flex: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#unstagedChanges, #stagedChanges {
+    flex: auto;
 }
 
 .controls {
-    position: absolute;
-    bottom: 12px;
-    /* This is a hacky way of excluding the padding from the containers since box-sizing doesn't work for some stupid reason. */
-    width: calc(100% - (var(--container-padding-left) + var(--container-padding-right)));
+    flex: initial;
 }
 
 .right {
