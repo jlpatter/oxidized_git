@@ -75,6 +75,7 @@ fn main() {
         )
         .menu(menu)
         .maximized(true)
+        .title("Oxidized Git")
         .build()?;
 
         let git_manager_arc: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new()));
