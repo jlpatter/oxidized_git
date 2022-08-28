@@ -131,12 +131,44 @@ export class SVGManager {
         self.commitTableSVG.appendChild(df);
     }
 
+    // This is used particularly for switching tabs.
+    setVisibleCommits() {
+        const self = this;
+        if (self.rows.length > 0) {
+            self.commitsTop = 0;
+            self.commitsBottom = 0;
+
+            const renderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN,
+                renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
+            let isInRenderingArea = false;
+            while (!isInRenderingArea) {
+                if (self.rows[self.commitsTop]['pixel_y'] < renderingAreaTop) {
+                    self.commitsTop++;
+                } else {
+                    isInRenderingArea = true;
+                }
+            }
+
+            isInRenderingArea = false;
+            while (!isInRenderingArea) {
+                if (self.commitsBottom + 1 < self.rows.length && self.rows[self.commitsBottom + 1]['pixel_y'] < renderingAreaBottom) {
+                    self.commitsBottom++;
+                } else {
+                    isInRenderingArea = true;
+                }
+            }
+
+            self.renderVisibleCommits();
+            self.oldRenderingAreaTop = renderingAreaTop;
+        }
+    }
+
     setScrollEvent() {
         const self = this;
         self.commitColumn.addEventListener('scroll', () => {
             if (self.rows.length > 0) {
-                let renderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
-                let renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
+                const renderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN,
+                    renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
                 if (renderingAreaTop < self.oldRenderingAreaTop) {
                     // Scrolling Up
                     // Remove visible rows that are below the rendering area

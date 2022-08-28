@@ -48,6 +48,10 @@ class Main {
             alert(ev.payload);
         }).then();
 
+        $('#commits-tab').click(() => {
+            self.svgManager.setVisibleCommits();
+        });
+
         $('#limitCommitsCheckBox').change(() => {
             if ($('#limitCommitsCheckBox').is(':checked')) {
                 $('#commitCountNumber').prop('disabled', false);
