@@ -133,19 +133,19 @@ class Main {
 
     prependFileIcon($row, status) {
         if (status === 2) {  // Deleted
-            $row.find('td').prepend('<i class="bi bi-dash-square-fill" style="color:red;"></i> ');
+            $row.prepend('<i class="bi bi-dash-square-fill" style="color:red;"></i> ');
         } else if (status === 3) {  // Modified
-            $row.find('td').prepend('<i class="bi bi-pen-fill" style="color:yellow;"></i> ');
+            $row.prepend('<i class="bi bi-pen-fill" style="color:yellow;"></i> ');
         } else if (status === 7 || status === 1) {  // Untracked or Added
-            $row.find('td').prepend('<i class="bi bi-plus-square-fill" style="color:green;"></i> ');
+            $row.prepend('<i class="bi bi-plus-square-fill" style="color:green;"></i> ');
         } else if (status === 4) {  // Renamed
-            $row.find('td').prepend('<i class="bi bi-arrow-right-square-fill" style="color:mediumpurple;"></i> ');
+            $row.prepend('<i class="bi bi-arrow-right-square-fill" style="color:mediumpurple;"></i> ');
         } else if (status === 5) {  // Copied
-            $row.find('td').prepend('<i class="bi bi-c-square-fill" style="color:green;"></i> ');
+            $row.prepend('<i class="bi bi-c-square-fill" style="color:green;"></i> ');
         } else if (status === 10) {  // Conflicted
-            $row.find('td').prepend('<i class="bi bi-exclamation-diamond-fill" style="color:yellow;"></i> ');
+            $row.prepend('<i class="bi bi-exclamation-diamond-fill" style="color:yellow;"></i> ');
         } else {  // Everything else
-            $row.find('td').prepend('<i class="bi bi-question-diamond-fill" style="color:blue;"></i> ');
+            $row.prepend('<i class="bi bi-question-diamond-fill" style="color:blue;"></i> ');
         }
     }
 
@@ -158,10 +158,11 @@ class Main {
             $('#changes-tab').html('Changes');
         }
 
-        $('#unstagedTableBody tr').remove();
-        $('#stagedTableBody tr').remove();
-        $('#unstagedTableBody').append('<tr><th><h6>Unstaged Changes</h6></th></tr>');
-        $('#stagedTableBody').append('<tr><th><h6>Staged Changes</h6></th></tr>');
+        const $unstagedChanges = $('#unstagedChanges'),
+            $stagedChanges = $('#stagedChanges');
+
+        $unstagedChanges.empty();
+        $stagedChanges.empty();
 
         // Unstaged changes
         files_changed_info_list['unstaged_files'].forEach(function(unstagedFile) {
@@ -169,10 +170,10 @@ class Main {
             $button.click(function() {
                 emit('stage', unstagedFile).then();
             });
-            const $row = $('<tr><td>' + unstagedFile['path'] + '</td></tr>');
+            const $row = $('<p class="hoverable-row unselectable">' + unstagedFile['path'] + '</p>');
             self.prependFileIcon($row, unstagedFile['status']);
-            $row.find('td').append($button);
-            $('#unstagedTableBody').append($row);
+            $row.append($button);
+            $unstagedChanges.append($row);
         });
 
         // Staged changes
@@ -181,24 +182,25 @@ class Main {
             $button.click(function() {
                 emit('unstage', stagedFile).then();
             });
-            const $row = $('<tr><td>' + stagedFile['path'] + '</td></tr>');
+            const $row = $('<p>' + stagedFile['path'] + '</p>');
             self.prependFileIcon($row, stagedFile['status']);
-            $row.find('td').append($button);
-            $('#stagedTableBody').append($row);
+            $row.append($button);
+            $stagedChanges.append($row);
         });
     }
 
     updateBranchInfo(branch_info_list) {
-        $('#localTableBody tr').remove();
-        $('#remoteTableBody tr').remove();
-        $('#tagTableBody tr').remove();
-        $('#localTableBody').append('<tr><th><h6>Local Branches</h6></th></tr>');
-        $('#remoteTableBody').append('<tr><td><h6>Remote Branches</h6></td></tr>');
-        $('#tagTableBody').append('<tr><td><h6>Tags</h6></td></tr>');
+        const self = this,
+            $localBranches = $('#localBranches'),
+            $remoteBranches = $('#remoteBranches'),
+            $tags = $('#tags');
+
+        $localBranches.empty();
+        $remoteBranches.empty();
+        $tags.empty();
 
         branch_info_list.forEach((branchResult) => {
-            let branchResultHTML;
-            branchResultHTML = '<tr class="unselectable"><td>';
+            let branchResultHTML = '<p class="hoverable-row unselectable">';
             if (branchResult['is_head'] === 'true') {
                 branchResultHTML += '* ';
             }
@@ -209,7 +211,7 @@ class Main {
             if (branchResult['ahead'] !== '0') {
                 branchResultHTML += '<span class="right"><i class="bi bi-arrow-up"></i>' + branchResult['ahead'] + '</span>';
             }
-            branchResultHTML += '</td></tr>';
+            branchResultHTML += '</p>';
             const $branchResult = $(branchResultHTML);
 
             if (branchResult['branch_type'] === 'remote') {
@@ -220,9 +222,9 @@ class Main {
                 $branchResult.on('dblclick', function() {
                     emit("checkout-remote", {full_branch_name: branchResult['full_branch_name'], branch_name: branchResult['branch_name']}).then();
                 });
-                $('#remoteTableBody').append($branchResult);
+                $remoteBranches.append($branchResult);
             } else if (branchResult['branch_type'] === 'tag') {
-                $('#tagTableBody').append($branchResult);
+                $tags.append($branchResult);
             } else {
                 $branchResult.contextmenu(function(e) {
                     e.preventDefault();
@@ -231,7 +233,7 @@ class Main {
                 $branchResult.on('dblclick', function() {
                     emit("checkout", branchResult['full_branch_name']).then();
                 });
-                $('#localTableBody').append($branchResult);
+                $localBranches.append($branchResult);
             }
         });
     }

@@ -1,5 +1,93 @@
-#referenceTables td {
-    font-size: 12px;
+body {
+    display: block;
+    height: 100vh;
+    overflow: auto;
+}
+
+#mainContent {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.tab-content {
+    flex: auto;
+    min-height: 0;
+}
+
+#commits, #changes {
+    height: 100%;
+}
+
+#commitTabContainer, #changesTabContainer {
+    height: 100%;
+    display: flex;
+}
+
+#commitTabContainer {
+    flex-direction: row;
+}
+
+#changesTabContainer {
+    flex-direction: column;
+}
+
+#changesColumnContainer {
+    flex: auto;
+    display: flex;
+    flex-direction: row;
+}
+
+#branchColumn, #changesColumn {
+    flex: none;
+    width: calc(100vw / 6);
+    display: flex;
+    flex-direction: column;
+    padding-left: 10px;
+    padding-top: 10px;
+}
+
+#branchColumn {
+    padding-bottom: 10px;
+}
+
+#localBranchesContainer, #remoteBranchesContainer, #tagsContainer, #unstagedChangesContainer, #stagedChangesContainer {
+    flex: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#localBranchesContainer, #remoteBranchesContainer, #tagsContainer {
+    max-height: 33%;
+}
+
+#unstagedChangesContainer, #stagedChangesContainer {
+    max-height: 50%;
+}
+
+#localBranches, #remoteBranches, #tags, #unstagedChanges, #stagedChanges {
+    flex: auto;
+    min-height: 0;
+    overflow: auto;
+}
+
+#commitColumn, #fileDiffColumn {
+    flex: none;
+    width: calc(100vw * 5 / 6);
+    overflow: auto;
+    padding-top: 10px;
+}
+
+.hoverable-row:hover {
+    background-color: rgba(255, 255, 255, 0.075);
+}
+
+.controls {
+    flex: initial;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
 }
 
 .right {
@@ -13,18 +101,6 @@
 
 .cm-item {
     text-align: left;
-}
-
-#commitColumn, #branchColumn {
-    display: block;
-    height: calc(100vh - 110px);
-    overflow: auto;
-}
-
-#unstagedTable, #stagedTable {
-    display: table;
-    height: calc(100vh / 3);
-    overflow: auto;
 }
 
 #messageTxt {
