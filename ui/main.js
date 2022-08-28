@@ -192,16 +192,17 @@ class Main {
     }
 
     updateBranchInfo(branch_info_list) {
-        $('#localTableBody tr').remove();
-        $('#remoteTableBody tr').remove();
-        $('#tagTableBody tr').remove();
-        $('#localTableBody').append('<tr><th><h6>Local Branches</h6></th></tr>');
-        $('#remoteTableBody').append('<tr><td><h6>Remote Branches</h6></td></tr>');
-        $('#tagTableBody').append('<tr><td><h6>Tags</h6></td></tr>');
+        const self = this,
+            $localBranches = $('#localBranches'),
+            $remoteBranches = $('#remoteBranches'),
+            $tags = $('#tags');
+
+        $localBranches.empty();
+        $remoteBranches.empty();
+        $tags.empty();
 
         branch_info_list.forEach((branchResult) => {
-            let branchResultHTML;
-            branchResultHTML = '<tr class="unselectable"><td>';
+            let branchResultHTML = '<p>';
             if (branchResult['is_head'] === 'true') {
                 branchResultHTML += '* ';
             }
@@ -212,7 +213,7 @@ class Main {
             if (branchResult['ahead'] !== '0') {
                 branchResultHTML += '<span class="right"><i class="bi bi-arrow-up"></i>' + branchResult['ahead'] + '</span>';
             }
-            branchResultHTML += '</td></tr>';
+            branchResultHTML += '</p>';
             const $branchResult = $(branchResultHTML);
 
             if (branchResult['branch_type'] === 'remote') {
@@ -223,9 +224,9 @@ class Main {
                 $branchResult.on('dblclick', function() {
                     emit("checkout-remote", {full_branch_name: branchResult['full_branch_name'], branch_name: branchResult['branch_name']}).then();
                 });
-                $('#remoteTableBody').append($branchResult);
+                $remoteBranches.append($branchResult);
             } else if (branchResult['branch_type'] === 'tag') {
-                $('#tagTableBody').append($branchResult);
+                $tags.append($branchResult);
             } else {
                 $branchResult.contextmenu(function(e) {
                     e.preventDefault();
@@ -234,7 +235,7 @@ class Main {
                 $branchResult.on('dblclick', function() {
                     emit("checkout", branchResult['full_branch_name']).then();
                 });
-                $('#localTableBody').append($branchResult);
+                $localBranches.append($branchResult);
             }
         });
     }

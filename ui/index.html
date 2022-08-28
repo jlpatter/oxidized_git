@@ -33,61 +33,30 @@
 
         <div class="tab-content">
             <div class="tab-pane fade show active" id="commits" role="tabpanel" aria-labelledby="commits-tab">
-                <div id="commitsContainer" class="container-fluid">
-                    <div class="row">
-                        <div class="col-2">
-                            <div id="branchColumn">
-                                <table id="referenceTables" class="table table-borderless">
-                                    <tbody>
-                                    <tr>
-                                        <td>
-                                            <table id="localTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
-                                                <tbody id="localTableBody">
-                                                <tr>
-                                                    <th><h6>Local Branches</h6></th>
-                                                </tr>
-                                                </tbody>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <table id="remoteTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
-                                                <tbody id="remoteTableBody">
-                                                <tr>
-                                                    <th><h6>Remote Branches</h6></th>
-                                                </tr>
-                                                </tbody>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <table id="tagTable" class="table table-borderless table-responsive table-dark table-hover table-sm">
-                                                <tbody id="tagTableBody">
-                                                <tr>
-                                                    <th><h6>Tags</h6></th>
-                                                </tr>
-                                                </tbody>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                <div id="commitTabContainer">
+                    <div id="branchColumn">
+                        <div id="localBranchesContainer">
+                            <h6>Local Branches</h6>
+                            <div id="localBranches"></div>
                         </div>
-                        <div class="col-10">
-                            <div id="commitColumn">
-                                <h4>Commits</h4>
-                                <svg id="commitTableSVG" width="500" height="500"></svg>
-                            </div>
+                        <div id="remoteBranchesContainer">
+                            <h6>Remote Branches</h6>
+                            <div id="remoteBranches"></div>
                         </div>
+                        <div id="tagsContainer">
+                            <h6>Tags</h6>
+                            <div id="tags"></div>
+                        </div>
+                    </div>
+                    <div id="commitColumn">
+                        <h4>Commits</h4>
+                        <svg id="commitTableSVG" width="500" height="500"></svg>
                     </div>
                 </div>
             </div>
             <div class="tab-pane fade" id="changes" role="tabpanel" aria-labelledby="changes-tab">
-                <div id="changesContainer" class="container-fluid">
-                    <div id="changesColumn" class="col-2">
+                <div id="changesTabContainer">
+                    <div id="changesColumn">
                         <div id="unstagedChanges">
                             <h6>Unstaged Changes</h6>
                         </div>
@@ -95,35 +64,38 @@
                             <h6>Staged Changes</h6>
                         </div>
                     </div>
+                    <div id="fileDiffColumn">
+                        <!--                    TODO: Put stuff here!-->
+                    </div>
                     <div id="commitControls" class="controls">
                         <input id="summaryTxt" type="text" class="form-control bg-dark text-white" placeholder="Summary">
                         <textarea id="messageTxt" class="bg-dark text-white" rows="3" placeholder="Message"></textarea>
                         <span class="right">
-                        <button id="commitBtn" class="btn btn-primary" type="button">
-                            <i class="bi bi-check-circle"></i> Commit
-                        </button>
-                    </span>
+                            <button id="commitBtn" class="btn btn-primary" type="button">
+                                <i class="bi bi-check-circle"></i> Commit
+                            </button>
+                        </span>
                         <span class="right-padding">
-                        <button id="commitPushBtn" class="btn btn-primary" type="button">
-                            <i class="bi bi-arrow-up"></i> Commit & Push
-                        </button>
-                    </span>
+                            <button id="commitPushBtn" class="btn btn-primary" type="button">
+                                <i class="bi bi-arrow-up"></i> Commit & Push
+                            </button>
+                        </span>
                     </div>
                     <div id="mergeControls" class="controls">
-                    <span class="right">
-                        <button id="continueMergeBtn" class="btn btn-success btn-sm" type="button">Continue Merge</button>
-                    </span>
+                        <span class="right">
+                            <button id="continueMergeBtn" class="btn btn-success btn-sm" type="button">Continue Merge</button>
+                        </span>
                         <span class="right-padding">
-                        <button id="abortMergeBtn" class="btn btn-danger btn-sm" type="button">Abort Merge</button>
-                    </span>
+                            <button id="abortMergeBtn" class="btn btn-danger btn-sm" type="button">Abort Merge</button>
+                        </span>
                     </div>
                     <div id="cherrypickControls" class="controls">
-                    <span class="right">
-                        <button id="continueCherrypickBtn" class="btn btn-success btn-sm" type="button">Continue Cherrypick</button>
-                    </span>
+                        <span class="right">
+                            <button id="continueCherrypickBtn" class="btn btn-success btn-sm" type="button">Continue Cherrypick</button>
+                        </span>
                         <span class="right-padding">
-                        <button id="abortCherrypickBtn" class="btn btn-danger btn-sm" type="button">Abort Cherrypick</button>
-                    </span>
+                            <button id="abortCherrypickBtn" class="btn btn-danger btn-sm" type="button">Abort Cherrypick</button>
+                        </span>
                     </div>
                 </div>
             </div>
