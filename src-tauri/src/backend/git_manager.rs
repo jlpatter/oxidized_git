@@ -247,10 +247,26 @@ impl GitManager {
         Ok(diff)
     }
 
-    pub fn git_commit(&self, message: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_commit(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
         let repo = self.get_repo()?;
         // TODO: Add way to set signature in git config
         let signature = repo.signature()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let summary = match json_hm.get("summaryText") {
+            Some(s) => s,
+            None => return Err("Front-end payload did not include summaryText".into()),
+        };
+        let message = match json_hm.get("messageText") {
+            Some(s) => s,
+            None => return Err("Front-end payload did not include messageText".into()),
+        };
+
+        let mut full_message = summary.clone();
+        if message != "" {
+            full_message.push_str("\n\n");
+            full_message.push_str(message);
+        }
 
         let mut parents = vec![];
         let commit;
@@ -264,7 +280,7 @@ impl GitManager {
         index.write()?;
         let tree = repo.find_tree(tree_oid)?;
 
-        repo.commit(Some("HEAD"), &signature, &signature, message, &tree, parents.as_slice())?;
+        repo.commit(Some("HEAD"), &signature, &signature, &*full_message, &tree, parents.as_slice())?;
         Ok(())
     }
 

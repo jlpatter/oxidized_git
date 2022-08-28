@@ -85,7 +85,7 @@
             </div>
         </div>
         <div class="tab-pane fade" id="changes" role="tabpanel" aria-labelledby="changes-tab">
-            <div class="col-3">
+            <div class="col-2">
                 <table class="table table-borderless container">
                     <tbody>
                     <tr>
@@ -110,41 +110,38 @@
                             </table>
                         </td>
                     </tr>
-                    <tr>
-                        <td>
-                            <div id="commitControls" class="input-group">
-                                <input type="text" class="form-control" placeholder="Message" id="messageTxt">
-                                <div class="input-group-btn">
-                                    <button id="commitBtn" class="btn btn-primary" type="button">
-                                        <i class="bi bi-check-circle"></i> Commit
-                                    </button>
-                                </div>
-                                <div class="input-group-btn">
-                                    <button id="commitPushBtn" class="btn btn-primary" type="button">
-                                        <i class="bi bi-arrow-up"></i> Commit & Push
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="mergeControls" class="input-group">
-                                <div class="input-group-btn">
-                                    <button id="abortMergeBtn" class="btn btn-danger btn-sm" type="button">Abort Merge</button>
-                                </div>
-                                <div class="input-group-btn">
-                                    <button id="continueMergeBtn" class="btn btn-success btn-sm" type="button">Continue Merge</button>
-                                </div>
-                            </div>
-                            <div id="cherrypickControls" class="input-group">
-                                <div class="input-group-btn">
-                                    <button id="abortCherrypickBtn" class="btn btn-danger btn-sm" type="button">Abort Cherrypick</button>
-                                </div>
-                                <div class="input-group-btn">
-                                    <button id="continueCherrypickBtn" class="btn btn-success btn-sm" type="button">Continue Cherrypick</button>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
                     </tbody>
                 </table>
+            </div>
+            <div id="commitControls">
+                <input id="summaryTxt" type="text" class="form-control bg-dark text-white" placeholder="Summary">
+                <textarea id="messageTxt" class="bg-dark text-white" rows="3" placeholder="Message"></textarea>
+                <span class="right-padding">
+                    <button id="commitBtn" class="btn btn-primary" type="button">
+                        <i class="bi bi-check-circle"></i> Commit
+                    </button>
+                </span>
+                <span class="right-padding">
+                    <button id="commitPushBtn" class="btn btn-primary" type="button">
+                        <i class="bi bi-arrow-up"></i> Commit & Push
+                    </button>
+                </span>
+            </div>
+            <div id="mergeControls" class="input-group">
+                <div class="input-group-btn">
+                    <button id="abortMergeBtn" class="btn btn-danger btn-sm" type="button">Abort Merge</button>
+                </div>
+                <div class="input-group-btn">
+                    <button id="continueMergeBtn" class="btn btn-success btn-sm" type="button">Continue Merge</button>
+                </div>
+            </div>
+            <div id="cherrypickControls" class="input-group">
+                <div class="input-group-btn">
+                    <button id="abortCherrypickBtn" class="btn btn-danger btn-sm" type="button">Abort Cherrypick</button>
+                </div>
+                <div class="input-group-btn">
+                    <button id="continueCherrypickBtn" class="btn btn-success btn-sm" type="button">Continue Cherrypick</button>
+                </div>
             </div>
         </div>
     </div>

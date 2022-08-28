@@ -78,14 +78,18 @@ class Main {
         });
 
         $('#commitBtn').click(() => {
-            const $messageTxt = $('#messageTxt');
-            emit("commit", $messageTxt.val()).then();
+            const $summaryTxt = $('#summaryTxt'),
+                $messageTxt = $('#messageTxt');
+            emit("commit", {summaryText: $summaryTxt.val(), messageText: $messageTxt.val()}).then();
+            $summaryTxt.val("");
             $messageTxt.val("");
         });
 
         $('#commitPushBtn').click(() => {
-            const $messageTxt = $('#messageTxt');
-            emit("commit-push", $messageTxt.val()).then();
+            const $summaryTxt = $('#summaryTxt'),
+                $messageTxt = $('#messageTxt');
+            emit("commit-push", {summaryText: $summaryTxt.val(), messageText: $messageTxt.val()}).then();
+            $summaryTxt.val("");
             $messageTxt.val("");
         });
 

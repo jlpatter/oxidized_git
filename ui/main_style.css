@@ -6,6 +6,11 @@
     float: right;
 }
 
+.right-padding {
+    float: right;
+    padding-right: 10px;
+}
+
 .cm-item {
     text-align: left;
 }
@@ -14,6 +19,16 @@
     display: block;
     height: calc(100vh - 110px);
     overflow: auto;
+}
+
+#unstagedTable, #stagedTable {
+    display: table;
+    height: calc(100vh / 3);
+    overflow: auto;
+}
+
+#messageTxt {
+    width: 100%;
 }
 
 .unselectable {
