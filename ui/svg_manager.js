@@ -136,7 +136,6 @@ export class SVGManager {
         const self = this;
         if (self.rows.length > 0) {
             self.commitsTop = 0;
-            self.commitsBottom = 0;
 
             const renderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN,
                 renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
@@ -149,6 +148,7 @@ export class SVGManager {
                 }
             }
 
+            self.commitsBottom = self.commitsTop;
             isInRenderingArea = false;
             while (!isInRenderingArea) {
                 if (self.commitsBottom + 1 < self.rows.length && self.rows[self.commitsBottom + 1]['pixel_y'] < renderingAreaBottom) {
