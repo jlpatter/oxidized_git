@@ -1927,7 +1927,6 @@ dependencies = [
  "git2",
  "indoc",
  "keytar",
- "lazy_static",
  "rfd 0.10.0",
  "serde",
  "serde_json",
