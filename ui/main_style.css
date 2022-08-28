@@ -31,15 +31,22 @@ body {
     flex-direction: column;
 }
 
-#localBranchesContainer, #remoteBranchesContainer, #tagsContainer, #unstagedChanges, #stagedChanges {
+#localBranchesContainer, #remoteBranchesContainer, #tagsContainer, #unstagedChangesContainer, #stagedChangesContainer {
     flex: auto;
     min-height: 0;
-    max-height: 33%;
     display: flex;
     flex-direction: column;
 }
 
-#localBranches, #remoteBranches, #tags {
+#localBranchesContainer, #remoteBranchesContainer, #tagsContainer {
+    max-height: 33%;
+}
+
+#unstagedChangesContainer, #stagedChangesContainer {
+    max-height: 50%;
+}
+
+#localBranches, #remoteBranches, #tags, #unstagedChanges, #stagedChanges {
     flex: auto;
     min-height: 0;
     overflow: auto;

@@ -163,8 +163,6 @@ class Main {
 
         $unstagedChanges.empty();
         $stagedChanges.empty();
-        $unstagedChanges.append('<h6>Unstaged Changes</h6>');
-        $stagedChanges.append('<h6>Staged Changes</h6>');
 
         // Unstaged changes
         files_changed_info_list['unstaged_files'].forEach(function(unstagedFile) {
