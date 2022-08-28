@@ -170,7 +170,7 @@ class Main {
             $button.click(function() {
                 emit('stage', unstagedFile).then();
             });
-            const $row = $('<p>' + unstagedFile['path'] + '</p>');
+            const $row = $('<p class="hoverable-row unselectable">' + unstagedFile['path'] + '</p>');
             self.prependFileIcon($row, unstagedFile['status']);
             $row.append($button);
             $unstagedChanges.append($row);
@@ -200,7 +200,7 @@ class Main {
         $tags.empty();
 
         branch_info_list.forEach((branchResult) => {
-            let branchResultHTML = '<p>';
+            let branchResultHTML = '<p class="hoverable-row unselectable">';
             if (branchResult['is_head'] === 'true') {
                 branchResultHTML += '* ';
             }
