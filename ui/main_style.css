@@ -22,6 +22,19 @@ body {
 #commitTabContainer, #changesTabContainer {
     height: 100%;
     display: flex;
+}
+
+#commitTabContainer {
+    flex-direction: row;
+}
+
+#changesTabContainer {
+    flex-direction: column;
+}
+
+#changesColumnContainer {
+    flex: auto;
+    display: flex;
     flex-direction: row;
 }
 
