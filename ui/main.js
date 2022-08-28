@@ -73,6 +73,18 @@ class Main {
             $('#credentialsModal').modal('hide');
         });
 
+        $('#commitBtn').click(() => {
+            const $messageTxt = $('#messageTxt');
+            emit("commit", $messageTxt.val()).then();
+            $messageTxt.val("");
+        });
+
+        $('#commitPushBtn').click(() => {
+            const $messageTxt = $('#messageTxt');
+            emit("commit-push", $messageTxt.val()).then();
+            $messageTxt.val("");
+        });
+
         $('#fetchBtn').click(() => {
             emit("fetch").then();
         });

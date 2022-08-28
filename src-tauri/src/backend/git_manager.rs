@@ -247,6 +247,27 @@ impl GitManager {
         Ok(diff)
     }
 
+    pub fn git_commit(&self, message: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+        // TODO: Add way to set signature in git config
+        let signature = repo.signature()?;
+
+        let mut parents = vec![];
+        let commit;
+        if let Some(oid) = repo.head()?.target() {
+            commit = repo.find_commit(oid)?;
+            parents.push(&commit);
+        }
+
+        let mut index = repo.index()?;
+        let tree_oid = index.write_tree()?;
+        index.write()?;
+        let tree = repo.find_tree(tree_oid)?;
+
+        repo.commit(Some("HEAD"), &signature, &signature, message, &tree, parents.as_slice())?;
+        Ok(())
+    }
+
     pub fn git_fetch(&self) -> Result<(), Box<dyn std::error::Error>> {
         let repo = self.get_repo()?;
         let remote_string_array = repo.remotes()?;
@@ -323,18 +344,26 @@ impl GitManager {
         Err("Merge analysis failed to make any determination on how to proceed with the pull. If you're reading this, your repository may be corrupted.".into())
     }
 
-    pub fn git_push(&self, push_options_json: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_push(&self, push_options_json_opt: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
         let repo = self.get_repo()?;
 
-        let push_options: HashMap<String, String> = serde_json::from_str(push_options_json)?;
-        let is_force = match push_options.get("isForcePush") {
-            Some(s) => s == "true",
-            None => return Err("isForcePush not included in payload from front-end.".into()),
-        };
-        let remote_name_from_frontend = match push_options.get("selectedRemote") {
-            Some(s) => s.as_str(),
-            None => return Err("selectedRemote not included in payload from front-end.".into()),
-        };
+        let is_force;
+        let remote_name_from_frontend_opt;
+        let push_options: HashMap<String, String>;
+        if let Some(push_options_json) = push_options_json_opt {
+            push_options = serde_json::from_str(push_options_json)?;
+            is_force = match push_options.get("isForcePush") {
+                Some(s) => s == "true",
+                None => return Err("isForcePush not included in payload from front-end.".into()),
+            };
+            remote_name_from_frontend_opt = match push_options.get("selectedRemote") {
+                Some(s) => Some(s.as_str()),
+                None => return Err("selectedRemote not included in payload from front-end.".into()),
+            };
+        } else {
+            is_force = false;
+            remote_name_from_frontend_opt = None;
+        }
 
         let local_ref = repo.head()?;
         let local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
@@ -347,7 +376,10 @@ impl GitManager {
             },
             Err(_e) => {
                 is_creating_new_remote_branch = true;
-                repo.find_remote(remote_name_from_frontend)?
+                match remote_name_from_frontend_opt {
+                    Some(rn) => repo.find_remote(rn)?,
+                    None => return Err("Attempted to push with no upstream branch and no specified remote.".into()),
+                }
             },
         };
 
@@ -363,7 +395,8 @@ impl GitManager {
 
         if is_creating_new_remote_branch {
             let local_branch_shorthand = GitManager::get_utf8_string(local_ref.shorthand(), "Branch Name")?;
-            let new_remote_branch_shorthand = format!("{remote_name_from_frontend}/{local_branch_shorthand}");
+            let remote_name = GitManager::get_utf8_string(remote.name(), "Remote Name")?;
+            let new_remote_branch_shorthand = format!("{remote_name}/{local_branch_shorthand}");
             let mut local_branch = repo.find_branch(local_branch_shorthand, BranchType::Local)?;
             local_branch.set_upstream(Some(&*new_remote_branch_shorthand))?;
         }
