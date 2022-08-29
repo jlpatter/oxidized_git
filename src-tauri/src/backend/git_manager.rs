@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::str;
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Cred, Diff, DiffFindOptions, DiffOptions, FetchOptions, FetchPrune, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
+use git2::{AutotagOption, BranchType, Cred, Diff, DiffFindOptions, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
 use crate::backend::parseable_info::ParseableDiffDelta;
 use super::config_manager;
@@ -245,6 +246,44 @@ impl GitManager {
         GitManager::set_diff_find_similar(&mut diff)?;
 
         Ok(diff)
+    }
+
+    pub fn get_file_diff(&self, file_path: &str) -> Result<Vec<&str>, Box<dyn std::error::Error>> {
+        let diff = self.get_unstaged_changes()?;
+
+        let file_index_opt = diff.deltas().position(|dd| {
+            match dd.new_file().path() {
+                Some(p) => {
+                    match p.to_str() {
+                        Some(s) => file_path == s,
+                        None => false,
+                    }
+                },
+                None => false,
+            }
+        });
+        let file_index = match file_index_opt {
+            Some(i) => i,
+            None => return Err("Selected file not found. This shouldn't happen since this uses the same methods that are used to generate the file list.".into()),
+        };
+
+        let patch_opt = Patch::from_diff(&diff, file_index)?;
+        let mut file_lines = vec![];
+        match patch_opt {
+            Some(patch) => {
+                for i in 0..patch.num_hunks() {
+                    let line_count = patch.num_lines_in_hunk(i)?;
+                    for j in 0..line_count {
+                        let line = patch.line_in_hunk(i, j)?;
+                        let line_bytes = line.content();
+                        let line_string = str::from_utf8(line_bytes)?;
+                        file_lines.push(line_string);
+                    }
+                }
+            },
+            None => return Err("Patch not found in diff.".into()),
+        }
+        Ok(file_lines)
     }
 
     pub fn git_commit(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {

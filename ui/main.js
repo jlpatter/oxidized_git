@@ -173,6 +173,9 @@ class Main {
             const $row = $('<p class="hoverable-row unselectable">' + unstagedFile['path'] + '</p>');
             self.prependFileIcon($row, unstagedFile['status']);
             $row.append($button);
+            $row.click(() => {
+                emit('file-diff', unstagedFile['path']).then();
+            });
             $unstagedChanges.append($row);
         });
 
@@ -185,6 +188,9 @@ class Main {
             const $row = $('<p>' + stagedFile['path'] + '</p>');
             self.prependFileIcon($row, stagedFile['status']);
             $row.append($button);
+            $row.click(() => {
+                emit('file-diff', stagedFile['path']).then();
+            });
             $stagedChanges.append($row);
         });
     }
