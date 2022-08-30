@@ -2,6 +2,7 @@ import jQuery from "jquery";
 $ = window.$ = window.jQuery = jQuery;
 import {emit, listen} from "@tauri-apps/api/event";
 import {SVGManager} from "./svg_manager";
+import hljs from "highlight.js";
 
 class Main {
     constructor() {
@@ -41,6 +42,10 @@ class Main {
                 $commitCountNumber.prop('disabled', true);
             }
             $('#preferencesModal').modal('show');
+        }).then();
+
+        listen("show-file-lines", ev => {
+            self.showFileDiff(ev.payload);
         }).then();
 
         listen("error", ev => {
@@ -122,6 +127,43 @@ class Main {
         });
     }
 
+    unselectAllRows() {
+        const $selectedRow = $('.selected-row');
+        $selectedRow.removeClass('selected-row');
+        $selectedRow.addClass('hoverable-row');
+        $('#fileDiffTable').empty();
+    }
+
+    selectRow($row) {
+        $row.addClass('selected-row');
+        $row.removeClass('hoverable-row');
+    }
+
+    showFileDiff(file_lines) {
+        const $fileDiffTable = $('#fileDiffTable');
+
+        $fileDiffTable.empty();
+        file_lines.forEach((line) => {
+            let styleString = 'background-color: transparent;';
+            if (line['origin'] === '+') {
+                styleString = 'background-color: rgba(0, 255, 0, 0.08);';
+            } else if (line['origin'] === '-') {
+                styleString = 'background-color: rgba(255, 0, 0, 0.1);';
+            }
+            let fileLineRow = '<tr style="' + styleString + '"><td class="line-no">';
+            if (line['old_lineno'] !== null) {
+                fileLineRow += line['old_lineno'];
+            }
+            fileLineRow += '</td><td class="line-no">';
+            if (line['new_lineno'] !== null) {
+                fileLineRow += line['new_lineno'];
+            }
+            fileLineRow += '</td><td>' + line['origin'] + '</td><td class="line-content"><pre><code class="language-' + line['file_type'] + '">' + line['content'] + '</code></pre></td></tr>';
+            $fileDiffTable.append($(fileLineRow));
+        });
+        hljs.highlightAll();
+    }
+
     updateAll(repo_info) {
         const self = this;
         self.generalInfo = repo_info['general_info'];
@@ -149,8 +191,25 @@ class Main {
         }
     }
 
+    addFileChangeRow($changesDiv, $button, file, changeType) {
+        const self = this,
+            $row = $('<p class="hoverable-row unselectable">' + file['path'] + '</p>');
+        self.prependFileIcon($row, file['status']);
+        $row.append($button);
+        $row.click((e) => {
+            e.stopPropagation();
+            $('#contextMenu').hide();
+            self.unselectAllRows();
+            self.selectRow($row);
+            emit('file-diff', {file_path: file['path'], change_type: changeType}).then();
+        });
+        $changesDiv.append($row);
+    }
+
     updateFilesChangedInfo(files_changed_info_list) {
         const self = this;
+
+        self.unselectAllRows();
 
         if (files_changed_info_list['files_changed'] > 0) {
             $('#changes-tab').html('Changes (' + files_changed_info_list['files_changed'] + ')');
@@ -167,25 +226,21 @@ class Main {
         // Unstaged changes
         files_changed_info_list['unstaged_files'].forEach(function(unstagedFile) {
             const $button = $('<button type="button" class="btn btn-success btn-sm right"><i class="bi bi-plus-lg"></i></button>');
-            $button.click(function() {
+            $button.click(function(e) {
+                e.stopPropagation();
                 emit('stage', unstagedFile).then();
             });
-            const $row = $('<p class="hoverable-row unselectable">' + unstagedFile['path'] + '</p>');
-            self.prependFileIcon($row, unstagedFile['status']);
-            $row.append($button);
-            $unstagedChanges.append($row);
+            self.addFileChangeRow($unstagedChanges, $button, unstagedFile, 'unstaged');
         });
 
         // Staged changes
         files_changed_info_list['staged_files'].forEach(function(stagedFile) {
             const $button = $('<button type="button" class="btn btn-danger btn-sm right"><i class="bi bi-dash-lg"></i></button>');
-            $button.click(function() {
+            $button.click(function(e) {
+                e.stopPropagation();
                 emit('unstage', stagedFile).then();
             });
-            const $row = $('<p>' + stagedFile['path'] + '</p>');
-            self.prependFileIcon($row, stagedFile['status']);
-            $row.append($button);
-            $stagedChanges.append($row);
+            self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged');
         });
     }
 

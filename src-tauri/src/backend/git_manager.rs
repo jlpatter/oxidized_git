@@ -1,10 +1,46 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::str;
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Cred, Diff, DiffFindOptions, DiffOptions, FetchOptions, FetchPrune, Oid, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
+use git2::{AutotagOption, BranchType, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
+use serde::Serialize;
 use crate::backend::parseable_info::ParseableDiffDelta;
 use super::config_manager;
+
+fn trim_newline(s: &mut String) {
+    if s.ends_with('\n') {
+        s.pop();
+    }
+    if s.ends_with('\r') {
+        s.pop();
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct FileLineInfo {
+    old_lineno: Option<u32>,
+    new_lineno: Option<u32>,
+    file_type: String,
+    content: String,
+    origin: char,
+}
+
+impl FileLineInfo {
+    pub fn from_diff_line(diff_line: DiffLine, file_type: &String) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut content_string = String::from(str::from_utf8(diff_line.content())?);
+        trim_newline(&mut content_string);
+        content_string = html_escape::encode_text(&content_string).parse()?;
+        let new_info = Self {
+            old_lineno: diff_line.old_lineno(),
+            new_lineno: diff_line.new_lineno(),
+            file_type: file_type.clone(),
+            content: content_string,
+            origin: diff_line.origin(),
+        };
+        Ok(new_info)
+    }
+}
 
 pub struct GitManager {
     repo: Option<Repository>,
@@ -245,6 +281,61 @@ impl GitManager {
         GitManager::set_diff_find_similar(&mut diff)?;
 
         Ok(diff)
+    }
+
+    pub fn get_file_diff(&self, json_str: &str) -> Result<Vec<FileLineInfo>, Box<dyn std::error::Error>> {
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+
+        let file_path = match json_hm.get("file_path") {
+            Some(s) => s,
+            None => return Err("file_path not returned from front-end payload.".into()),
+        };
+        let change_type = match json_hm.get("change_type") {
+            Some(s) => s,
+            None => return Err("change_type not returned from front-end payload.".into()),
+        };
+
+        let diff;
+        if change_type == "unstaged" {
+            diff = self.get_unstaged_changes()?;
+        } else if change_type == "staged" {
+            diff = self.get_staged_changes()?;
+        } else {
+            return Err("change_type not a valid type. Needs to be 'staged' or 'unstaged'".into());
+        }
+
+        let file_index_opt = diff.deltas().position(|dd| {
+            match dd.new_file().path() {
+                Some(p) => {
+                    match p.to_str() {
+                        Some(s) => file_path.as_str() == s,
+                        None => false,
+                    }
+                },
+                None => false,
+            }
+        });
+        let file_index = match file_index_opt {
+            Some(i) => i,
+            None => return Err("Selected file not found. This shouldn't happen since this uses the same methods that are used to generate the file list.".into()),
+        };
+
+        let patch_opt = Patch::from_diff(&diff, file_index)?;
+        let mut file_lines = vec![];
+        let file_type = String::from(file_path.split(".").last().unwrap_or(""));
+        match patch_opt {
+            Some(patch) => {
+                for i in 0..patch.num_hunks() {
+                    let line_count = patch.num_lines_in_hunk(i)?;
+                    for j in 0..line_count {
+                        let line = patch.line_in_hunk(i, j)?;
+                        file_lines.push(FileLineInfo::from_diff_line(line, &file_type)?);
+                    }
+                }
+            },
+            None => return Err("Patch not found in diff.".into()),
+        }
+        Ok(file_lines)
     }
 
     pub fn git_commit(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
