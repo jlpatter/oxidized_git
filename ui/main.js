@@ -2,6 +2,7 @@ import jQuery from "jquery";
 $ = window.$ = window.jQuery = jQuery;
 import {emit, listen} from "@tauri-apps/api/event";
 import {SVGManager} from "./svg_manager";
+import hljs from "highlight.js";
 
 class Main {
     constructor() {
@@ -41,6 +42,14 @@ class Main {
                 $commitCountNumber.prop('disabled', true);
             }
             $('#preferencesModal').modal('show');
+        }).then();
+
+        listen("show-file-lines", ev => {
+            const $fileDiffColumn = $('#fileDiffColumn'),
+                $fileDiffText = $('<pre><code>' + ev.payload + '</code></pre>');
+            $fileDiffColumn.empty();
+            $fileDiffColumn.append($fileDiffText);
+            hljs.highlightAll();
         }).then();
 
         listen("error", ev => {

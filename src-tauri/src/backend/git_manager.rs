@@ -248,7 +248,7 @@ impl GitManager {
         Ok(diff)
     }
 
-    pub fn get_file_diff(&self, file_path: &str) -> Result<Vec<&str>, Box<dyn std::error::Error>> {
+    pub fn get_file_diff(&self, file_path: &str) -> Result<String, Box<dyn std::error::Error>> {
         let diff = self.get_unstaged_changes()?;
 
         let file_index_opt = diff.deltas().position(|dd| {
@@ -268,7 +268,7 @@ impl GitManager {
         };
 
         let patch_opt = Patch::from_diff(&diff, file_index)?;
-        let mut file_lines = vec![];
+        let mut file_lines = String::new();
         match patch_opt {
             Some(patch) => {
                 for i in 0..patch.num_hunks() {
@@ -277,7 +277,7 @@ impl GitManager {
                         let line = patch.line_in_hunk(i, j)?;
                         let line_bytes = line.content();
                         let line_string = str::from_utf8(line_bytes)?;
-                        file_lines.push(line_string);
+                        file_lines.push_str(line_string);
                     }
                 }
             },

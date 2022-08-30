@@ -280,9 +280,7 @@ fn main() {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
                         let file_diff_result = git_manager.get_file_diff(s);
                         match file_diff_result {
-                            Ok(file_lines) => {
-                                // TODO: Emit file_lines to front-end!
-                            },
+                            Ok(file_lines) => main_window_c_c.emit_all("show-file-lines", file_lines).unwrap(),
                             Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
                         };
                     },
