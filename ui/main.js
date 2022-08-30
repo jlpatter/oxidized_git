@@ -16,7 +16,7 @@ class Main {
         self.showCommitControls();
 
         $(window).click(function() {
-            self.clickClearStuff();
+            $('#contextMenu').hide();
         });
 
         listen("update_all", ev => {
@@ -127,8 +127,16 @@ class Main {
         });
     }
 
-    clickClearStuff() {
-        $('#contextMenu').hide();
+    unselectAllRows() {
+        const $selectedRow = $('.selected-row');
+        $selectedRow.removeClass('selected-row');
+        $selectedRow.addClass('hoverable-row');
+        $('#fileDiffTable').empty();
+    }
+
+    selectRow($row) {
+        $row.addClass('selected-row');
+        $row.removeClass('hoverable-row');
     }
 
     showFileDiff(file_lines) {
@@ -183,8 +191,25 @@ class Main {
         }
     }
 
+    addFileChangeRow($changesDiv, $button, file, changeType) {
+        const self = this,
+            $row = $('<p class="hoverable-row unselectable">' + file['path'] + '</p>');
+        self.prependFileIcon($row, file['status']);
+        $row.append($button);
+        $row.click((e) => {
+            e.stopPropagation();
+            $('#contextMenu').hide();
+            self.unselectAllRows();
+            self.selectRow($row);
+            emit('file-diff', {file_path: file['path'], change_type: changeType}).then();
+        });
+        $changesDiv.append($row);
+    }
+
     updateFilesChangedInfo(files_changed_info_list) {
         const self = this;
+
+        self.unselectAllRows();
 
         if (files_changed_info_list['files_changed'] > 0) {
             $('#changes-tab').html('Changes (' + files_changed_info_list['files_changed'] + ')');
@@ -201,45 +226,21 @@ class Main {
         // Unstaged changes
         files_changed_info_list['unstaged_files'].forEach(function(unstagedFile) {
             const $button = $('<button type="button" class="btn btn-success btn-sm right"><i class="bi bi-plus-lg"></i></button>');
-            $button.click(function() {
+            $button.click(function(e) {
+                e.stopPropagation();
                 emit('stage', unstagedFile).then();
             });
-            const $row = $('<p class="hoverable-row unselectable">' + unstagedFile['path'] + '</p>');
-            self.prependFileIcon($row, unstagedFile['status']);
-            $row.append($button);
-            $row.click((e) => {
-                e.stopPropagation();
-                self.clickClearStuff();
-                const $selectedRow = $('.selected-row');
-                $selectedRow.removeClass('selected-row');
-                $selectedRow.addClass('hoverable-row');
-                $row.addClass('selected-row');
-                $row.removeClass('hoverable-row');
-                emit('file-diff', unstagedFile['path']).then();
-            });
-            $unstagedChanges.append($row);
+            self.addFileChangeRow($unstagedChanges, $button, unstagedFile, 'unstaged');
         });
 
         // Staged changes
         files_changed_info_list['staged_files'].forEach(function(stagedFile) {
             const $button = $('<button type="button" class="btn btn-danger btn-sm right"><i class="bi bi-dash-lg"></i></button>');
-            $button.click(function() {
+            $button.click(function(e) {
+                e.stopPropagation();
                 emit('unstage', stagedFile).then();
             });
-            const $row = $('<p class="hoverable-row unselectable">' + stagedFile['path'] + '</p>');
-            self.prependFileIcon($row, stagedFile['status']);
-            $row.append($button);
-            $row.click((e) => {
-                e.stopPropagation();
-                self.clickClearStuff();
-                const $selectedRow = $('.selected-row');
-                $selectedRow.removeClass('selected-row');
-                $selectedRow.addClass('hoverable-row');
-                $row.addClass('selected-row');
-                $row.removeClass('hoverable-row');
-                emit('file-diff', stagedFile['path']).then();
-            });
-            $stagedChanges.append($row);
+            self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged');
         });
     }
 

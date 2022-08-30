@@ -283,14 +283,32 @@ impl GitManager {
         Ok(diff)
     }
 
-    pub fn get_file_diff(&self, file_path: &str) -> Result<Vec<FileLineInfo>, Box<dyn std::error::Error>> {
-        let diff = self.get_unstaged_changes()?;
+    pub fn get_file_diff(&self, json_str: &str) -> Result<Vec<FileLineInfo>, Box<dyn std::error::Error>> {
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+
+        let file_path = match json_hm.get("file_path") {
+            Some(s) => s,
+            None => return Err("file_path not returned from front-end payload.".into()),
+        };
+        let change_type = match json_hm.get("change_type") {
+            Some(s) => s,
+            None => return Err("change_type not returned from front-end payload.".into()),
+        };
+
+        let diff;
+        if change_type == "unstaged" {
+            diff = self.get_unstaged_changes()?;
+        } else if change_type == "staged" {
+            diff = self.get_staged_changes()?;
+        } else {
+            return Err("change_type not a valid type. Needs to be 'staged' or 'unstaged'".into());
+        }
 
         let file_index_opt = diff.deltas().position(|dd| {
             match dd.new_file().path() {
                 Some(p) => {
                     match p.to_str() {
-                        Some(s) => file_path == s,
+                        Some(s) => file_path.as_str() == s,
                         None => false,
                     }
                 },
