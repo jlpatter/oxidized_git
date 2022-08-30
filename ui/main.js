@@ -16,7 +16,7 @@ class Main {
         self.showCommitControls();
 
         $(window).click(function() {
-            $('#contextMenu').hide();
+            self.clickClearStuff();
         });
 
         listen("update_all", ev => {
@@ -127,6 +127,10 @@ class Main {
         });
     }
 
+    clickClearStuff() {
+        $('#contextMenu').hide();
+    }
+
     showFileDiff(file_lines) {
         const $fileDiffTable = $('#fileDiffTable');
 
@@ -203,7 +207,14 @@ class Main {
             const $row = $('<p class="hoverable-row unselectable">' + unstagedFile['path'] + '</p>');
             self.prependFileIcon($row, unstagedFile['status']);
             $row.append($button);
-            $row.click(() => {
+            $row.click((e) => {
+                e.stopPropagation();
+                self.clickClearStuff();
+                const $selectedRow = $('.selected-row');
+                $selectedRow.removeClass('selected-row');
+                $selectedRow.addClass('hoverable-row');
+                $row.addClass('selected-row');
+                $row.removeClass('hoverable-row');
                 emit('file-diff', unstagedFile['path']).then();
             });
             $unstagedChanges.append($row);
@@ -215,10 +226,17 @@ class Main {
             $button.click(function() {
                 emit('unstage', stagedFile).then();
             });
-            const $row = $('<p>' + stagedFile['path'] + '</p>');
+            const $row = $('<p class="hoverable-row unselectable">' + stagedFile['path'] + '</p>');
             self.prependFileIcon($row, stagedFile['status']);
             $row.append($button);
-            $row.click(() => {
+            $row.click((e) => {
+                e.stopPropagation();
+                self.clickClearStuff();
+                const $selectedRow = $('.selected-row');
+                $selectedRow.removeClass('selected-row');
+                $selectedRow.addClass('hoverable-row');
+                $row.addClass('selected-row');
+                $row.removeClass('hoverable-row');
                 emit('file-diff', stagedFile['path']).then();
             });
             $stagedChanges.append($row);
