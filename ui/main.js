@@ -45,11 +45,7 @@ class Main {
         }).then();
 
         listen("show-file-lines", ev => {
-            const $fileDiffColumn = $('#fileDiffColumn'),
-                $fileDiffText = $('<pre><code>' + ev.payload + '</code></pre>');
-            $fileDiffColumn.empty();
-            $fileDiffColumn.append($fileDiffText);
-            hljs.highlightAll();
+            self.showFileDiff(ev.payload);
         }).then();
 
         listen("error", ev => {
@@ -129,6 +125,31 @@ class Main {
             }).then();
             $('#pushModal').modal('hide');
         });
+    }
+
+    showFileDiff(file_lines) {
+        const $fileDiffTable = $('#fileDiffTable');
+
+        $fileDiffTable.empty();
+        file_lines.forEach((line) => {
+            let styleString = 'background-color: transparent;';
+            if (line['origin'] === '+') {
+                styleString = 'background-color: rgba(0, 255, 0, 0.08);';
+            } else if (line['origin'] === '-') {
+                styleString = 'background-color: rgba(255, 0, 0, 0.1);';
+            }
+            let fileLineRow = '<tr style="' + styleString + '"><td class="line-no">';
+            if (line['old_lineno'] !== null) {
+                fileLineRow += line['old_lineno'];
+            }
+            fileLineRow += '</td><td class="line-no">';
+            if (line['new_lineno'] !== null) {
+                fileLineRow += line['new_lineno'];
+            }
+            fileLineRow += '</td><td>' + line['origin'] + '</td><td><pre><code class="language-' + line['file_type'] + '">' + line['content'] + '</code></pre></td></tr>';
+            $fileDiffTable.append($(fileLineRow));
+        });
+        hljs.highlightAll();
     }
 
     updateAll(repo_info) {
