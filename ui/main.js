@@ -146,7 +146,7 @@ class Main {
             if (line['new_lineno'] !== null) {
                 fileLineRow += line['new_lineno'];
             }
-            fileLineRow += '</td><td>' + line['origin'] + '</td><td><pre><code class="language-' + line['file_type'] + '">' + line['content'] + '</code></pre></td></tr>';
+            fileLineRow += '</td><td>' + line['origin'] + '</td><td class="line-content"><pre><code class="language-' + line['file_type'] + '">' + line['content'] + '</code></pre></td></tr>';
             $fileDiffTable.append($(fileLineRow));
         });
         hljs.highlightAll();

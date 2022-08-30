@@ -103,6 +103,10 @@ pre code.hljs {
     padding-right: 5px;
 }
 
+.line-content {
+    width: 100%;
+}
+
 .controls {
     flex: initial;
     padding-left: 10px;
