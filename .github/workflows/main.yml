@@ -56,10 +56,10 @@ jobs:
                  libayatana-appindicator3-dev \
                  librsvg2-dev
           elif [ "$RUNNER_OS" == "Windows" ]; then
-               echo "No need additional Tauri dependencies for $RUNNER_OS"
+               echo "No need for additional Tauri dependencies for $RUNNER_OS"
                exit 0
           elif [ "$RUNNER_OS" == "macOS" ]; then
-               echo "No need additional Tauri dependencies for $RUNNER_OS"
+               echo "No need for additional Tauri dependencies for $RUNNER_OS"
                exit 0
           else
                echo "$RUNNER_OS not supported"
@@ -72,7 +72,24 @@ jobs:
         run: npm install
 
       - name: Install Cargo Tauri-CLI
-        run: cargo install tauri-cli --force
+        run: |
+          contains() {
+            string="$1"
+            substring="$2"
+            if test "${string#*$substring}" != "$string"
+            then
+            return 0    # $substring is in $string
+            else
+            return 1    # $substring is not in $string
+            fi
+          }
+          if contains "$(cargo install --list)" "tauri-cli"; then
+            echo "Tauri CLI already installed. Skipping..."
+            exit 0
+          else
+            cargo install tauri-cli --force
+          fi
+        shell: bash
 
       - name: Run Cargo Tauri Build
         run: cargo tauri build
@@ -81,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: matrix.os == 'ubuntu-latest'
         with:
-          name: ${{ env.bundle_app_name_prefix }}-${{ env.RUNNER_OS }}-x86_64
+          name: ${{ env.bundle_app_name_prefix }}-${{ matrix.os }}-x86_64
           path: |
             src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}_*
 
@@ -89,7 +106,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: matrix.os == 'macos-latest'
         with:
-          name: ${{ env.bundle_app_name_prefix }}-${{ env.RUNNER_OS }}-x86_64
+          name: ${{ env.bundle_app_name_prefix_other }}-${{ matrix.os }}-x86_64
           path: |
             src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_*
 
@@ -97,6 +114,6 @@ jobs:
         uses: actions/upload-artifact@v3
         if: matrix.os == 'windows-latest'
         with:
-          name: ${{ env.bundle_app_name_prefix }}-${{ env.RUNNER_OS }}-x86_64
+          name: ${{ env.bundle_app_name_prefix_other }}-${{ matrix.os }}-x86_64
           path: |
             src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}_*
