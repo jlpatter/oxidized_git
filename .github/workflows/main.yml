@@ -5,13 +5,13 @@ name: CI
 env:
   bundle_app_name_prefix: oxidized-git
   bundle_app_name_prefix_other: oxidized_git
-  current_version: v0.1.0
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
+  # Triggers the workflow on tag pushes
   push:
-    branches: [ master ]
+    tags:
+      - '*'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -85,7 +85,6 @@ jobs:
         with:
           artifacts: "src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}_*"
           allowUpdates: true
-          name: "${{ env.current_version }}"
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload MacOS Artifacts
@@ -94,7 +93,6 @@ jobs:
         with:
           artifacts: "src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}*"
           allowUpdates: true
-          name: "${{ env.current_version }}"
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload MSI Artifacts
@@ -103,5 +101,4 @@ jobs:
         with:
           artifacts: "src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}_*"
           allowUpdates: true
-          name: "${{ env.current_version }}"
           token: ${{ secrets.GITHUB_TOKEN }}
