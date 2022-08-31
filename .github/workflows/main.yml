@@ -84,7 +84,7 @@ jobs:
         with:
           name: ${{ env.bundle_app_name_prefix }}-${{ matrix.os }}-x86_64
           path: |
-            src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}_*
+            src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}*
 
       - name: Upload MacOS Artifacts
         uses: actions/upload-artifact@v3
@@ -92,7 +92,7 @@ jobs:
         with:
           name: ${{ env.bundle_app_name_prefix_other }}-${{ matrix.os }}-x86_64
           path: |
-            src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_*
+            src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}*
 
       - name: Upload MSI Artifacts
         uses: actions/upload-artifact@v3
@@ -100,4 +100,4 @@ jobs:
         with:
           name: ${{ env.bundle_app_name_prefix_other }}-${{ matrix.os }}-x86_64
           path: |
-            src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}_*
+            src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}*
