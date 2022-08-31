@@ -88,6 +88,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compress MacOS App Artifact
+        working-directory: ./src-tauri/target/release/bundle/macos
         if: matrix.os == 'macos-latest'
         run: |
           zip -r ${{ env.bundle_app_name_prefix_other }}_macos_app.zip ${{ env.bundle_app_name_prefix_other }}.app
