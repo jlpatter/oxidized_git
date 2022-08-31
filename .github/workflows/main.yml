@@ -90,7 +90,7 @@ jobs:
       - name: Compress MacOS App Artifact
         if: matrix.os == 'macos-latest'
         run: |
-          zip ${{ env.bundle_app_name_prefix_other }}_macos_app.zip ${{ env.bundle_app_name_prefix_other }}.app
+          zip -r ${{ env.bundle_app_name_prefix_other }}_macos_app.zip ${{ env.bundle_app_name_prefix_other }}.app
 
       - name: Upload MacOS Artifacts
         uses: ncipollo/release-action@v1
