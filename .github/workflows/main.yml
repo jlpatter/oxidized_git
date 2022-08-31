@@ -97,7 +97,7 @@ jobs:
         uses: ncipollo/release-action@v1
         if: matrix.os == 'macos-latest'
         with:
-          artifacts: "src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_macos_app.zip,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_*"
+          artifacts: "src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_macos_app.zip,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_*.dmg"
           allowUpdates: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
