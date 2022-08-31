@@ -73,7 +73,7 @@ jobs:
 
       - name: Install Cargo Tauri-CLI
         run: |
-          if [[ "$(cargo install --list)" == *"tauri-cli"* ]]; then
+          if grep -q "tauri-cli" <<< "$(cargo install --list)"; then
             echo "Tauri-CLI already installed, no need to install"
             exit 0
           else
