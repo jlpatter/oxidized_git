@@ -5,6 +5,7 @@ name: CI
 env:
   bundle_app_name_prefix: oxidized-git
   bundle_app_name_prefix_other: oxidized_git
+  current_version: v0.1.0
 
 # Controls when the workflow will run
 on:
@@ -78,8 +79,29 @@ jobs:
       - name: Run Cargo Tauri Build
         run: cargo tauri build
 
-      - uses: ncipollo/release-action@v1
+      - name: Upload AppImage Artifacts
+        uses: ncipollo/release-action@v1
+        if: matrix.os == 'ubuntu-latest'
         with:
-          artifacts: "src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}_*,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}*,src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}_*"
-          name: "v0.1.0"
+          artifacts: "src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}_*"
+          allowUpdates: true
+          name: "${{ env.current_version }}"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload MacOS Artifacts
+        uses: ncipollo/release-action@v1
+        if: matrix.os == 'macos-latest'
+        with:
+          artifacts: "src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}*"
+          allowUpdates: true
+          name: "${{ env.current_version }}"
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload MSI Artifacts
+        uses: ncipollo/release-action@v1
+        if: matrix.os == 'windows-latest'
+        with:
+          artifacts: "src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}_*"
+          allowUpdates: true
+          name: "${{ env.current_version }}"
           token: ${{ secrets.GITHUB_TOKEN }}
