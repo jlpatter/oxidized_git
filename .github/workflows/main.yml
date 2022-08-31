@@ -78,26 +78,8 @@ jobs:
       - name: Run Cargo Tauri Build
         run: cargo tauri build
 
-      - name: Upload AppImage Artifacts
-        uses: actions/upload-artifact@v3
-        if: matrix.os == 'ubuntu-latest'
+      - uses: ncipollo/release-action@v1
         with:
-          name: ${{ env.bundle_app_name_prefix }}-${{ matrix.os }}-x86_64
-          path: |
-            src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}*
-
-      - name: Upload MacOS Artifacts
-        uses: actions/upload-artifact@v3
-        if: matrix.os == 'macos-latest'
-        with:
-          name: ${{ env.bundle_app_name_prefix_other }}-${{ matrix.os }}-x86_64
-          path: |
-            src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}*
-
-      - name: Upload MSI Artifacts
-        uses: actions/upload-artifact@v3
-        if: matrix.os == 'windows-latest'
-        with:
-          name: ${{ env.bundle_app_name_prefix_other }}-${{ matrix.os }}-x86_64
-          path: |
-            src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}*
+          artifacts: "src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}_*,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}*,src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}_*"
+          name: "v0.1.0"
+          token: ${{ secrets.GITHUB_TOKEN }}
