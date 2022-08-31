@@ -87,11 +87,16 @@ jobs:
           allowUpdates: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compress MacOS App Artifact
+        if: matrix.os == 'macos-latest'
+        run: |
+          zip ${{ env.bundle_app_name_prefix_other }}_macos_app.zip ${{ env.bundle_app_name_prefix_other }}.app
+
       - name: Upload MacOS Artifacts
         uses: ncipollo/release-action@v1
         if: matrix.os == 'macos-latest'
         with:
-          artifacts: "src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}*"
+          artifacts: "src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_macos_app.zip,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_*"
           allowUpdates: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
