@@ -4,6 +4,7 @@ name: CI
 
 env:
   bundle_app_name_prefix: oxidized-git
+  bundle_app_name_prefix_other: oxidized_git
 
 # Controls when the workflow will run
 on:
@@ -80,7 +81,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: matrix.os == 'ubuntu-latest'
         with:
-          name: ${{ env.bundle_app_name_prefix }}-$RUNNER_OS-x86_64
+          name: ${{ env.bundle_app_name_prefix }}-${{ RUNNER_OS }}-x86_64
           path: |
             src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}_*
 
@@ -88,14 +89,14 @@ jobs:
         uses: actions/upload-artifact@v3
         if: matrix.os == 'macos-latest'
         with:
-          name: ${{ env.bundle_app_name_prefix }}-$RUNNER_OS-x86_64
+          name: ${{ env.bundle_app_name_prefix }}-${{ RUNNER_OS }}-x86_64
           path: |
-            src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix }}_*
+            src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_*
 
       - name: Upload MSI Artifacts
         uses: actions/upload-artifact@v3
         if: matrix.os == 'windows-latest'
         with:
-          name: ${{ env.bundle_app_name_prefix }}-$RUNNER_OS-x86_64
+          name: ${{ env.bundle_app_name_prefix }}-${{ RUNNER_OS }}-x86_64
           path: |
-            src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix }}_*
+            src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}_*
