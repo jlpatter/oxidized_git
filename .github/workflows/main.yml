@@ -72,7 +72,14 @@ jobs:
         run: npm install
 
       - name: Install Cargo Tauri-CLI
-        run: cargo install tauri-cli
+        run: |
+          if [ "$(cargo install --list)" == *"tauri-cli"* ]; then
+            echo "Tauri-CLI already installed, no need to install"
+            exit 0
+          else
+            cargo install tauri-cli
+          fi
+        shell: bash
 
       - name: Run Cargo Tauri Build
         run: cargo tauri build
