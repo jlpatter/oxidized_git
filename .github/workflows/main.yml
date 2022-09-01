@@ -85,6 +85,7 @@ jobs:
         with:
           artifacts: "src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}_*"
           allowUpdates: true
+          draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compress MacOS App Artifact
@@ -99,6 +100,7 @@ jobs:
         with:
           artifacts: "src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_macos_app.zip,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_*.dmg"
           allowUpdates: true
+          draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload MSI Artifacts
@@ -107,4 +109,5 @@ jobs:
         with:
           artifacts: "src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}_*"
           allowUpdates: true
+          draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
