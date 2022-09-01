@@ -89,6 +89,14 @@ body {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
+.added-code-line {
+    background-color: rgba(0, 255, 0, 0.2);
+}
+
+.removed-code-line {
+    background-color: rgba(255, 0, 0, 0.2);
+}
+
 .hljs {
     background-color: transparent;
 }

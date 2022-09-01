@@ -144,13 +144,12 @@ class Main {
 
         $fileDiffTable.empty();
         file_lines.forEach((line) => {
-            let styleString = 'background-color: transparent;';
+            let fileLineRow = '<tr><td class="line-no">';
             if (line['origin'] === '+') {
-                styleString = 'background-color: rgba(0, 255, 0, 0.08);';
+                fileLineRow = '<tr class="added-code-line"><td class="line-no">';
             } else if (line['origin'] === '-') {
-                styleString = 'background-color: rgba(255, 0, 0, 0.1);';
+                fileLineRow = '<tr class="removed-code-line"><td class="line-no">';
             }
-            let fileLineRow = '<tr style="' + styleString + '"><td class="line-no">';
             if (line['old_lineno'] !== null) {
                 fileLineRow += line['old_lineno'];
             }
