@@ -4,80 +4,48 @@ body {
     overflow: auto;
 }
 
-#mainContent {
+.display-flex-column {
     display: flex;
     flex-direction: column;
-    height: 100%;
 }
 
-.tab-content {
-    flex: auto;
-    min-height: 0;
-}
-
-#commits, #changes {
-    height: 100%;
-}
-
-#commitTabContainer, #changesTabContainer {
-    height: 100%;
-    display: flex;
-}
-
-#commitTabContainer {
-    flex-direction: row;
-}
-
-#changesTabContainer {
-    flex-direction: column;
-}
-
-#changesColumnContainer {
-    flex: auto;
-    min-height: 0;
+.display-flex-row {
     display: flex;
     flex-direction: row;
 }
 
-#branchColumn, #changesColumn {
+.full-height {
+    height: 100%;
+}
+
+.flex-auto-in-column {
+    flex: auto;
+    min-height: 0;
+}
+
+.flex-auto-in-row {
+    flex: auto;
+    min-width: 0;
+}
+
+.flex-none-1-6-width {
     flex: none;
     width: 16.66%;
-    display: flex;
-    flex-direction: column;
-    padding-left: 10px;
-    padding-top: 10px;
 }
 
-#branchColumn {
-    padding-bottom: 10px;
-}
-
-#localBranchesContainer, #remoteBranchesContainer, #tagsContainer, #unstagedChangesContainer, #stagedChangesContainer {
-    flex: auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-#localBranchesContainer, #remoteBranchesContainer, #tagsContainer {
-    max-height: 33%;
-}
-
-#unstagedChangesContainer, #stagedChangesContainer {
+.max-height-half {
     max-height: 50%;
 }
 
-#localBranches, #remoteBranches, #tags, #unstagedChanges, #stagedChanges {
-    flex: auto;
-    min-height: 0;
-    overflow: auto;
+.little-padding-top {
+    padding-top: 10px;
 }
 
-#commitColumn, #fileDiffColumn {
-    flex: none;
-    width: 83.33%;
-    overflow: auto;
-    padding-top: 10px;
+.little-padding-bottom {
+    padding-bottom: 10px;
+}
+
+.little-padding-left {
     padding-left: 10px;
 }
 

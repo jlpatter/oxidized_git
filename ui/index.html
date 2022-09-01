@@ -16,91 +16,90 @@
     <script type="module">import "bootstrap/dist/js/bootstrap.min.js";</script>
 </head>
 <body id="mainBody" class="bg-dark text-white">
-    <div id="mainContent">
+    <div class="display-flex-column full-height">
         <div class="container">
             <button id="fetchBtn" type="button" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-down"></i>Fetch</button>
             <button id="pullBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-down"></i>Pull</button>
             <button id="openPushModalBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-up"></i>Push</button>
         </div>
 
-        <ul class="nav nav-tabs">
-            <li class="nav-item">
-                <button class="nav-link active" id="commits-tab" data-bs-toggle="tab" data-bs-target="#commits" type="button" role="tab" aria-controls="commits" aria-selected="true">Commit Tree</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" id="changes-tab" data-bs-toggle="tab" data-bs-target="#changes" type="button" role="tab" aria-controls="changes" aria-selected="true">Changes</button>
-            </li>
-        </ul>
-
-        <div class="tab-content">
-            <div class="tab-pane fade show active" id="commits" role="tabpanel" aria-labelledby="commits-tab">
-                <div id="commitTabContainer">
-                    <div id="branchColumn">
-                        <div id="localBranchesContainer">
-                            <h5>Local Branches</h5>
-                            <div id="localBranches"></div>
-                        </div>
-                        <div id="remoteBranchesContainer">
-                            <h5>Remote Branches</h5>
-                            <div id="remoteBranches"></div>
-                        </div>
-                        <div id="tagsContainer">
-                            <h5>Tags</h5>
-                            <div id="tags"></div>
-                        </div>
-                    </div>
-                    <div id="commitColumn">
-                        <h4>Commits</h4>
-                        <svg id="commitTableSVG" width="500" height="500"></svg>
-                    </div>
-                </div>
+        <div class="flex-auto-in-column display-flex-row">
+            <div class="flex-none-1-6-width little-padding-left little-padding-top little-padding-bottom">
+                <h5>Local Branches</h5>
+                <div id="localBranches"></div>
+                <h5>Remote Branches</h5>
+                <div id="remoteBranches"></div>
+                <h5>Tags</h5>
+                <div id="tags"></div>
             </div>
-            <div class="tab-pane fade" id="changes" role="tabpanel" aria-labelledby="changes-tab">
-                <div id="changesTabContainer">
-                    <div id="changesColumnContainer">
-                        <div id="changesColumn">
-                            <div id="unstagedChangesContainer">
-                                <h5>Unstaged Changes</h5>
-                                <div id="unstagedChanges"></div>
-                            </div>
-                            <div id="stagedChangesContainer">
-                                <h5>Staged Changes</h5>
-                                <div id="stagedChanges"></div>
+
+            <div id="tabsAndContent" class="flex-auto-in-row display-flex-column">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="commits-tab" data-bs-toggle="tab" data-bs-target="#commits" type="button" role="tab" aria-controls="commits" aria-selected="true">Commit Tree</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="changes-tab" data-bs-toggle="tab" data-bs-target="#changes" type="button" role="tab" aria-controls="changes" aria-selected="true">Changes</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content flex-auto-in-column">
+                    <div class="tab-pane fade show active full-height" id="commits" role="tabpanel" aria-labelledby="commits-tab">
+                        <div class="full-height display-flex-column">
+                            <div id="commitColumn" class="flex-auto-in-column overflow-auto little-padding-top little-padding-left">
+                                <h4>Commits</h4>
+                                <svg id="commitTableSVG" width="500" height="500"></svg>
                             </div>
                         </div>
-                        <div id="fileDiffColumn">
-                            <table id="fileDiffTable"></table>
+                    </div>
+                    <div class="tab-pane fade full-height" id="changes" role="tabpanel" aria-labelledby="changes-tab">
+                        <div class="full-height display-flex-column">
+                            <div id="changesColumnContainer" class="flex-auto-in-column display-flex-row">
+                                <div class="flex-none-1-6-width display-flex-column little-padding-left little-padding-top">
+                                    <div class="flex-auto-in-column display-flex-column max-height-half">
+                                        <h5>Unstaged Changes</h5>
+                                        <div id="unstagedChanges" class="flex-auto-in-column overflow-auto"></div>
+                                    </div>
+                                    <div class="flex-auto-in-column display-flex-column max-height-half">
+                                        <h5>Staged Changes</h5>
+                                        <div id="stagedChanges" class="flex-auto-in-column overflow-auto"></div>
+                                    </div>
+                                </div>
+                                <div id="fileDiffColumn" class="flex-auto-in-column overflow-auto little-padding-top little-padding-left">
+                                    <table id="fileDiffTable"></table>
+                                </div>
+                            </div>
+                            <div id="commitControls" class="controls">
+                                <input id="summaryTxt" type="text" class="form-control bg-dark text-white" placeholder="Summary">
+                                <textarea id="messageTxt" class="bg-dark text-white" rows="3" placeholder="Message"></textarea>
+                                <span class="right">
+                                    <button id="commitBtn" class="btn btn-primary" type="button">
+                                        <i class="bi bi-check-circle"></i> Commit
+                                    </button>
+                                </span>
+                                <span class="right-padding">
+                                    <button id="commitPushBtn" class="btn btn-primary" type="button">
+                                        <i class="bi bi-arrow-up"></i> Commit & Push
+                                    </button>
+                                </span>
+                            </div>
+                            <div id="mergeControls" class="controls">
+                                <span class="right">
+                                    <button id="continueMergeBtn" class="btn btn-success btn-sm" type="button">Continue Merge</button>
+                                </span>
+                                <span class="right-padding">
+                                    <button id="abortMergeBtn" class="btn btn-danger btn-sm" type="button">Abort Merge</button>
+                                </span>
+                            </div>
+                            <div id="cherrypickControls" class="controls">
+                                <span class="right">
+                                    <button id="continueCherrypickBtn" class="btn btn-success btn-sm" type="button">Continue Cherrypick</button>
+                                </span>
+                                <span class="right-padding">
+                                    <button id="abortCherrypickBtn" class="btn btn-danger btn-sm" type="button">Abort Cherrypick</button>
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                    <div id="commitControls" class="controls">
-                        <input id="summaryTxt" type="text" class="form-control bg-dark text-white" placeholder="Summary">
-                        <textarea id="messageTxt" class="bg-dark text-white" rows="3" placeholder="Message"></textarea>
-                        <span class="right">
-                            <button id="commitBtn" class="btn btn-primary" type="button">
-                                <i class="bi bi-check-circle"></i> Commit
-                            </button>
-                        </span>
-                        <span class="right-padding">
-                            <button id="commitPushBtn" class="btn btn-primary" type="button">
-                                <i class="bi bi-arrow-up"></i> Commit & Push
-                            </button>
-                        </span>
-                    </div>
-                    <div id="mergeControls" class="controls">
-                        <span class="right">
-                            <button id="continueMergeBtn" class="btn btn-success btn-sm" type="button">Continue Merge</button>
-                        </span>
-                        <span class="right-padding">
-                            <button id="abortMergeBtn" class="btn btn-danger btn-sm" type="button">Abort Merge</button>
-                        </span>
-                    </div>
-                    <div id="cherrypickControls" class="controls">
-                        <span class="right">
-                            <button id="continueCherrypickBtn" class="btn btn-success btn-sm" type="button">Continue Cherrypick</button>
-                        </span>
-                        <span class="right-padding">
-                            <button id="abortCherrypickBtn" class="btn btn-danger btn-sm" type="button">Abort Cherrypick</button>
-                        </span>
                     </div>
                 </div>
             </div>
