@@ -10,7 +10,8 @@
         import "bootstrap/dist/css/bootstrap.min.css";
         import "bootstrap-icons/font/bootstrap-icons.css";
         import "highlight.js/styles/agate.css";
-        import "./main_style.css";
+        import "./mainStyle.css";
+        import "./treeView.css";
     </script>
     <script type="module" src="./main.js"></script>
     <script type="module">import "bootstrap/dist/js/bootstrap.min.js";</script>
@@ -32,12 +33,17 @@
 
         <div class="flex-auto-in-column display-flex-row">
             <div class="flex-none-1-6-width overflow-auto little-padding-left little-padding-top little-padding-bottom">
-                <h5>Local Branches</h5>
-                <div id="localBranches"></div>
-                <h5>Remote Branches</h5>
-                <div id="remoteBranches"></div>
-                <h5>Tags</h5>
-                <div id="tags"></div>
+                <ul id="branchesTreeView" class="tree-view">
+                    <li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> Local Branches</span>
+                        <ul id="localBranches" class="nested sub-tree-view"></ul>
+                    </li>
+                    <li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> Remote Branches</span>
+                        <ul id="remoteBranches" class="nested sub-tree-view"></ul>
+                    </li>
+                    <li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> Tags</span>
+                        <ul id="tags" class="nested sub-tree-view"></ul>
+                    </li>
+                </ul>
             </div>
 
             <div id="tabsAndContent" class="flex-auto-in-row display-flex-column">

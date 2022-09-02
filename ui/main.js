@@ -4,6 +4,12 @@ import {emit, listen} from "@tauri-apps/api/event";
 import {SVGManager} from "./svg_manager";
 import hljs from "highlight.js";
 
+// This doesn't work if it isn't a separate function for some reason...
+function togglerClick() {
+    this.parentElement.querySelector(".nested").classList.toggle("active");
+    this.querySelector(".bi-caret-down-fill").classList.toggle("rotated-caret");
+}
+
 class Main {
     constructor() {
         this.processCount = 0;
@@ -17,6 +23,8 @@ class Main {
         self.showCommitControls();
 
         $('#mainSpinner').hide();
+
+        self.setupTreeViews();
 
         $(window).click(function() {
             $('#contextMenu').hide();
@@ -145,6 +153,14 @@ class Main {
             }).then();
             $('#pushModal').modal('hide');
         });
+    }
+
+    setupTreeViews() {
+        const toggler = document.getElementsByClassName("parent-tree");
+
+        for (let i = 0; i < toggler.length; i++) {
+            toggler[i].addEventListener("click", togglerClick);
+        }
     }
 
     addProcessCount() {
@@ -290,7 +306,7 @@ class Main {
         $tags.empty();
 
         branch_info_list.forEach((branchResult) => {
-            let branchResultHTML = '<p class="hoverable-row unselectable">';
+            let branchResultHTML = '<li class="hoverable-row unselectable">';
             if (branchResult['is_head'] === 'true') {
                 branchResultHTML += '* ';
             }
@@ -301,7 +317,7 @@ class Main {
             if (branchResult['ahead'] !== '0') {
                 branchResultHTML += '<span class="right"><i class="bi bi-arrow-up"></i>' + branchResult['ahead'] + '</span>';
             }
-            branchResultHTML += '</p>';
+            branchResultHTML += '</li>';
             const $branchResult = $(branchResultHTML);
 
             if (branchResult['branch_type'] === 'remote') {
@@ -328,6 +344,7 @@ class Main {
                 $localBranches.append($branchResult);
             }
         });
+        self.setupTreeViews();
     }
 
     updateRemoteInfo(remote_info_list) {
