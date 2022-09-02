@@ -49,6 +49,10 @@ body {
     padding-left: 10px;
 }
 
+#spinnerContainer {
+    text-align: center;
+}
+
 .hoverable-row:hover {
     background-color: rgba(255, 255, 255, 0.075);
 }

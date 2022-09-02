@@ -6,6 +6,7 @@ import hljs from "highlight.js";
 
 class Main {
     constructor() {
+        this.processCount = 0;
         this.svgManager = new SVGManager();
         this.generalInfo = {};
     }
@@ -15,12 +16,23 @@ class Main {
         $('#contextMenu').hide();
         self.showCommitControls();
 
+        $('#mainSpinner').hide();
+
         $(window).click(function() {
             $('#contextMenu').hide();
         });
 
+        listen("start-process", ev => {
+            self.addProcessCount();
+        }).then();
+
+        listen("end-process", ev => {
+            self.removeProcessCount();
+        }).then();
+
         listen("update_all", ev => {
             self.updateAll(ev.payload);
+            self.removeProcessCount();
         }).then();
 
         listen("update_changes", ev => {
@@ -50,6 +62,7 @@ class Main {
 
         listen("error", ev => {
             // TODO: Maybe make a modal for errors instead?
+            self.removeProcessCount();
             alert(ev.payload);
         }).then();
 
@@ -66,6 +79,7 @@ class Main {
         });
 
         $('#savePreferencesBtn').click(() => {
+            self.addProcessCount();
             emit("save-preferences", {
                 limitCommits: $('#limitCommitsCheckBox').is(':checked').toString(),
                 commitCount: $('#commitCountNumber').val(),
@@ -74,6 +88,7 @@ class Main {
         });
 
         $('#saveCredentialsBtn').click(() => {
+            self.addProcessCount();
             const $usernameTxt = $('#usernameTxt'),
                 $passwordTxt = $('#passwordTxt');
             emit("save-credentials", {username: $usernameTxt.val(), password: $passwordTxt.val()}).then();
@@ -83,6 +98,7 @@ class Main {
         });
 
         $('#commitBtn').click(() => {
+            self.addProcessCount();
             const $summaryTxt = $('#summaryTxt'),
                 $messageTxt = $('#messageTxt');
             emit("commit", {summaryText: $summaryTxt.val(), messageText: $messageTxt.val()}).then();
@@ -91,6 +107,7 @@ class Main {
         });
 
         $('#commitPushBtn').click(() => {
+            self.addProcessCount();
             const $summaryTxt = $('#summaryTxt'),
                 $messageTxt = $('#messageTxt');
             emit("commit-push", {summaryText: $summaryTxt.val(), messageText: $messageTxt.val()}).then();
@@ -99,10 +116,12 @@ class Main {
         });
 
         $('#fetchBtn').click(() => {
+            self.addProcessCount();
             emit("fetch").then();
         });
 
         $('#pullBtn').click(() => {
+            self.addProcessCount();
             emit("pull").then();
         });
 
@@ -117,6 +136,7 @@ class Main {
         });
 
         $('#pushBtn').click(() => {
+            self.addProcessCount();
             // Note: By default, pushing will try to use the local branch's upstream first
             // instead of the selected remote from the front-end
             emit("push", {
@@ -125,6 +145,22 @@ class Main {
             }).then();
             $('#pushModal').modal('hide');
         });
+    }
+
+    addProcessCount() {
+        this.processCount++;
+        $('#mainSpinner').show();
+    }
+
+    removeProcessCount() {
+        this.processCount--;
+        if (this.processCount <= 0) {
+            $('#mainSpinner').hide();
+            // This should only happen when an error occurs on something that doesn't use the spinner
+            if (this.processCount < 0) {
+                this.processCount = 0;
+            }
+        }
     }
 
     unselectAllRows() {
@@ -274,6 +310,7 @@ class Main {
                     self.showContextMenu(e, branchResult['branch_name']);
                 });
                 $branchResult.on('dblclick', function() {
+                    self.addProcessCount();
                     emit("checkout-remote", {full_branch_name: branchResult['full_branch_name'], branch_name: branchResult['branch_name']}).then();
                 });
                 $remoteBranches.append($branchResult);
@@ -285,6 +322,7 @@ class Main {
                     self.showContextMenu(e, branchResult['branch_name']);
                 });
                 $branchResult.on('dblclick', function() {
+                    self.addProcessCount();
                     emit("checkout", branchResult['full_branch_name']).then();
                 });
                 $localBranches.append($branchResult);
@@ -310,7 +348,8 @@ class Main {
     }
 
     showContextMenu(event, branchName) {
-        const $contextMenu = $('#contextMenu');
+        const self = this,
+            $contextMenu = $('#contextMenu');
         $contextMenu.empty();
         $contextMenu.css('left', event.pageX + 'px');
         $contextMenu.css('top', event.pageY + 'px');
@@ -318,6 +357,7 @@ class Main {
         // TODO: Add more branch functionality here!
         const $exampleBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="bi bi-dash-circle"></i> Do Nothing</button>');
         $exampleBtn.click(function() {
+            // self.addProcessCount();
             // TODO: Add functionality to the context menu button here!
         });
         $contextMenu.append($exampleBtn);

@@ -19,6 +19,8 @@ fn emit_update_all(git_manager: &MutexGuard<GitManager>, temp_main_window: &Wind
         Ok(repo_info_opt) => {
             if let Some(repo_info) = repo_info_opt {
                 temp_main_window.emit_all("update_all", repo_info).unwrap();
+            } else {
+                temp_main_window.emit_all("end-process", "").unwrap();
             }
         },
         Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
@@ -92,6 +94,7 @@ fn main() {
                         if *just_got_repo {
                             *just_got_repo = false;
                         } else {
+                            main_window_c.emit_all("start-process", "").unwrap();
                             let main_window_c_c = main_window_c.clone();
                             let git_manager_arc_c_c = git_manager_arc_c.clone();
                             thread::spawn(move || {
@@ -122,6 +125,7 @@ fn main() {
                 },
                 // Don't use a separate thread for init, open, or clone so as not to break the file dialog in Linux.
                 "init" => {
+                    main_window_c.emit_all("start-process", "").unwrap();
                     let mut git_manager = git_manager_arc_c.lock().unwrap();
                     let init_result = git_manager.init_repo();
                     match init_result {
@@ -130,12 +134,15 @@ fn main() {
                                 emit_update_all(&git_manager, &main_window_c);
                                 let mut just_got_repo = just_got_repo_arc_c.lock().unwrap();
                                 *just_got_repo = true;
+                            } else {
+                                main_window_c.emit_all("end-process", "").unwrap();
                             }
                         },
                         Err(e) => main_window_c.emit_all("error", e.to_string()).unwrap(),
                     };
                 },
                 "open" => {
+                    main_window_c.emit_all("start-process", "").unwrap();
                     let mut git_manager = git_manager_arc_c.lock().unwrap();
                     let open_result = git_manager.open_repo();
                     match open_result {
@@ -144,6 +151,8 @@ fn main() {
                                 emit_update_all(&git_manager, &main_window_c);
                                 let mut just_got_repo = just_got_repo_arc_c.lock().unwrap();
                                 *just_got_repo = true;
+                            } else {
+                                main_window_c.emit_all("end-process", "").unwrap();
                             }
                         },
                         Err(e) => main_window_c.emit_all("error", e.to_string()).unwrap(),

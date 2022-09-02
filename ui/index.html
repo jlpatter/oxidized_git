@@ -17,10 +17,17 @@
 </head>
 <body id="mainBody" class="bg-dark text-white">
     <div class="display-flex-column full-height">
-        <div class="container">
-            <button id="fetchBtn" type="button" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-down"></i>Fetch</button>
-            <button id="pullBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-down"></i>Pull</button>
-            <button id="openPushModalBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-up"></i>Push</button>
+        <div class="display-flex-row">
+            <div>
+                <button id="fetchBtn" type="button" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-down"></i>Fetch</button>
+                <button id="pullBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-down"></i>Pull</button>
+                <button id="openPushModalBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-up"></i>Push</button>
+            </div>
+            <div id="spinnerContainer" class="flex-auto-in-row">
+                <div id="mainSpinner" class="spinner-border text-light" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
         </div>
 
         <div class="flex-auto-in-column display-flex-row">
