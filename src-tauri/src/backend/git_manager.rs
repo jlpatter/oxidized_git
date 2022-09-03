@@ -257,6 +257,7 @@ impl GitManager {
         let mut diff_options = DiffOptions::new();
         diff_options.include_untracked(true);
         diff_options.recurse_untracked_dirs(true);
+        diff_options.show_untracked_content(true);
 
         let mut diff = repo.diff_index_to_workdir(None, Some(&mut diff_options))?;
         GitManager::set_diff_find_similar(&mut diff)?;
