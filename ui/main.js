@@ -26,8 +26,12 @@ class Main {
 
         self.setupTreeViews();
 
-        $(window).click(function() {
+        $(window).click(() => {
             $('#contextMenu').hide();
+        });
+
+        $(window).resize(() => {
+            self.truncateFilePathText();
         });
 
         listen("start-process", ev => {
@@ -76,6 +80,10 @@ class Main {
 
         $('#commits-tab').click(() => {
             self.svgManager.setVisibleCommits();
+        });
+
+        $('#changes-tab').click(() => {
+            self.truncateFilePathText();
         });
 
         $('#limitCommitsCheckBox').change(() => {
@@ -242,18 +250,45 @@ class Main {
         }
     }
 
+    truncateFilePathText() {
+        const filePathText = document.getElementsByClassName('file-path-txt');
+
+        for (let i = 0; i < filePathText.length; i++) {
+            const txt = filePathText[i],
+                shrunkenTxtContainer = txt.parentElement.parentElement;
+
+            // This is so the text can "grow" again.
+            txt.textContent = txt.getAttribute('data-original-txt');
+
+            if (txt.clientWidth > 0 && shrunkenTxtContainer.clientWidth > 0) {
+                // Set up the text to have ellipsis for width calculations
+                if (txt.clientWidth >= shrunkenTxtContainer.clientWidth) {
+                    txt.textContent = "..." + txt.textContent;
+                }
+
+                while (txt.clientWidth >= shrunkenTxtContainer.clientWidth) {
+                    txt.textContent = "..." + txt.textContent.substring(4);
+                }
+            }
+        }
+    }
+
     addFileChangeRow($changesDiv, $button, file, changeType) {
         const self = this,
-            $row = $('<p class="hoverable-row unselectable">' + file['path'] + '</p>');
-        self.prependFileIcon($row, file['status']);
-        $row.append($button);
-        $row.click((e) => {
+            // The outer div is the whole row (minus the button), the next inner div is the "unshrunken" text size (i.e. what size the text should fit in), and the last inner div is the size of the text width.
+            // This is all used for truncating the text.
+            $text = $('<div class="hoverable-row unselectable flex-auto-in-row display-flex-row"><div class="flex-auto-in-row display-flex-row"><div><p class="file-path-txt" data-original-txt="' + file['path'] + '">' + file['path'] + '</p></div></div></div>');
+        self.prependFileIcon($text, file['status']);
+        $text.click((e) => {
             e.stopPropagation();
             $('#contextMenu').hide();
             self.unselectAllRows();
-            self.selectRow($row);
+            self.selectRow($text);
             emit('file-diff', {file_path: file['path'], change_type: changeType}).then();
         });
+        const $row = $('<div class="display-flex-row little-padding-bottom"></div>');
+        $row.append($text);
+        $row.append($button);
         $changesDiv.append($row);
     }
 
@@ -293,6 +328,8 @@ class Main {
             });
             self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged');
         });
+
+        self.truncateFilePathText();
     }
 
     updateBranchInfo(branch_info_list) {

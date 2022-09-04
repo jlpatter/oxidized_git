@@ -57,6 +57,10 @@ body {
     text-align: center;
 }
 
+.file-path-txt {
+    margin-bottom: 0;
+}
+
 .hoverable-row:hover {
     background-color: rgba(255, 255, 255, 0.075);
 }
