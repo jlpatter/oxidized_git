@@ -104,7 +104,6 @@ class Main {
         });
 
         $('#saveCredentialsBtn').click(() => {
-            self.addProcessCount();
             const $usernameTxt = $('#usernameTxt'),
                 $passwordTxt = $('#passwordTxt');
             emit("save-credentials", {username: $usernameTxt.val(), password: $passwordTxt.val()}).then();
