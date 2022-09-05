@@ -331,24 +331,23 @@ class Main {
         self.truncateFilePathText();
     }
 
-    buildBranchResultHTML(currentChildren) {
+    buildBranchResultHTML(currentChildren, $ul) {
         const self = this;
-        let $branchResultHTML = $('');
         currentChildren.forEach((child) => {
             if (child['children'].length > 0) {
                 const $nestedList = $('<ul class="nested sub-tree-view"></ul>');
-                $nestedList.append(self.buildBranchResultHTML(child['children']));
+                self.buildBranchResultHTML(child['children'], $nestedList);
                 const $newListItem = $('<li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> ' + child['text'] + '</span></li>');
                 $newListItem.append($nestedList);
-                $branchResultHTML.append($newListItem);
+                $ul.append($newListItem);
             } else {
-                const $innerListItem = $('<li class="hoverable-row unselectable"></li>');
+                const $innerListItem = $('<li class="hoverable-row unselectable inner-branch-item"></li>');
                 let childText = '';
                 if (child['branch_info']['is_head'] === true) {
                     childText += '* ';
                 }
                 childText += child['text'];
-                $innerListItem.textContent = childText;
+                $innerListItem.text(childText);
                 if (child['branch_info']['behind'] !== 0) {
                     const $behindCount = $('<span class="right"><i class="bi bi-arrow-down"></i>' + child['branch_info']['behind'] + '</span>');
                     $innerListItem.append($behindCount);
@@ -378,10 +377,9 @@ class Main {
                         emit("checkout", child['branch_info']['full_branch_name']).then();
                     });
                 }
-                $branchResultHTML.append($innerListItem);
+                $ul.append($innerListItem);
             }
         });
-        return $branchResultHTML;
     }
 
     updateBranchInfo(branch_info_list) {
@@ -395,9 +393,9 @@ class Main {
         $tags.empty();
 
         // The root node is empty, so get its children.
-        $localBranches.append(self.buildBranchResultHTML(branch_info_list['local_branch_info_tree']['children']));
-        $remoteBranches.append(self.buildBranchResultHTML(branch_info_list['remote_branch_info_tree']['children']));
-        $tags.append(self.buildBranchResultHTML(branch_info_list['tag_branch_info_tree']['children']));
+        self.buildBranchResultHTML(branch_info_list['local_branch_info_tree']['children'], $localBranches);
+        self.buildBranchResultHTML(branch_info_list['remote_branch_info_tree']['children'], $remoteBranches);
+        self.buildBranchResultHTML(branch_info_list['tag_branch_info_tree']['children'], $tags);
         self.setupTreeViews();
     }
 
