@@ -111,54 +111,62 @@ impl BranchInfo {
 }
 
 #[derive(Clone, Serialize)]
-pub struct BranchesInfo {
-    branch_name_tree: BranchNameTreeNode,
-    branches: Vec<BranchInfo>,
+pub struct BranchInfoTreeNode {
+    text: String,
+    branch_info: Option<BranchInfo>,
+    children: Vec<BranchInfoTreeNode>,
 }
 
-impl BranchesInfo {
-    pub fn new(branch_name_tree: BranchNameTreeNode, branches: Vec<BranchInfo>) -> Self {
+impl BranchInfoTreeNode {
+    fn new(text: String, branch_info: Option<BranchInfo>) -> Self {
         Self {
-            branch_name_tree,
-            branches,
+            text,
+            branch_info,
+            children: vec![],
+        }
+    }
+
+    pub fn insert_split_shorthand(&mut self, split_shorthand: VecDeque<String>, branch_info: BranchInfo) {
+        // self should be the root node in this case.
+        assert_eq!(self.text, String::from(""));
+        let mut current_tree_node = self;
+
+        for (i, string_ref) in split_shorthand.iter().enumerate() {
+            let s = string_ref.clone();
+            let child_index = current_tree_node.children.iter().position(|child| {
+                child.text == s
+            });
+            match child_index {
+                Some(j) => {
+                    current_tree_node = &mut current_tree_node.children[j];
+                },
+                None => {
+                    if i == split_shorthand.len() - 1 {
+                        current_tree_node.children.push(BranchInfoTreeNode::new(s, Some(branch_info.clone())));
+                    } else {
+                        current_tree_node.children.push(BranchInfoTreeNode::new(s, None));
+                    }
+                    let last_index = current_tree_node.children.len() - 1;
+                    current_tree_node = &mut current_tree_node.children[last_index];
+                },
+            };
         }
     }
 }
 
 #[derive(Clone, Serialize)]
-pub struct BranchNameTreeNode {
-    text: String,
-    children: Vec<BranchNameTreeNode>,
+pub struct BranchesInfo {
+    local_branch_info_tree: BranchInfoTreeNode,
+    remote_branch_info_tree: BranchInfoTreeNode,
+    tag_branch_info_tree: BranchInfoTreeNode,
 }
 
-impl BranchNameTreeNode {
-    fn new(text: String) -> Self {
+impl BranchesInfo {
+    pub fn new(local_branch_info_tree: BranchInfoTreeNode, remote_branch_info_tree: BranchInfoTreeNode, tag_branch_info_tree: BranchInfoTreeNode) -> Self {
         Self {
-            text,
-            children: vec![],
-        }
-    }
-
-    pub fn insert_split_shorthand(&mut self, split_shorthand: VecDeque<&str>) {
-        // self should be the root node in this case.
-        assert_eq!(self.text, "");
-        let mut current_tree_node = self;
-
-        for string_ref in split_shorthand {
-            let s = String::from(string_ref);
-            let child_index = current_tree_node.children.iter().position(|child| {
-                child.text == s
-            });
-            match child_index {
-                Some(i) => {
-                    current_tree_node = &mut current_tree_node.children[i];
-                },
-                None => {
-                    current_tree_node.children.push(BranchNameTreeNode::new(s));
-                    let last_index = current_tree_node.children.len() - 1;
-                    current_tree_node = &mut current_tree_node.children[last_index];
-                },
-            };
+            local_branch_info_tree,
+            remote_branch_info_tree,
+            tag_branch_info_tree,
         }
     }
 }
@@ -322,16 +330,14 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
 fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo, Box<dyn std::error::Error>> {
     let repo = git_manager.get_repo()?;
 
-    let mut branch_info_list: Vec<BranchInfo> = vec![];
-
-    let mut branch_name_tree = BranchNameTreeNode::new(String::from(""));
+    let mut local_branch_info_tree = BranchInfoTreeNode::new(String::from(""), None);
+    let mut remote_branch_info_tree = BranchInfoTreeNode::new(String::from(""), None);
+    let mut tag_branch_info_tree = BranchInfoTreeNode::new(String::from(""), None);
     for reference_result in repo.references()? {
         let reference = reference_result?;
 
         // Get branch name
         let branch_shorthand = String::from(GitManager::get_utf8_string(reference.shorthand(), "Branch Name")?);
-
-        branch_name_tree.insert_split_shorthand(branch_shorthand.split("/").collect());
 
         // Get full branch name
         let full_branch_name = String::from(GitManager::get_utf8_string(reference.name(), "Branch Name")?);
@@ -384,11 +390,21 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo, Box<dy
             };
         }
 
-        let branch_info = BranchInfo::new(branch_shorthand, full_branch_name, is_head, branch_type, ahead, behind);
-        branch_info_list.push(branch_info);
+        let mut split_shorthand = VecDeque::new();
+        for s in branch_shorthand.split("/") {
+            split_shorthand.push_back(String::from(s));
+        }
+        let branch_info = BranchInfo::new(branch_shorthand, full_branch_name, is_head, branch_type.clone(), ahead, behind);
+        if branch_type == String::from("local") {
+            local_branch_info_tree.insert_split_shorthand(split_shorthand, branch_info);
+        } else if branch_type == String::from("remote") {
+            remote_branch_info_tree.insert_split_shorthand(split_shorthand, branch_info);
+        } else if branch_type == String::from("tag") {
+            tag_branch_info_tree.insert_split_shorthand(split_shorthand, branch_info);
+        }
     }
 
-    Ok(BranchesInfo::new(branch_name_tree, branch_info_list))
+    Ok(BranchesInfo::new(local_branch_info_tree, remote_branch_info_tree, tag_branch_info_tree))
 }
 
 fn get_remote_info_list(git_manager: &GitManager) -> Result<Vec<String>, Box<dyn std::error::Error>> {
