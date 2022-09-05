@@ -160,9 +160,9 @@ impl GitManager {
         let repo = self.get_repo()?;
 
         let json_data: HashMap<String, String> = serde_json::from_str(json_string)?;
-        let remote_branch_shortname = match json_data.get("branch_name") {
+        let remote_branch_shortname = match json_data.get("branch_shorthand") {
             Some(n) => n,
-            None => return Err("JSON Data is missing branch_name attribute.".into()),
+            None => return Err("JSON Data is missing branch_shorthand attribute.".into()),
         };
         let remote_branch_full_name = match json_data.get("full_branch_name") {
             Some(n) => n,

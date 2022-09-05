@@ -168,6 +168,12 @@ class Main {
         for (let i = 0; i < toggler.length; i++) {
             toggler[i].addEventListener("click", togglerClick);
         }
+
+        const localBranchesToggle = document.getElementById("localBranchesToggle");
+        if (!localBranchesToggle.parentElement.querySelector(".nested").classList.contains("active")) {
+            localBranchesToggle.parentElement.querySelector(".nested").classList.toggle("active");
+            localBranchesToggle.querySelector(".bi-caret-down-fill").classList.toggle("rotated-caret");
+        }
     }
 
     addProcessCount() {
@@ -331,6 +337,57 @@ class Main {
         self.truncateFilePathText();
     }
 
+    buildBranchResultHTML(currentChildren, $ul) {
+        const self = this;
+        currentChildren.forEach((child) => {
+            if (child['children'].length > 0) {
+                const $nestedList = $('<ul class="nested sub-tree-view"></ul>');
+                self.buildBranchResultHTML(child['children'], $nestedList);
+                const $newListItem = $('<li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> ' + child['text'] + '</span></li>');
+                $newListItem.append($nestedList);
+                $ul.append($newListItem);
+            } else {
+                const $innerListItem = $('<li class="hoverable-row unselectable inner-branch-item"></li>');
+                let childText = '';
+                if (child['branch_info']['is_head'] === true) {
+                    childText += '* ';
+                }
+                childText += child['text'];
+                $innerListItem.text(childText);
+                if (child['branch_info']['behind'] !== 0) {
+                    const $behindCount = $('<span class="right"><i class="bi bi-arrow-down"></i>' + child['branch_info']['behind'] + '</span>');
+                    $innerListItem.append($behindCount);
+                }
+                if (child['branch_info']['ahead'] !== 0) {
+                    const $aheadCount = $('<span class="right"><i class="bi bi-arrow-up"></i>' + child['branch_info']['ahead'] + '</span>');
+                    $innerListItem.append($aheadCount);
+                }
+
+                if (child['branch_info']['branch_type'] === 'remote') {
+                    $innerListItem.contextmenu(function(e) {
+                        e.preventDefault();
+                        self.showContextMenu(e, child['branch_info']['branch_shorthand']);
+                    });
+                    $innerListItem.on('dblclick', function() {
+                        self.addProcessCount();
+                        emit("checkout-remote", {full_branch_name: child['branch_info']['full_branch_name'], branch_shorthand: child['branch_info']['branch_shorthand']}).then();
+                    });
+                } else if (child['branch_info']['branch_type'] === 'tag') {
+                } else {
+                    $innerListItem.contextmenu(function(e) {
+                        e.preventDefault();
+                        self.showContextMenu(e, child['branch_info']['branch_shorthand']);
+                    });
+                    $innerListItem.on('dblclick', function() {
+                        self.addProcessCount();
+                        emit("checkout", child['branch_info']['full_branch_name']).then();
+                    });
+                }
+                $ul.append($innerListItem);
+            }
+        });
+    }
+
     updateBranchInfo(branch_info_list) {
         const self = this,
             $localBranches = $('#localBranches'),
@@ -341,45 +398,10 @@ class Main {
         $remoteBranches.empty();
         $tags.empty();
 
-        branch_info_list.forEach((branchResult) => {
-            let branchResultHTML = '<li class="hoverable-row unselectable">';
-            if (branchResult['is_head'] === 'true') {
-                branchResultHTML += '* ';
-            }
-            branchResultHTML += branchResult['branch_name'];
-            if (branchResult['behind'] !== '0') {
-                branchResultHTML += '<span class="right"><i class="bi bi-arrow-down"></i>' + branchResult['behind'] + '</span>';
-            }
-            if (branchResult['ahead'] !== '0') {
-                branchResultHTML += '<span class="right"><i class="bi bi-arrow-up"></i>' + branchResult['ahead'] + '</span>';
-            }
-            branchResultHTML += '</li>';
-            const $branchResult = $(branchResultHTML);
-
-            if (branchResult['branch_type'] === 'remote') {
-                $branchResult.contextmenu(function(e) {
-                    e.preventDefault();
-                    self.showContextMenu(e, branchResult['branch_name']);
-                });
-                $branchResult.on('dblclick', function() {
-                    self.addProcessCount();
-                    emit("checkout-remote", {full_branch_name: branchResult['full_branch_name'], branch_name: branchResult['branch_name']}).then();
-                });
-                $remoteBranches.append($branchResult);
-            } else if (branchResult['branch_type'] === 'tag') {
-                $tags.append($branchResult);
-            } else {
-                $branchResult.contextmenu(function(e) {
-                    e.preventDefault();
-                    self.showContextMenu(e, branchResult['branch_name']);
-                });
-                $branchResult.on('dblclick', function() {
-                    self.addProcessCount();
-                    emit("checkout", branchResult['full_branch_name']).then();
-                });
-                $localBranches.append($branchResult);
-            }
-        });
+        // The root node is empty, so get its children.
+        self.buildBranchResultHTML(branch_info_list['local_branch_info_tree']['children'], $localBranches);
+        self.buildBranchResultHTML(branch_info_list['remote_branch_info_tree']['children'], $remoteBranches);
+        self.buildBranchResultHTML(branch_info_list['tag_branch_info_tree']['children'], $tags);
         self.setupTreeViews();
     }
 

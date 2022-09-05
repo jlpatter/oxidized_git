@@ -9,12 +9,17 @@
     padding: 0;
 }
 
+.sub-tree-view {
+    padding-left: 20px;
+}
+
 .bi-caret-down-fill {
     display: inline-block;
     transform: rotate(270deg);
 }
 
-.parent-tree {
+.parent-tree, .inner-branch-item {
+    white-space: nowrap;
     cursor: pointer;
 }
 
