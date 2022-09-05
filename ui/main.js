@@ -331,6 +331,30 @@ class Main {
         self.truncateFilePathText();
     }
 
+    buildBranchResultHTML(branchResult, currentChildren) {
+        const self = this;
+        let branchResultHTML = '';
+        currentChildren.forEach((child) => {
+            if (child['children'].length > 0) {
+                branchResultHTML += '<li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> ' + child['text'] + '</span><ul class="nested sub-tree-view">' + self.buildBranchResultHTML(branchResult, child['children']) + '</ul></li>';
+            } else {
+                branchResultHTML += '<li class="hoverable-row unselectable">';
+                if (branchResult['is_head'] === true) {
+                    branchResultHTML += '* ';
+                }
+                branchResultHTML += child['text'];
+                if (branchResult['behind'] !== 0) {
+                    branchResultHTML += '<span class="right"><i class="bi bi-arrow-down"></i>' + branchResult['behind'] + '</span>';
+                }
+                if (branchResult['ahead'] !== 0) {
+                    branchResultHTML += '<span class="right"><i class="bi bi-arrow-up"></i>' + branchResult['ahead'] + '</span>';
+                }
+                branchResultHTML += '</li>'
+            }
+        });
+        return branchResultHTML;
+    }
+
     updateBranchInfo(branch_info_list) {
         const self = this,
             $localBranches = $('#localBranches'),
@@ -341,29 +365,18 @@ class Main {
         $remoteBranches.empty();
         $tags.empty();
 
-        branch_info_list.forEach((branchResult) => {
-            let branchResultHTML = '<li class="hoverable-row unselectable">';
-            if (branchResult['is_head'] === 'true') {
-                branchResultHTML += '* ';
-            }
-            branchResultHTML += branchResult['branch_name'];
-            if (branchResult['behind'] !== '0') {
-                branchResultHTML += '<span class="right"><i class="bi bi-arrow-down"></i>' + branchResult['behind'] + '</span>';
-            }
-            if (branchResult['ahead'] !== '0') {
-                branchResultHTML += '<span class="right"><i class="bi bi-arrow-up"></i>' + branchResult['ahead'] + '</span>';
-            }
-            branchResultHTML += '</li>';
-            const $branchResult = $(branchResultHTML);
+        branch_info_list['branches'].forEach((branchResult) => {
+            // Note that the root node's text is blank
+            const $branchResult = $(self.buildBranchResultHTML(branchResult, branch_info_list['branch_name_tree']['children']));
 
             if (branchResult['branch_type'] === 'remote') {
                 $branchResult.contextmenu(function(e) {
                     e.preventDefault();
-                    self.showContextMenu(e, branchResult['branch_name']);
+                    self.showContextMenu(e, branchResult['branch_shorthand']);
                 });
                 $branchResult.on('dblclick', function() {
                     self.addProcessCount();
-                    emit("checkout-remote", {full_branch_name: branchResult['full_branch_name'], branch_name: branchResult['branch_name']}).then();
+                    emit("checkout-remote", {full_branch_name: branchResult['full_branch_name'], branch_shorthand: branchResult['branch_shorthand']}).then();
                 });
                 $remoteBranches.append($branchResult);
             } else if (branchResult['branch_type'] === 'tag') {
@@ -371,7 +384,7 @@ class Main {
             } else {
                 $branchResult.contextmenu(function(e) {
                     e.preventDefault();
-                    self.showContextMenu(e, branchResult['branch_name']);
+                    self.showContextMenu(e, branchResult['branch_shorthand']);
                 });
                 $branchResult.on('dblclick', function() {
                     self.addProcessCount();

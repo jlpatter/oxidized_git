@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 use git2::{BranchType, Diff, ErrorCode, Oid};
 use serde::{Serialize, Deserialize, Serializer};
@@ -29,7 +29,7 @@ impl Serialize for CommitInfoValue {
 #[derive(Clone)]
 pub enum RepoInfoValue {
     SomeCommitInfo(Vec<HashMap<String, RowProperty>>),
-    SomeBranchInfo(Vec<HashMap<String, String>>),
+    SomeBranchInfo(BranchesInfo),
     SomeRemoteInfo(Vec<String>),
     SomeGeneralInfo(HashMap<String, String>),
     SomeFilesChangedInfo(FilesChangedInfo),
@@ -83,6 +83,82 @@ impl FilesChangedInfo {
             files_changed,
             unstaged_files,
             staged_files,
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct BranchInfo {
+    branch_shorthand: String,
+    full_branch_name: String,
+    is_head: bool,
+    branch_type: String,
+    ahead: usize,
+    behind: usize,
+}
+
+impl BranchInfo {
+    pub fn new(branch_shorthand: String, full_branch_name: String, is_head: bool, branch_type: String, ahead: usize, behind: usize) -> Self {
+        Self {
+            branch_shorthand,
+            full_branch_name,
+            is_head,
+            branch_type,
+            ahead,
+            behind,
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct BranchesInfo {
+    branch_name_tree: BranchNameTreeNode,
+    branches: Vec<BranchInfo>,
+}
+
+impl BranchesInfo {
+    pub fn new(branch_name_tree: BranchNameTreeNode, branches: Vec<BranchInfo>) -> Self {
+        Self {
+            branch_name_tree,
+            branches,
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct BranchNameTreeNode {
+    text: String,
+    children: Vec<BranchNameTreeNode>,
+}
+
+impl BranchNameTreeNode {
+    fn new(text: String) -> Self {
+        Self {
+            text,
+            children: vec![],
+        }
+    }
+
+    pub fn insert_split_shorthand(&mut self, split_shorthand: VecDeque<&str>) {
+        // self should be the root node in this case.
+        assert_eq!(self.text, "");
+        let mut current_tree_node = self;
+
+        for string_ref in split_shorthand {
+            let s = String::from(string_ref);
+            let child_index = current_tree_node.children.iter().position(|child| {
+                child.text == s
+            });
+            match child_index {
+                Some(i) => {
+                    current_tree_node = &mut current_tree_node.children[i];
+                },
+                None => {
+                    current_tree_node.children.push(BranchNameTreeNode::new(s));
+                    let last_index = current_tree_node.children.len() - 1;
+                    current_tree_node = &mut current_tree_node.children[last_index];
+                },
+            };
         }
     }
 }
@@ -243,55 +319,56 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
     Ok(commit_list)
 }
 
-fn get_branch_info_list(git_manager: &GitManager) -> Result<Vec<HashMap<String, String>>, Box<dyn std::error::Error>> {
+fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo, Box<dyn std::error::Error>> {
     let repo = git_manager.get_repo()?;
 
-    let mut branch_info_list: Vec<HashMap<String, String>> = vec![];
+    let mut branch_info_list: Vec<BranchInfo> = vec![];
 
+    let mut branch_name_tree = BranchNameTreeNode::new(String::from(""));
     for reference_result in repo.references()? {
         let reference = reference_result?;
-        let mut branch_info: HashMap<String, String> = HashMap::new();
 
         // Get branch name
-        let branch_shorthand = GitManager::get_utf8_string(reference.shorthand(), "Branch Name")?;
-        branch_info.insert("branch_name".to_string(), branch_shorthand.to_string());
+        let branch_shorthand = String::from(GitManager::get_utf8_string(reference.shorthand(), "Branch Name")?);
+
+        branch_name_tree.insert_split_shorthand(branch_shorthand.split("/").collect());
 
         // Get full branch name
-        let full_branch_name = GitManager::get_utf8_string(reference.name(), "Branch Name")?;
-        branch_info.insert("full_branch_name".to_string(), full_branch_name.to_string());
+        let full_branch_name = String::from(GitManager::get_utf8_string(reference.name(), "Branch Name")?);
 
         // Get if branch is head
-        branch_info.insert("is_head".to_string(), false.to_string());
+        let mut is_head = false;
         if reference.is_branch() {
-            let local_branch = repo.find_branch(branch_shorthand, BranchType::Local)?;
+            let local_branch = repo.find_branch(branch_shorthand.as_str(), BranchType::Local)?;
             if local_branch.is_head() {
-                branch_info.insert("is_head".to_string(), true.to_string());
+                is_head = true;
             }
         }
 
         // Get branch type
+        let mut branch_type = String::from("");
         if reference.is_branch() {
-            branch_info.insert("branch_type".to_string(), "local".to_string());
+            branch_type = String::from("local");
         } else if reference.is_remote() {
-            branch_info.insert("branch_type".to_string(), "remote".to_string());
+            branch_type = String::from("remote");
         } else if reference.is_tag() {
-            branch_info.insert("branch_type".to_string(), "tag".to_string());
+            branch_type = String::from("tag");
         }
 
         // Get ahead/behind counts
-        branch_info.insert("ahead".to_string(), "0".to_string());
-        branch_info.insert("behind".to_string(), "0".to_string());
+        let mut ahead = 0;
+        let mut behind = 0;
         if reference.is_branch() {
-            let local_branch = repo.find_branch(branch_shorthand, BranchType::Local)?;
+            let local_branch = repo.find_branch(branch_shorthand.as_str(), BranchType::Local)?;
             match local_branch.upstream() {
                 Ok(remote_branch) => {
                     match local_branch.get().target() {
                         Some(local_oid) => {
                             match remote_branch.get().target() {
                                 Some(remote_oid) => {
-                                    let (ahead, behind) = repo.graph_ahead_behind(local_oid, remote_oid)?;
-                                    branch_info.insert("ahead".to_string(), ahead.to_string());
-                                    branch_info.insert("behind".to_string(), behind.to_string());
+                                    let (a, b) = repo.graph_ahead_behind(local_oid, remote_oid)?;
+                                    ahead = a;
+                                    behind = b;
                                 },
                                 None => (),
                             };
@@ -307,10 +384,11 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<Vec<HashMap<String, 
             };
         }
 
+        let branch_info = BranchInfo::new(branch_shorthand, full_branch_name, is_head, branch_type, ahead, behind);
         branch_info_list.push(branch_info);
     }
 
-    Ok(branch_info_list)
+    Ok(BranchesInfo::new(branch_name_tree, branch_info_list))
 }
 
 fn get_remote_info_list(git_manager: &GitManager) -> Result<Vec<String>, Box<dyn std::error::Error>> {
