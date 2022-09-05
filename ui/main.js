@@ -168,6 +168,12 @@ class Main {
         for (let i = 0; i < toggler.length; i++) {
             toggler[i].addEventListener("click", togglerClick);
         }
+
+        const localBranchesToggle = document.getElementById("localBranchesToggle");
+        if (!localBranchesToggle.parentElement.querySelector(".nested").classList.contains("active")) {
+            localBranchesToggle.parentElement.querySelector(".nested").classList.toggle("active");
+            localBranchesToggle.querySelector(".bi-caret-down-fill").classList.toggle("rotated-caret");
+        }
     }
 
     addProcessCount() {
