@@ -376,6 +376,36 @@ impl GitManager {
         Ok(())
     }
 
+    pub fn git_delete_local_branch(&self, branch_shorthand: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+        let mut branch = repo.find_branch(branch_shorthand, BranchType::Local)?;
+        branch.delete()?;
+        Ok(())
+    }
+
+    pub fn git_delete_remote_branch(&self, branch_shorthand: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+
+        let mut push_options = PushOptions::new();
+        push_options.remote_callbacks(self.get_remote_callbacks());
+
+        let mut sb = String::from(":refs/heads/");
+        let first_slash_index = match branch_shorthand.find("/") {
+            Some(i) => i,
+            None => return Err("Remote Branch doesn't seem to have a remote in its name?".into()),
+        };
+        let mut remote = repo.find_remote(&branch_shorthand[0..first_slash_index])?;
+        sb.push_str(&branch_shorthand[(first_slash_index + 1)..]);
+        remote.push(&[sb.as_str()], Some(&mut push_options))?;
+        Ok(())
+    }
+
+    pub fn git_delete_tag(&self, tag_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+        repo.tag_delete(tag_name)?;
+        Ok(())
+    }
+
     pub fn git_fetch(&self) -> Result<(), Box<dyn std::error::Error>> {
         let repo = self.get_repo()?;
         let remote_string_array = repo.remotes()?;
