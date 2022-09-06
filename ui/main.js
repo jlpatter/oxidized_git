@@ -6,7 +6,7 @@ import hljs from "highlight.js";
 
 // This doesn't work if it isn't a separate function for some reason...
 function togglerClick() {
-    this.parentElement.querySelector(".nested").classList.toggle("active");
+    this.parentElement.querySelector(".nested").classList.toggle("active-tree");
     this.querySelector(".bi-caret-down-fill").classList.toggle("rotated-caret");
 }
 
@@ -167,12 +167,6 @@ class Main {
 
         for (let i = 0; i < toggler.length; i++) {
             toggler[i].addEventListener("click", togglerClick);
-        }
-
-        const localBranchesToggle = document.getElementById("localBranchesToggle");
-        if (!localBranchesToggle.parentElement.querySelector(".nested").classList.contains("active")) {
-            localBranchesToggle.parentElement.querySelector(".nested").classList.toggle("active");
-            localBranchesToggle.querySelector(".bi-caret-down-fill").classList.toggle("rotated-caret");
         }
     }
 
@@ -337,12 +331,13 @@ class Main {
         self.truncateFilePathText();
     }
 
-    buildBranchResultHTML(currentChildren, $ul) {
+    buildBranchResultHTML(currentChildren, $ul, parentTxt) {
         const self = this;
         currentChildren.forEach((child) => {
             if (child['children'].length > 0) {
-                const $nestedList = $('<ul class="nested sub-tree-view"></ul>');
-                self.buildBranchResultHTML(child['children'], $nestedList);
+                const newParentTxt = parentTxt + '-' + child['text'];
+                const $nestedList = $('<ul id="' + newParentTxt + '" class="nested sub-tree-view"></ul>');
+                self.buildBranchResultHTML(child['children'], $nestedList, newParentTxt);
                 const $newListItem = $('<li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> ' + child['text'] + '</span></li>');
                 $newListItem.append($nestedList);
                 $ul.append($newListItem);
@@ -389,15 +384,26 @@ class Main {
             $remoteBranches = $('#remoteBranches'),
             $tags = $('#tags');
 
+        let activeTreeIds = [];
+        $('.active-tree').each(function() {
+            activeTreeIds.push($(this).attr('id'));
+        });
+
         $localBranches.empty();
         $remoteBranches.empty();
         $tags.empty();
 
         // The root node is empty, so get its children.
-        self.buildBranchResultHTML(branch_info_list['local_branch_info_tree']['children'], $localBranches);
-        self.buildBranchResultHTML(branch_info_list['remote_branch_info_tree']['children'], $remoteBranches);
-        self.buildBranchResultHTML(branch_info_list['tag_branch_info_tree']['children'], $tags);
+        self.buildBranchResultHTML(branch_info_list['local_branch_info_tree']['children'], $localBranches, "localBranches");
+        self.buildBranchResultHTML(branch_info_list['remote_branch_info_tree']['children'], $remoteBranches, "remoteBranches");
+        self.buildBranchResultHTML(branch_info_list['tag_branch_info_tree']['children'], $tags, "tags");
         self.setupTreeViews();
+
+        const activeTreeIdsSelector = "#" + activeTreeIds.join(",#");
+        $(activeTreeIdsSelector).each(function() {
+            $(this).addClass("active-tree");
+            $(this).parent().children('.parent-tree').children('.bi-caret-down-fill').addClass('rotated-caret');
+        });
     }
 
     updateRemoteInfo(remote_info_list) {
