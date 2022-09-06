@@ -364,25 +364,20 @@ class Main {
                 }
 
                 if (child['branch_info']['branch_type'] === 'remote') {
-                    $innerListItem.contextmenu(function(e) {
-                        e.preventDefault();
-                        self.showContextMenu(e, child['branch_info']['branch_shorthand']);
-                    });
                     $innerListItem.on('dblclick', function() {
                         self.addProcessCount();
                         emit("checkout-remote", {full_branch_name: child['branch_info']['full_branch_name'], branch_shorthand: child['branch_info']['branch_shorthand']}).then();
                     });
-                } else if (child['branch_info']['branch_type'] === 'tag') {
-                } else {
-                    $innerListItem.contextmenu(function(e) {
-                        e.preventDefault();
-                        self.showContextMenu(e, child['branch_info']['branch_shorthand']);
-                    });
+                } else if (child['branch_info']['branch_type'] === 'local') {
                     $innerListItem.on('dblclick', function() {
                         self.addProcessCount();
                         emit("checkout", child['branch_info']['full_branch_name']).then();
                     });
                 }
+                $innerListItem.contextmenu(function(e) {
+                    e.preventDefault();
+                    self.showContextMenu(e, child['branch_info']['branch_shorthand'], child['branch_info']['branch_type']);
+                });
                 $ul.append($innerListItem);
             }
         });
@@ -422,20 +417,35 @@ class Main {
         }
     }
 
-    showContextMenu(event, branchName) {
+    showContextMenu(event, branchShorthand, branchType) {
         const self = this,
             $contextMenu = $('#contextMenu');
         $contextMenu.empty();
         $contextMenu.css('left', event.pageX + 'px');
         $contextMenu.css('top', event.pageY + 'px');
 
-        // TODO: Add more branch functionality here!
-        const $exampleBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="bi bi-dash-circle"></i> Do Nothing</button>');
-        $exampleBtn.click(function() {
-            // self.addProcessCount();
-            // TODO: Add functionality to the context menu button here!
-        });
-        $contextMenu.append($exampleBtn);
+        const $deleteBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="bi bi-dash-circle"></i> Delete</button>');
+        if (branchType === 'local') {
+            $deleteBtn.click(() => {
+                self.addProcessCount();
+                emit("delete-local-branch", branchShorthand).then();
+            });
+        } else if (branchType === 'remote') {
+            $deleteBtn.click(() => {
+                self.addProcessCount();
+                emit("delete-remote-branch", branchShorthand).then();
+            });
+        } else if (branchType === 'tag') {
+            $deleteBtn.click(() => {
+                self.addProcessCount();
+                emit("delete-tag", branchShorthand).then();
+            });
+        } else {
+            $deleteBtn.click(() => {
+                alert("Not implemented, sorry!");
+            });
+        }
+        $contextMenu.append($deleteBtn);
 
         $contextMenu.show();
     }
