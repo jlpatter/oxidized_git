@@ -179,8 +179,8 @@ impl GitManager {
                     continue;
                 },
             };
-            let local_remote_full_name = GitManager::get_utf8_string(local_upstream.get().name(), "Branch Name")?;
-            if local_remote_full_name == remote_branch_full_name {
+            let local_upstream_full_name = GitManager::get_utf8_string(local_upstream.get().name(), "Branch Name")?;
+            if local_upstream_full_name == remote_branch_full_name {
                 return self.git_checkout(local_b.get());
             }
         }
@@ -385,6 +385,25 @@ impl GitManager {
 
     pub fn git_delete_remote_branch(&self, branch_shorthand: &str) -> Result<(), Box<dyn std::error::Error>> {
         let repo = self.get_repo()?;
+
+        let remote_branch = repo.find_branch(branch_shorthand, BranchType::Remote)?;
+        let remote_branch_full_name = GitManager::get_utf8_string(remote_branch.get().name(), "Branch Name")?;
+
+        // Look for a local branch that already exists for the specified remote branch. If one exists,
+        // unset its upstream.
+        for local_b_result in repo.branches(Some(BranchType::Local))? {
+            let (mut local_b, _) = local_b_result?;
+            let local_upstream = match local_b.upstream() {
+                Ok(b) => b,
+                Err(_) => {
+                    continue;
+                },
+            };
+            let local_upstream_full_name = GitManager::get_utf8_string(local_upstream.get().name(), "Branch Name")?;
+            if local_upstream_full_name == remote_branch_full_name {
+                local_b.set_upstream(None)?;
+            }
+        }
 
         let mut push_options = PushOptions::new();
         push_options.remote_callbacks(self.get_remote_callbacks());
