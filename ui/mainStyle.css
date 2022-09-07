@@ -4,6 +4,11 @@ body {
     overflow: auto;
 }
 
+.nav-tabs .nav-link.active {
+    color: white;
+    background-color: black;
+}
+
 .display-flex-column {
     display: flex;
     flex-direction: column;
