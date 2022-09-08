@@ -9,6 +9,11 @@ body {
     background-color: black;
 }
 
+.bi-arrow-90deg-down {
+    display: inline-block;
+    transform: rotate(180deg);
+}
+
 .display-flex-column {
     display: flex;
     flex-direction: column;

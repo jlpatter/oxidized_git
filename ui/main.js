@@ -160,6 +160,18 @@ class Main {
             }).then();
             $('#pushModal').modal('hide');
         });
+
+        $('#openBranchModalBtn').click(() => {
+            $('#branchModal').modal('show');
+        });
+
+        $('#branchBtn').click(() => {
+            self.addProcessCount();
+            const $branchTxt = $('#branchTxt');
+            emit("branch", {branch_name: $branchTxt.val(), checkout_on_create: $('#branchCheckoutCheckBox').is(':checked').toString()}).then();
+            $branchTxt.val("");
+            $('#branchModal').modal('hide');
+        });
     }
 
     setupTreeViews() {

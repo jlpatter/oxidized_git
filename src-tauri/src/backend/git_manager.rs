@@ -561,6 +561,33 @@ impl GitManager {
         Ok(())
     }
 
+    pub fn git_branch(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+
+        let branch_options: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let branch_name = match branch_options.get("branch_name") {
+            Some(s) => s,
+            None => return Err("branch_name not included in payload from front-end.".into()),
+        };
+        let checkout_on_create = match branch_options.get("checkout_on_create") {
+            Some(s) => s == "true",
+            None => return Err("checkout_on_create not included in payload from front-end.".into()),
+        };
+
+        let target_commit = match repo.head()?.target() {
+            Some(oid) => repo.find_commit(oid)?,
+            None => return Err("Current head not pointing at commit, cannot create branch.".into()),
+        };
+
+        let new_branch = repo.branch(branch_name, &target_commit, false)?;
+
+        if checkout_on_create {
+            self.git_checkout(new_branch.get())?;
+        }
+
+        Ok(())
+    }
+
     #[allow(unused_unsafe)]
     fn get_remote_callbacks(&self) -> RemoteCallbacks {
         let mut callbacks = RemoteCallbacks::new();
