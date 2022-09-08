@@ -107,8 +107,8 @@ class Main {
         $('#savePreferencesBtn').click(() => {
             self.addProcessCount();
             emit("save-preferences", {
-                limitCommits: $('#limitCommitsCheckBox').is(':checked').toString(),
-                commitCount: $('#commitCountNumber').val(),
+                limit_commits: $('#limitCommitsCheckBox').is(':checked'),
+                commit_count: parseInt($('#commitCountNumber').val()),
             }).then();
             $('#preferencesModal').modal('hide');
         });

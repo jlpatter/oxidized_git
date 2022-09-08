@@ -1,9 +1,7 @@
-use std::collections::HashMap;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::PathBuf;
 use serde::{Serialize, Deserialize};
-use indoc::{formatdoc, indoc};
 use directories::ProjectDirs;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -13,6 +11,13 @@ pub struct Config {
 }
 
 impl Config {
+    pub fn new_default() -> Self {
+        Self {
+            limit_commits: true,
+            commit_count: 2000,
+        }
+    }
+
     pub fn get_limit_commits(&self) -> bool {
         self.limit_commits
     }
@@ -30,44 +35,21 @@ pub fn save_default_preferences() -> Result<(), Box<dyn std::error::Error>> {
     let config_path = pd.config_dir();
     config_path.to_path_buf().push(PathBuf::from("config.json"));
     if !config_path.exists() {
-        let mut file = File::create(config_path)?;
-        // TODO: Maybe make a config struct if more options are added in the future?
-        let config_str = indoc! {"
-            {
-                \"limit_commits\": true,
-                \"commit_count\": 2000
-            }
-        "};
-        file.write_all(config_str.as_bytes())?;
+        let config = Config::new_default();
+        serde_json::to_writer(&File::create(config_path)?, &config)?;
     }
     Ok(())
 }
 
 pub fn save_preferences(payload: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let preferences_json: HashMap<String, String> = serde_json::from_str(payload)?;
-    let limit_commits = match preferences_json.get("limitCommits") {
-        Some(b) => b,
-        None => return Err("limitCommits not found in payload from front-end".into()),
-    };
-    let commit_count = match preferences_json.get("commitCount") {
-        Some(c) => c,
-        None => return Err("commitCount not found in payload from front-end".into()),
-    };
+    let config: Config = serde_json::from_str(payload)?;
     let pd = match ProjectDirs::from("com", "Oxidized Git", "Oxidized Git") {
         Some(pd) => pd,
         None => return Err("Failed to determine HOME directory on your OS".into()),
     };
     let config_path = pd.config_dir();
     config_path.to_path_buf().push(PathBuf::from("config.json"));
-    let mut file = File::create(config_path)?;
-    // TODO: Maybe make a config struct if more options are added in the future?
-    let config_str = formatdoc! {"
-        {{
-            \"limit_commits\": {limit_commits},
-            \"commit_count\": {commit_count}
-        }}
-    "};
-    file.write_all(config_str.as_bytes())?;
+    serde_json::to_writer(&File::create(config_path)?, &config)?;
     Ok(())
 }
 
