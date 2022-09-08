@@ -215,19 +215,15 @@ fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String,
         if reference.is_tag() {
             let ref_name = GitManager::get_utf8_string(reference.shorthand(), "Tag Name")?;
 
-            match reference.target() {
-                Some(oid) => {
-                    match oid_refs.get_mut(&*oid.to_string()) {
-                        Some(oid_ref_vec) => {
-                            oid_ref_vec.push((ref_name.to_string(), "tag".to_string()));
-                        }
-                        None => {
-                            oid_refs.insert(oid.to_string(), vec![(ref_name.to_string(), "tag".to_string())]);
-                        },
-                    };
+            let oid = reference.peel_to_commit()?.id();
+            match oid_refs.get_mut(&*oid.to_string()) {
+                Some(oid_ref_vec) => {
+                    oid_ref_vec.push((ref_name.to_string(), "tag".to_string()));
+                }
+                None => {
+                    oid_refs.insert(oid.to_string(), vec![(ref_name.to_string(), "tag".to_string())]);
                 },
-                None => (),
-            }
+            };
         }
     }
     Ok(oid_refs)
