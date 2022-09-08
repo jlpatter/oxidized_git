@@ -1,5 +1,4 @@
-import jQuery from "jquery";
-$ = window.$ = window.jQuery = jQuery;
+import "./import_jquery";
 import {emit, listen} from "@tauri-apps/api/event";
 import {SVGManager} from "./svg_manager";
 import hljs from "highlight.js";

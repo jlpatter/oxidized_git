@@ -39,6 +39,8 @@ body {
 }
 
 .flex-none-1-6-width {
+    border-color: white;
+    border-right: 1px solid;
     flex: none;
     width: 16.66%;
 }
