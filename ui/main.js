@@ -41,6 +41,7 @@ class Main {
 
         $(window).resize(() => {
             self.truncateFilePathText();
+            self.svgManager.setVisibleCommits();
         });
 
         listen("start-process", ev => {
