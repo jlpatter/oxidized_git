@@ -2,6 +2,7 @@ import "./import_jquery";
 import {emit, listen} from "@tauri-apps/api/event";
 import {SVGManager} from "./svg_manager";
 import hljs from "highlight.js";
+import Resizable from "resizable";
 
 // This doesn't work if it isn't a separate function for some reason...
 function togglerClick() {
@@ -24,6 +25,15 @@ class Main {
         $('#mainSpinner').hide();
 
         self.setupTreeViews();
+
+        // Setup resizable columns.
+        const el = document.querySelector(".resizable-column");
+        new Resizable(el, {
+            within: 'parent',
+            handles: 'e',
+            threshold: 10,
+            draggable: false,
+        });
 
         $(window).click(() => {
             $('#contextMenu').hide();

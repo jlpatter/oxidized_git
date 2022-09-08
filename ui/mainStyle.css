@@ -38,9 +38,14 @@ body {
     min-width: 0;
 }
 
-.flex-none-1-6-width {
+.resizable-column {
     border-color: white;
     border-right: 1px solid;
+    position: relative;
+    width: 16.66%; /* This is the initial width */
+}
+
+.flex-none-1-6-width {
     flex: none;
     width: 16.66%;
 }

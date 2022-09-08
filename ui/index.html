@@ -33,18 +33,20 @@
         </div>
 
         <div class="flex-auto-in-column display-flex-row">
-            <div class="flex-none-1-6-width overflow-auto little-padding-left little-padding-top little-padding-bottom">
-                <ul id="branchesTreeView" class="tree-view">
-                    <li><span class="parent-tree"><i class="bi bi-caret-down-fill rotated-caret"></i> Local Branches</span>
-                        <ul id="localBranches" class="nested sub-tree-view active-tree"></ul>
-                    </li>
-                    <li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> Remote Branches</span>
-                        <ul id="remoteBranches" class="nested sub-tree-view"></ul>
-                    </li>
-                    <li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> Tags</span>
-                        <ul id="tags" class="nested sub-tree-view"></ul>
-                    </li>
-                </ul>
+            <div class="resizable-column full-height">
+                <div class="overflow-auto full-height">
+                    <ul id="branchesTreeView" class="tree-view">
+                        <li><span class="parent-tree"><i class="bi bi-caret-down-fill rotated-caret"></i> Local Branches</span>
+                            <ul id="localBranches" class="nested sub-tree-view active-tree"></ul>
+                        </li>
+                        <li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> Remote Branches</span>
+                            <ul id="remoteBranches" class="nested sub-tree-view"></ul>
+                        </li>
+                        <li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> Tags</span>
+                            <ul id="tags" class="nested sub-tree-view"></ul>
+                        </li>
+                    </ul>
+                </div>
             </div>
 
             <div class="flex-auto-in-row display-flex-column">

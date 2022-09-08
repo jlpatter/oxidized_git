@@ -11,7 +11,9 @@
     "bootstrap": "~5.2.0",
     "bootstrap-icons": "~1.9.1",
     "highlight.js": "~11.6.0",
-    "jquery": "~3.6.0"
+    "jquery": "~3.6.0",
+    "resizable": "~1.2.1",
+    "events": "~3.3.0"
   },
   "devDependencies": {
     "@types/node": "~18.7.14",
