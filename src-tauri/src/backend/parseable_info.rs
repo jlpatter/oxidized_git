@@ -330,6 +330,15 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
 fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo, Box<dyn std::error::Error>> {
     let repo = git_manager.get_repo()?;
 
+    // Get all remote heads to be excluded from branches info
+    let remotes = repo.remotes()?;
+    let mut remote_heads: Vec<String> = vec![];
+    for remote in remotes.iter() {
+        let mut remote_head_name = String::from(GitManager::get_utf8_string(remote, "Remote Name")?);
+        remote_head_name.push_str("/HEAD");
+        remote_heads.push(remote_head_name);
+    }
+
     let mut local_branch_info_tree = BranchInfoTreeNode::new(String::from(""), None);
     let mut remote_branch_info_tree = BranchInfoTreeNode::new(String::from(""), None);
     let mut tag_branch_info_tree = BranchInfoTreeNode::new(String::from(""), None);
@@ -338,6 +347,14 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo, Box<dy
 
         // Get branch name
         let branch_shorthand = String::from(GitManager::get_utf8_string(reference.shorthand(), "Branch Name")?);
+
+        // If this is the remote head, don't add it to the branches info
+        let is_remote_head = remote_heads.iter().any(|head_name| {
+            branch_shorthand == *head_name
+        });
+        if is_remote_head {
+            continue;
+        }
 
         // Get full branch name
         let full_branch_name = String::from(GitManager::get_utf8_string(reference.name(), "Branch Name")?);
