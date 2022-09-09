@@ -27,12 +27,24 @@ class Main {
         self.setupTreeViews();
 
         // Setup resizable columns.
-        const el = document.querySelector(".resizable-column");
-        new Resizable(el, {
-            within: 'parent',
-            handles: 'e',
-            threshold: 10,
-            draggable: false,
+        const resizableColumns = document.querySelectorAll(".resizable-column");
+        resizableColumns.forEach((resizableColumn) => {
+            new Resizable(resizableColumn, {
+                within: 'parent',
+                handles: 'e',
+                threshold: 10,
+                draggable: false,
+            });
+        });
+
+        const resizableRows = document.querySelectorAll(".resizable-row");
+        resizableRows.forEach((resizableRow) => {
+            new Resizable(resizableRow, {
+                within: 'parent',
+                handles: 's',
+                threshold: 10,
+                draggable: false,
+            });
         });
 
         $(window).click(() => {
