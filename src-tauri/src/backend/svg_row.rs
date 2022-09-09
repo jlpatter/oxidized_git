@@ -85,6 +85,9 @@ pub struct SVGRow {
     branches_and_tags: Vec<(String, String)>,
     parent_oids: Vec<String>,
     child_oids: Vec<String>,
+    has_parent_child_svg_rows_set: bool,
+    parent_svg_rows: Vec<Rc<RefCell<SVGRow>>>,
+    child_svg_rows: Vec<Rc<RefCell<SVGRow>>>,
     x: isize,
     y: isize,
 }
@@ -97,31 +100,36 @@ impl SVGRow {
             branches_and_tags,
             parent_oids,
             child_oids,
+            has_parent_child_svg_rows_set: false,
+            parent_svg_rows: vec![],
+            child_svg_rows: vec![],
             x,
             y,
         }
     }
 
-    pub fn get_parent_or_child_svg_row_values(&self, all_svg_rows: &HashMap<String, Rc<RefCell<SVGRow>>>, sha_type: String) -> Result<Vec<Rc<RefCell<SVGRow>>>, Box<dyn std::error::Error>> {
-        let mut svg_row_values: Vec<Rc<RefCell<SVGRow>>> = vec![];
-        let shas;
-        if sha_type == "parents" {
-            shas = &self.parent_oids;
-        } else if sha_type == "children" {
-            shas = &self.child_oids;
-        } else {
-            return Err("Please use parents or children for sha_type.".into());
-        }
-        for sha in shas {
+    pub fn set_parent_and_child_svg_row_values(&mut self, all_svg_rows: &HashMap<String, Rc<RefCell<SVGRow>>>) {
+        for sha in &self.parent_oids {
             match all_svg_rows.get(&*sha) {
                 Some(svg_row_rc) => {
-                    svg_row_values.push(svg_row_rc.clone());
+                    self.parent_svg_rows.push(svg_row_rc.clone());
                 },
-                // If a parent or child is not present, ignore it. It may be outside the revwalk range.
+                // If a parent is not present, ignore it. It may be outside the revwalk range.
                 None => (),
             };
         }
-        Ok(svg_row_values)
+
+        for sha in &self.child_oids {
+            match all_svg_rows.get(&*sha) {
+                Some(svg_row_rc) => {
+                    self.child_svg_rows.push(svg_row_rc.clone());
+                },
+                // If a child is not present, ignore it. It may be outside the revwalk range.
+                None => (),
+            };
+        }
+
+        self.has_parent_child_svg_rows_set = true;
     }
 
     fn get_color_string(x: isize) -> String {
@@ -137,53 +145,97 @@ impl SVGRow {
         }
     }
 
-    pub fn get_draw_properties(&mut self, main_table: &mut HashMap<isize, HashMap<isize, bool>>, parent_svg_rows: Vec<Rc<RefCell<SVGRow>>>, child_svg_rows: Vec<Rc<RefCell<SVGRow>>>) -> HashMap<String, RowProperty> {
-        // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
-        match main_table.get_mut(&self.y) {
-            Some(hm) => {
-                match hm.get(&self.x) {
-                    Some(is_occupied) => {
-                        if *is_occupied == true {
-                            let mut found_empty = false;
-                            while !found_empty {
-                                self.x += 1;
-                                if !hm.contains_key(&self.x) {
-                                    found_empty = true;
-                                    hm.insert(self.x, true);
+    pub fn get_occupied_table(svg_rows: &mut Vec<Rc<RefCell<SVGRow>>>) -> Result<HashMap<isize, HashMap<isize, bool>>, Box<dyn std::error::Error>> {
+        let mut main_table: HashMap<isize, HashMap<isize, bool>> = HashMap::new();
+
+        for svg_row_rc in svg_rows {
+            let mut svg_row = svg_row_rc.borrow_mut();
+
+            if !svg_row.has_parent_child_svg_rows_set {
+                return Err("SVGRow object didn't have parents or children set. Make sure 'set_parent_and_child_svg_row_values' is run before 'get_occupied_table'!".into());
+            }
+
+            // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
+            match main_table.get_mut(&svg_row.y) {
+                Some(hm) => {
+                    match hm.get(&svg_row.x) {
+                        Some(is_occupied) => {
+                            if *is_occupied == true {
+                                let mut found_empty = false;
+                                while !found_empty {
+                                    svg_row.x += 1;
+                                    if !hm.contains_key(&svg_row.x) {
+                                        found_empty = true;
+                                        hm.insert(svg_row.x, true);
+                                    }
                                 }
                             }
-                        }
-                    },
-                    None => {
-                        hm.insert(self.x, true);
-                    },
-                };
-            },
-            None => {
-                let mut temp_hm: HashMap<isize, bool> = HashMap::new();
-                temp_hm.insert(self.x, true);
-                main_table.insert(self.y, temp_hm);
-            },
-        };
+                        },
+                        None => {
+                            hm.insert(svg_row.x, true);
+                        },
+                    };
+                },
+                None => {
+                    let mut temp_hm: HashMap<isize, bool> = HashMap::new();
+                    temp_hm.insert(svg_row.x, true);
+                    main_table.insert(svg_row.y, temp_hm);
+                },
+            };
 
-        // Set the space of the line from the current node to its parents as occupied.
-        for parent_svg_row in parent_svg_rows {
-            for i in (self.y + 1)..parent_svg_row.borrow().y {
-                match main_table.get_mut(&i) {
-                    Some(hm) => {
-                        if !hm.contains_key(&self.x) {
-                            hm.insert(self.x, true);
-                        }
-                    },
-                    None => {
-                        let mut temp_hm: HashMap<isize, bool> = HashMap::new();
-                        temp_hm.insert(self.x, true);
-                        main_table.insert(i, temp_hm);
-                    },
-                };
+            // Set the space of the line from the current node to its parents as occupied.
+            for parent_svg_row_rc in &svg_row.parent_svg_rows {
+                let parent_svg_row = parent_svg_row_rc.borrow();
+                for i in (svg_row.y + 1)..parent_svg_row.y {
+                    match main_table.get_mut(&i) {
+                        Some(hm) => {
+                            if !hm.contains_key(&svg_row.x) {
+                                hm.insert(svg_row.x, true);
+                            }
+                        },
+                        None => {
+                            let mut temp_hm: HashMap<isize, bool> = HashMap::new();
+                            temp_hm.insert(svg_row.x, true);
+                            main_table.insert(i, temp_hm);
+                        },
+                    };
+                }
+            }
+
+            // Set curved lines to occupy their space (note this has to be done with children since their x value is already set unlike the parents)
+            for child_svg_row_rc in &svg_row.child_svg_rows {
+                let child_svg_row = child_svg_row_rc.borrow();
+                if svg_row.x < child_svg_row.x {
+                    match main_table.get_mut(&svg_row.y) {
+                        Some(hm) => {
+                            if !hm.contains_key(&child_svg_row.x) {
+                                hm.insert(child_svg_row.x, true);
+                            }
+                        },
+                        None => return Err("A 'y' position in the graph with a node wasn't marked as occupied. This error should never happen in theory.".into()),
+                    };
+                }
+                else if svg_row.x > child_svg_row.x {
+                    match main_table.get_mut(&child_svg_row.y) {
+                        Some(hm) => {
+                            if !hm.contains_key(&svg_row.x) {
+                                hm.insert(svg_row.x, true);
+                            }
+                        },
+                        None => {
+                            let mut temp_hm: HashMap<isize, bool> = HashMap::new();
+                            temp_hm.insert(svg_row.x, true);
+                            main_table.insert(child_svg_row.y, temp_hm);
+                        },
+                    }
+                }
             }
         }
 
+        Ok(main_table)
+    }
+
+    pub fn get_draw_properties(&mut self, main_table: &HashMap<isize, HashMap<isize, bool>>) -> HashMap<String, RowProperty> {
         let mut row_properties: HashMap<String, RowProperty> = HashMap::new();
         let mut draw_properties: HashMap<String, DrawProperty> = HashMap::new();
 
@@ -194,20 +246,20 @@ impl SVGRow {
         row_properties.insert(String::from("pixel_y"), RowProperty::SomeInt(pixel_y));
         let color = SVGRow::get_color_string(self.x);
         let mut child_lines: Vec<HashMap<String, SVGProperty>> = vec![];
-        // Draw the lines from the current node to its children.
-        for child_svg_row in child_svg_rows {
-            let child_svg_row_b = child_svg_row.borrow();
-            let child_pixel_x = child_svg_row_b.x * X_SPACING + X_OFFSET;
-            let child_pixel_y = child_svg_row_b.y * Y_SPACING + Y_OFFSET;
+        // Draw the lines from the current node's children to itself.
+        for child_svg_row_rc in &self.child_svg_rows {
+            let child_svg_row = child_svg_row_rc.borrow();
+            let child_pixel_x = child_svg_row.x * X_SPACING + X_OFFSET;
+            let child_pixel_y = child_svg_row.y * Y_SPACING + Y_OFFSET;
             let before_y = self.y - 1;
             let before_pixel_y = before_y * Y_SPACING + Y_OFFSET;
             if before_pixel_y != child_pixel_y {
-                for i in child_svg_row_b.y..before_y {
+                for i in child_svg_row.y..before_y {
                     let top_pixel_y = i * Y_SPACING + Y_OFFSET;
                     let bottom_pixel_y = (i + 1) * Y_SPACING + Y_OFFSET;
 
                     let mut style_str = String::from("stroke:");
-                    style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
+                    style_str.push_str(&*SVGRow::get_color_string(child_svg_row.x));
                     style_str.push_str(";stroke-width:4");
                     let line_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
                         (String::from("x1"), SVGPropertyAttrs::SomeInt(child_pixel_x)),
@@ -225,9 +277,9 @@ impl SVGRow {
             }
             let mut style_str = String::from("stroke:");
             let row_y;
-            if child_svg_row_b.x >= self.x {
+            if child_svg_row.x >= self.x {
                 // Sets the color for "branching" lines and straight lines
-                style_str.push_str(&*SVGRow::get_color_string(child_svg_row_b.x));
+                style_str.push_str(&*SVGRow::get_color_string(child_svg_row.x));
                 row_y = self.y;
             } else {
                 // Sets the color for "merging" lines

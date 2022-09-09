@@ -553,17 +553,15 @@ pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<Option<HashMa
         svg_rows.push(svg_row_rc);
     }
 
-    let mut svg_row_draw_properties: Vec<HashMap<String, RowProperty>> = vec![];
+    for svg_row_rc in &svg_rows {
+        svg_row_rc.borrow_mut().set_parent_and_child_svg_row_values(&svg_row_hm);
+    }
 
-    let mut main_table: HashMap<isize, HashMap<isize, bool>> = HashMap::new();
+    let main_table = SVGRow::get_occupied_table(&mut svg_rows)?;
+    let mut svg_row_draw_properties: Vec<HashMap<String, RowProperty>> = vec![];
     for svg_row_rc in svg_rows {
-        let svg_row_rc_c = svg_row_rc.clone();
-        let parent_svg_rows = svg_row_rc_c.borrow().get_parent_or_child_svg_row_values(&svg_row_hm, String::from("parents"))?;
-        let child_svg_rows = svg_row_rc_c.borrow().get_parent_or_child_svg_row_values(&svg_row_hm, String::from("children"))?;
         svg_row_draw_properties.push(svg_row_rc.borrow_mut().get_draw_properties(
-            &mut main_table,
-            parent_svg_rows,
-            child_svg_rows,
+            &main_table,
         ));
     }
 
