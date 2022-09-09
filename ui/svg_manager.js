@@ -16,8 +16,8 @@ export class SVGManager {
         this.commitTableSVG = document.getElementById('commitTableSVG');
         this.repoInfo = [];
         this.rows = [];
-        this.commitsTop = -1;
-        this.commitsBottom = -1;
+        this.commitsTop = -99;
+        this.commitsBottom = -99;
         this.oldRenderingAreaTop = 0;
         this.setScrollEvent();
     }
@@ -110,6 +110,12 @@ export class SVGManager {
                 currentLocation = 'below';
             }
             maxWidth = Math.max(maxWidth, width);
+        }
+
+        // If commitsBottom wasn't set then the graph doesn't reach the bottom of the screen,
+        // so set commitsBottom to the last commit
+        if (self.commitsBottom === -99) {
+            self.commitsBottom = self.rows.length - 1;
         }
 
         self.renderVisibleCommits();
