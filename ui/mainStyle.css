@@ -9,6 +9,10 @@ body {
     background-color: black;
 }
 
+.tab-btn-xsm {
+    padding: 2px 4px;
+}
+
 .display-flex-column {
     display: flex;
     flex-direction: column;

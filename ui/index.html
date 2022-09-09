@@ -52,19 +52,42 @@
             <div class="flex-auto-in-row display-flex-column">
                 <ul class="nav nav-tabs">
                     <li class="nav-item">
-                        <button class="nav-link active" id="commits-tab" data-bs-toggle="tab" data-bs-target="#commits" type="button" role="tab" aria-controls="commits" aria-selected="true">Commit Tree</button>
+                        <button class="nav-link tab-btn-xsm active" id="commits-tab" data-bs-toggle="tab" data-bs-target="#commits" type="button" role="tab" aria-controls="commits" aria-selected="true">Commit Tree</button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" id="changes-tab" data-bs-toggle="tab" data-bs-target="#changes" type="button" role="tab" aria-controls="changes" aria-selected="true">Changes</button>
+                        <button class="nav-link tab-btn-xsm" id="changes-tab" data-bs-toggle="tab" data-bs-target="#changes" type="button" role="tab" aria-controls="changes" aria-selected="true">Changes</button>
                     </li>
                 </ul>
 
                 <div class="tab-content flex-auto-in-column">
                     <div class="tab-pane fade show active full-height" id="commits" role="tabpanel" aria-labelledby="commits-tab">
-                        <div class="full-height display-flex-column">
-                            <div id="commitColumn" class="flex-auto-in-column overflow-auto little-padding-top little-padding-left">
-                                <h4>Commits</h4>
-                                <svg id="commitTableSVG" width="500" height="500"></svg>
+                        <div class="overflow-hidden full-height display-flex-column">
+                            <div class="resizable-row half-height full-width">
+                                <div class="full-height display-flex-column">
+                                    <h4>Commits</h4>
+                                    <div id="commitColumn" class="flex-auto-in-column overflow-auto">
+                                        <svg id="commitTableSVG" width="0" height="0"></svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex-auto-in-column">
+                                <ul class="nav nav-tabs">
+                                    <li class="nav-item">
+                                        <button class="nav-link tab-btn-xsm active" id="commit-info-tab" data-bs-toggle="tab" data-bs-target="#commit-info" type="button" role="tab" aria-controls="commit-info" aria-selected="true">Info</button>
+                                    </li>
+                                    <li class="nav-item">
+                                        <button class="nav-link tab-btn-xsm" id="commit-diff-tab" data-bs-toggle="tab" data-bs-target="#commit-diff" type="button" role="tab" aria-controls="commit-diff" aria-selected="true">File Changes</button>
+                                    </li>
+                                </ul>
+
+                                <div class="tab-content">
+                                    <div class="tab-pane fade show active" id="commit-info" role="tabpanel" aria-labelledby="commit-info-tab">
+                                        <h4>BLURG 1</h4>
+                                    </div>
+                                    <div class="tab-pane fade" id="commit-diff" role="tabpanel" aria-labelledby="commit-diff-tab">
+                                        <h4>BLURG 2</h4>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
