@@ -187,6 +187,7 @@ class Main {
         });
 
         $('#openBranchModalBtn').click(() => {
+            $('#branchCheckoutCheckBox').prop('checked', true);
             $('#branchModal').modal('show');
         });
 
