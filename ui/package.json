@@ -17,6 +17,6 @@
   },
   "devDependencies": {
     "@types/node": "~18.7.14",
-    "vite": "~3.0.9"
+    "vite": "~3.1.0"
   }
 }
