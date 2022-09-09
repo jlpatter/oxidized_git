@@ -29,11 +29,14 @@ class Main {
         // Setup resizable columns.
         const resizableColumns = document.querySelectorAll(".resizable-column");
         resizableColumns.forEach((resizableColumn) => {
-            new Resizable(resizableColumn, {
+            const r = new Resizable(resizableColumn, {
                 within: 'parent',
                 handles: 'e',
                 threshold: 10,
                 draggable: false,
+            });
+            r.on('resize', function() {
+                self.truncateFilePathText();
             });
         });
 
@@ -301,6 +304,11 @@ class Main {
 
                 while (txt.clientWidth >= shrunkenTxtContainer.clientWidth) {
                     txt.textContent = "..." + txt.textContent.substring(4);
+
+                    // Stop infinite loop from happening if all the text gets filtered out.
+                    if (txt.textContent === "...") {
+                        break;
+                    }
                 }
             }
         }
