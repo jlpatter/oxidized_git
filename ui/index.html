@@ -8,7 +8,7 @@
 
     <script type="module">
         import "bootstrap/dist/css/bootstrap.min.css";
-        import "bootstrap-icons/font/bootstrap-icons.css";
+        import "@fortawesome/fontawesome-free/js/all.min.js";
         import "highlight.js/styles/agate.css";
         import "./mainStyle.css";
         import "./treeView.css";
@@ -20,10 +20,10 @@
     <div class="display-flex-column full-height">
         <div class="display-flex-row">
             <div>
-                <button id="fetchBtn" type="button" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-down"></i>Fetch</button>
-                <button id="pullBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-down"></i>Pull</button>
-                <button id="openPushModalBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-up"></i>Push</button>
-                <button id="openBranchModalBtn" type="button" class="btn btn-primary btn-sm"><i class="bi bi-arrow-90deg-down"></i> Branch</button>
+                <button id="fetchBtn" type="button" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-down"></i> Fetch</button>
+                <button id="pullBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-arrow-down"></i> Pull</button>
+                <button id="openPushModalBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-arrow-up"></i> Push</button>
+                <button id="openBranchModalBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-code-branch"></i> Branch</button>
             </div>
             <div id="spinnerContainer">
                 <div id="mainSpinner" class="spinner-border text-light" role="status">
@@ -36,13 +36,13 @@
             <div class="resizable-column full-height">
                 <div class="overflow-auto full-height">
                     <ul id="branchesTreeView" class="tree-view">
-                        <li><span class="parent-tree"><i class="bi bi-caret-down-fill rotated-caret"></i> Local Branches</span>
+                        <li><span class="parent-tree"><i class="fa-solid fa-caret-down rotated-caret"></i> Local Branches</span>
                             <ul id="localBranches" class="nested sub-tree-view active-tree"></ul>
                         </li>
-                        <li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> Remote Branches</span>
+                        <li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> Remote Branches</span>
                             <ul id="remoteBranches" class="nested sub-tree-view"></ul>
                         </li>
-                        <li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> Tags</span>
+                        <li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> Tags</span>
                             <ul id="tags" class="nested sub-tree-view"></ul>
                         </li>
                     </ul>
@@ -94,12 +94,12 @@
                                 <textarea id="messageTxt" class="bg-dark text-white" rows="3" placeholder="Message"></textarea>
                                 <span class="right">
                                     <button id="commitBtn" class="btn btn-primary" type="button">
-                                        <i class="bi bi-check-circle"></i> Commit
+                                        <i class="fa-regular fa-circle-check"></i> Commit
                                     </button>
                                 </span>
                                 <span class="right-padding">
                                     <button id="commitPushBtn" class="btn btn-primary" type="button">
-                                        <i class="bi bi-arrow-up"></i> Commit & Push
+                                        <i class="fa-solid fa-arrow-up"></i> Commit & Push
                                     </button>
                                 </span>
                             </div>

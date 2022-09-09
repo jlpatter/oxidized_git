@@ -246,41 +246,41 @@ export class SVGManager {
             $contextMenu.css('left', event.pageX + 'px');
             $contextMenu.css('top', event.pageY + 'px');
 
-            const $mergeBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-arrows-angle-contract"></i> Merge</button>');
+            const $mergeBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-code-merge"></i> Merge</button>');
             $mergeBtn.click(function() {
                 // TODO: Implement stuff here
                 alert('Not implemented yet.');
             });
             $contextMenu.append($mergeBtn);
 
-            const $cherrypickBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-bullseye"></i> Cherrypick Commit</button>');
+            const $cherrypickBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-bullseye"></i> Cherrypick Commit</button>');
             $cherrypickBtn.click(function() {
                 // TODO: Implement stuff here
                 alert('Not implemented yet.');
             });
             $contextMenu.append($cherrypickBtn);
 
-            const $copyShaBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-clipboard"></i> Copy SHA</button>');
+            const $copyShaBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-regular fa-clipboard"></i> Copy SHA</button>');
             $copyShaBtn.click(function() {
                 writeText(sha).then();
             });
             $contextMenu.append($copyShaBtn);
 
-            const $softResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-arrow-clockwise"></i> Soft Reset to Here</button>');
+            const $softResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Soft Reset to Here</button>');
             $softResetBtn.click(function() {
                 // TODO: Implement stuff here
                 alert('Not implemented yet.');
             });
             $contextMenu.append($softResetBtn);
 
-            const $mixedResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-arrow-clockwise"></i> Mixed Reset to Here</button>');
+            const $mixedResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Mixed Reset to Here</button>');
             $mixedResetBtn.click(function() {
                 // TODO: Implement stuff here
                 alert('Not implemented yet.');
             });
             $contextMenu.append($mixedResetBtn);
 
-            const $hardResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="bi bi-arrow-clockwise"></i> Hard Reset to Here</button>');
+            const $hardResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Hard Reset to Here</button>');
             $hardResetBtn.click(function() {
                 // TODO: Implement stuff here
                 alert('Not implemented yet.');

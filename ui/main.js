@@ -7,7 +7,7 @@ import Resizable from "resizable";
 // This doesn't work if it isn't a separate function for some reason...
 function togglerClick() {
     this.parentElement.querySelector(".nested").classList.toggle("active-tree");
-    this.querySelector(".bi-caret-down-fill").classList.toggle("rotated-caret");
+    this.querySelector(".fa-caret-down").classList.toggle("rotated-caret");
 }
 
 class Main {
@@ -271,19 +271,19 @@ class Main {
 
     prependFileIcon($row, status) {
         if (status === 2) {  // Deleted
-            $row.prepend('<i class="bi bi-dash-square-fill" style="color:red;"></i> ');
+            $row.prepend('<i class="fa-solid fa-square-minus" style="color:red;"></i> ');
         } else if (status === 3) {  // Modified
-            $row.prepend('<i class="bi bi-pen-fill" style="color:yellow;"></i> ');
+            $row.prepend('<i class="fa-solid fa-pen" style="color:goldenrod;"></i> ');
         } else if (status === 7 || status === 1) {  // Untracked or Added
-            $row.prepend('<i class="bi bi-plus-square-fill" style="color:green;"></i> ');
+            $row.prepend('<i class="fa-solid fa-square-plus" style="color:green;"></i> ');
         } else if (status === 4) {  // Renamed
-            $row.prepend('<i class="bi bi-arrow-right-square-fill" style="color:mediumpurple;"></i> ');
+            $row.prepend('<i class="fa-solid fa-circle-arrow-right" style="color:mediumpurple;"></i> ');
         } else if (status === 5) {  // Copied
-            $row.prepend('<i class="bi bi-c-square-fill" style="color:green;"></i> ');
+            $row.prepend('<i class="fa-regular fa-copy" style="color:green;"></i> ');
         } else if (status === 10) {  // Conflicted
-            $row.prepend('<i class="bi bi-exclamation-diamond-fill" style="color:yellow;"></i> ');
+            $row.prepend('<i class="fa-solid fa-triangle-exclamation" style="color:yellow;"></i> ');
         } else {  // Everything else
-            $row.prepend('<i class="bi bi-question-diamond-fill" style="color:blue;"></i> ');
+            $row.prepend('<i class="fa-solid fa-circle-question" style="color:blue;"></i> ');
         }
     }
 
@@ -353,7 +353,7 @@ class Main {
 
         // Unstaged changes
         files_changed_info_list['unstaged_files'].forEach(function(unstagedFile) {
-            const $button = $('<button type="button" class="btn btn-success btn-sm right"><i class="bi bi-plus-lg"></i></button>');
+            const $button = $('<button type="button" class="btn btn-success btn-sm right"><i class="fa-solid fa-plus"></i></button>');
             $button.click(function(e) {
                 e.stopPropagation();
                 emit('stage', unstagedFile).then();
@@ -363,7 +363,7 @@ class Main {
 
         // Staged changes
         files_changed_info_list['staged_files'].forEach(function(stagedFile) {
-            const $button = $('<button type="button" class="btn btn-danger btn-sm right"><i class="bi bi-dash-lg"></i></button>');
+            const $button = $('<button type="button" class="btn btn-danger btn-sm right"><i class="fa-solid fa-minus"></i></button>');
             $button.click(function(e) {
                 e.stopPropagation();
                 emit('unstage', stagedFile).then();
@@ -381,7 +381,7 @@ class Main {
                 const newParentTxt = parentTxt + '-' + child['text'];
                 const $nestedList = $('<ul id="' + newParentTxt + '" class="nested sub-tree-view"></ul>');
                 self.buildBranchResultHTML(child['children'], $nestedList, newParentTxt);
-                const $newListItem = $('<li><span class="parent-tree"><i class="bi bi-caret-down-fill"></i> ' + child['text'] + '</span></li>');
+                const $newListItem = $('<li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> ' + child['text'] + '</span></li>');
                 $newListItem.append($nestedList);
                 $ul.append($newListItem);
             } else {
@@ -393,11 +393,11 @@ class Main {
                 childText += child['text'];
                 $innerListItem.text(childText);
                 if (child['branch_info']['behind'] !== 0) {
-                    const $behindCount = $('<span class="right"><i class="bi bi-arrow-down"></i>' + child['branch_info']['behind'] + '</span>');
+                    const $behindCount = $('<span class="right"><i class="fa-solid fa-arrow-down"></i>' + child['branch_info']['behind'] + '</span>');
                     $innerListItem.append($behindCount);
                 }
                 if (child['branch_info']['ahead'] !== 0) {
-                    const $aheadCount = $('<span class="right"><i class="bi bi-arrow-up"></i>' + child['branch_info']['ahead'] + '</span>');
+                    const $aheadCount = $('<span class="right"><i class="fa-solid fa-arrow-up"></i>' + child['branch_info']['ahead'] + '</span>');
                     $innerListItem.append($aheadCount);
                 }
 
@@ -445,7 +445,7 @@ class Main {
         const activeTreeIdsSelector = "#" + activeTreeIds.join(",#");
         $(activeTreeIdsSelector).each(function() {
             $(this).addClass("active-tree");
-            $(this).parent().children('.parent-tree').children('.bi-caret-down-fill').addClass('rotated-caret');
+            $(this).parent().children('.parent-tree').children('.fa-caret-down').addClass('rotated-caret');
         });
     }
 
@@ -473,7 +473,7 @@ class Main {
         $contextMenu.css('left', event.pageX + 'px');
         $contextMenu.css('top', event.pageY + 'px');
 
-        const $deleteBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="bi bi-dash-circle"></i> Delete</button>');
+        const $deleteBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-regular fa-trash-can"></i> Delete</button>');
         if (branchType === 'local') {
             $deleteBtn.click(() => {
                 self.addProcessCount();
