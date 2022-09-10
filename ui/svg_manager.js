@@ -20,6 +20,7 @@ export class SVGManager {
         this.commitsTop = -99;
         this.commitsBottom = -99;
         this.oldRenderingAreaTop = 0;
+        this.oldRenderingAreaBottom = 0;
         this.setScrollEvent();
     }
 
@@ -49,7 +50,7 @@ export class SVGManager {
 
         self.rows = [];
         const renderingAreaTop = self.oldRenderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
-        const renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
+        const renderingAreaBottom = self.oldRenderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
 
         let maxWidth = 0;
         let currentLocation = 'above';
@@ -168,6 +169,40 @@ export class SVGManager {
 
             self.renderVisibleCommits();
             self.oldRenderingAreaTop = renderingAreaTop;
+            self.oldRenderingAreaBottom = renderingAreaBottom;
+        }
+    }
+
+    // This assumes that scrollTop hasn't changed
+    setVisibleCommitsOnResize() {
+        const self = this;
+        if (self.rows.length > 0) {
+            const renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
+
+            if (renderingAreaBottom < self.oldRenderingAreaBottom) {
+                // Rendering area has shrunk
+                let isInRenderingArea = false;
+                while (!isInRenderingArea) {
+                    if (self.commitsBottom - 1 >= 0 && self.rows[self.commitsBottom]['pixel_y'] > renderingAreaBottom) {
+                        self.commitsBottom--;
+                    } else {
+                        isInRenderingArea = true;
+                    }
+                }
+            } else if (renderingAreaBottom > self.oldRenderingAreaBottom) {
+                // Rendering area has grown
+                let isInRenderingArea = false;
+                while (!isInRenderingArea) {
+                    if (self.commitsBottom + 1 < self.rows.length && self.rows[self.commitsBottom + 1]['pixel_y'] < renderingAreaBottom) {
+                        self.commitsBottom++;
+                    } else {
+                        isInRenderingArea = true;
+                    }
+                }
+            }
+
+            self.renderVisibleCommits();
+            self.oldRenderingAreaBottom = renderingAreaBottom;
         }
     }
 
@@ -182,7 +217,7 @@ export class SVGManager {
                     // Remove visible rows that are below the rendering area
                     let isInRenderingArea = false;
                     while (!isInRenderingArea) {
-                        if (self.rows[self.commitsBottom]['pixel_y'] > renderingAreaBottom) {
+                        if (self.commitsBottom - 1 >= 0 && self.rows[self.commitsBottom]['pixel_y'] > renderingAreaBottom) {
                             self.commitsBottom--;
                         } else {
                             isInRenderingArea = true;
@@ -223,6 +258,7 @@ export class SVGManager {
 
                 self.renderVisibleCommits();
                 self.oldRenderingAreaTop = renderingAreaTop;
+                self.oldRenderingAreaBottom = renderingAreaBottom;
             }
         });
     }

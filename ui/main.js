@@ -35,19 +35,26 @@ class Main {
                 threshold: 10,
                 draggable: false,
             });
-            r.on('resize', function() {
-                self.truncateFilePathText();
-            });
+            if (resizableColumn.classList.contains('resizable-column-file-paths')) {
+                r.on('resize', function() {
+                    self.truncateFilePathText();
+                });
+            }
         });
 
         const resizableRows = document.querySelectorAll(".resizable-row");
         resizableRows.forEach((resizableRow) => {
-            new Resizable(resizableRow, {
+            const r = new Resizable(resizableRow, {
                 within: 'parent',
                 handles: 's',
                 threshold: 10,
                 draggable: false,
             });
+            if (resizableRow.classList.contains('resizable-row-graph')) {
+                r.on('resize', function() {
+                    self.svgManager.setVisibleCommitsOnResize();
+                });
+            }
         });
 
         $(window).click(() => {
@@ -56,7 +63,7 @@ class Main {
 
         $(window).resize(() => {
             self.truncateFilePathText();
-            self.svgManager.setVisibleCommits();
+            self.svgManager.setVisibleCommitsOnResize();
         });
 
         listen("start-process", ev => {
