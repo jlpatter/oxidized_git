@@ -240,11 +240,16 @@ class Main {
         $row.removeClass('hoverable-row');
     }
 
-    showFileDiff(file_lines) {
-        const $fileDiffTable = $('#fileDiffTable');
+    showFileDiff(file_info) {
+        let $fileDiffTable;
+        if (file_info['change_type'] === 'commit') {
+            $fileDiffTable = $('#commitFileDiffTable');
+        } else if (file_info['change_type'] === 'unstaged' || file_info['change_type'] === 'staged') {
+            $fileDiffTable = $('#fileDiffTable');
+        }
 
         $fileDiffTable.empty();
-        file_lines.forEach((line) => {
+        file_info['file_lines'].forEach((line) => {
             let fileLineRow = '<tr><td class="line-no">';
             if (line['origin'] === '+') {
                 fileLineRow = '<tr class="added-code-line"><td class="line-no">';

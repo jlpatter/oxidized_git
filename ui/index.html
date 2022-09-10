@@ -70,7 +70,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex-auto-in-column">
+                            <div class="flex-auto-in-column display-flex-column">
                                 <ul class="nav nav-tabs">
                                     <li class="nav-item">
                                         <button class="nav-link tab-btn-xsm active" id="commit-info-tab" data-bs-toggle="tab" data-bs-target="#commit-info" type="button" role="tab" aria-controls="commit-info" aria-selected="true">Info</button>
@@ -80,13 +80,13 @@
                                     </li>
                                 </ul>
 
-                                <div class="tab-content">
-                                    <div class="tab-pane fade show active" id="commit-info" role="tabpanel" aria-labelledby="commit-info-tab"></div>
-                                    <div class="tab-pane fade" id="commit-diff" role="tabpanel" aria-labelledby="commit-diff-tab">
+                                <div class="tab-content flex-auto-in-column">
+                                    <div class="tab-pane fade show active full-height" id="commit-info" role="tabpanel" aria-labelledby="commit-info-tab"></div>
+                                    <div class="tab-pane fade full-height" id="commit-diff" role="tabpanel" aria-labelledby="commit-diff-tab">
                                         <div class="full-height display-flex-column">
                                             <div class="flex-auto-in-column display-flex-row">
                                                 <div class="resizable-column full-height little-padding-left little-padding-top">
-                                                    <div id="commitChanges" class="overflow-hidden full-height"></div>
+                                                    <div id="commitChanges" class="full-height"></div>
                                                 </div>
                                                 <div class="flex-auto-in-row full-height overflow-auto little-padding-top little-padding-left">
                                                     <table id="commitFileDiffTable"></table>

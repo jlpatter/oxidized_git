@@ -43,6 +43,21 @@ impl FileLineInfo {
 }
 
 #[derive(Clone, Serialize)]
+pub struct FileInfo {
+    change_type: String,
+    file_lines: Vec<FileLineInfo>,
+}
+
+impl FileInfo {
+    pub fn new(change_type: String, file_lines: Vec<FileLineInfo>) -> Self {
+        Self {
+            change_type,
+            file_lines,
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
 pub struct CommitInfo {
     sha: String,
     author_name: String,
@@ -68,6 +83,7 @@ impl CommitInfo {
             None => return Err("No commit in current repo to find diff against! This error should be impossible in theory.".into()),
         };
 
+        // TODO: This is the wrong method! Fix it!
         let diff = repo.diff_tree_to_tree(Some(&commit.tree()?), Some(&head_tree), None)?;
         let parseable_diff_delta = get_parseable_diff_delta(diff)?;
 
@@ -336,7 +352,27 @@ impl GitManager {
         Ok(diff)
     }
 
-    pub fn get_file_diff(&self, json_str: &str) -> Result<Vec<FileLineInfo>, Box<dyn std::error::Error>> {
+    fn get_commit_changes(&self, sha: &str) -> Result<Diff, Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+
+        let oid = Oid::from_str(sha)?;
+        let commit = repo.find_commit(oid)?;
+        let commit_tree = commit.tree()?;
+
+        let head_ref = repo.head()?;
+        let head_tree = match head_ref.target() {
+            Some(oid) => repo.find_commit(oid)?.tree()?,
+            None => return Err("No commit in current repo to find diff against! This error should be impossible in theory.".into()),
+        };
+
+        // TODO: This is wrong, fix it!
+        let mut diff = repo.diff_tree_to_tree(Some(&commit_tree), Some(&head_tree), None)?;
+        GitManager::set_diff_find_similar(&mut diff)?;
+
+        Ok(diff)
+    }
+
+    pub fn get_file_diff(&self, json_str: &str) -> Result<FileInfo, Box<dyn std::error::Error>> {
         let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
 
         let file_path = match json_hm.get("file_path") {
@@ -394,7 +430,9 @@ impl GitManager {
             },
             None => return Err("Patch not found in diff.".into()),
         }
-        Ok(file_lines)
+
+        let file_info = FileInfo::new(change_type.clone(), file_lines);
+        Ok(file_info)
     }
 
     pub fn git_commit(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
