@@ -77,14 +77,7 @@ impl CommitInfo {
         let committer_name = String::from(GitManager::get_utf8_string(committer_signature.name(), "Committer Name")?);
         let committer_time = committer_signature.when().seconds();
 
-        let head_ref = repo.head()?;
-        let head_tree = match head_ref.target() {
-            Some(oid) => repo.find_commit(oid)?.tree()?,
-            None => return Err("No commit in current repo to find diff against! This error should be impossible in theory.".into()),
-        };
-
-        // TODO: This is the wrong method! Fix it!
-        let diff = repo.diff_tree_to_tree(Some(&commit.tree()?), Some(&head_tree), None)?;
+        let diff = get_commit_changes(&commit, repo)?;
         let parseable_diff_delta = get_parseable_diff_delta(diff)?;
 
         let new_commit_info = Self {
@@ -98,6 +91,26 @@ impl CommitInfo {
 
         Ok(new_commit_info)
     }
+}
+
+fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Result<Diff<'b>, Box<dyn std::error::Error>> {
+    let commit_tree = commit.tree()?;
+
+    for parent_commit in commit.parents() {
+        let mut diff = repo.diff_tree_to_tree(Some(&parent_commit.tree()?), Some(&commit_tree), None)?;
+        GitManager::set_diff_find_similar(&mut diff)?;
+        // For merge commits, the diff between a merge commit and the parent from the branch that was merged will be empty,
+        // so find the diff that's populated.
+        if diff.stats()?.files_changed() > 0 {
+            return Ok(diff);
+        }
+    }
+
+    // If there are no parents, get the diff between this commit and nothing.
+    let mut diff = repo.diff_tree_to_tree(None, Some(&commit_tree), None)?;
+    GitManager::set_diff_find_similar(&mut diff)?;
+
+    Ok(diff)
 }
 
 pub struct GitManager {
@@ -352,27 +365,8 @@ impl GitManager {
         Ok(diff)
     }
 
-    fn get_commit_changes(&self, sha: &str) -> Result<Diff, Box<dyn std::error::Error>> {
-        let repo = self.get_repo()?;
-
-        let oid = Oid::from_str(sha)?;
-        let commit = repo.find_commit(oid)?;
-        let commit_tree = commit.tree()?;
-
-        let head_ref = repo.head()?;
-        let head_tree = match head_ref.target() {
-            Some(oid) => repo.find_commit(oid)?.tree()?,
-            None => return Err("No commit in current repo to find diff against! This error should be impossible in theory.".into()),
-        };
-
-        // TODO: This is wrong, fix it!
-        let mut diff = repo.diff_tree_to_tree(Some(&commit_tree), Some(&head_tree), None)?;
-        GitManager::set_diff_find_similar(&mut diff)?;
-
-        Ok(diff)
-    }
-
     pub fn get_file_diff(&self, json_str: &str) -> Result<FileInfo, Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
         let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
 
         let file_path = match json_hm.get("file_path") {
@@ -394,7 +388,9 @@ impl GitManager {
         } else if change_type == "staged" {
             diff = self.get_staged_changes()?;
         } else if change_type == "commit" {
-            diff = self.get_commit_changes(sha)?;
+            let oid = Oid::from_str(sha)?;
+            let commit = repo.find_commit(oid)?;
+            diff = get_commit_changes(&commit, &repo)?;
         } else {
             return Err("change_type not a valid type. Needs to be 'staged', 'unstaged', or 'commit'".into());
         }
