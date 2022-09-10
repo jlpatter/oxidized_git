@@ -60,6 +60,7 @@ impl FileInfo {
 #[derive(Clone, Serialize)]
 pub struct CommitInfo {
     sha: String,
+    summary: String,
     author_name: String,
     author_time: i64,
     committer_name: String,
@@ -82,6 +83,7 @@ impl CommitInfo {
 
         let new_commit_info = Self {
             sha: commit.id().to_string(),
+            summary: String::from(GitManager::get_utf8_string(commit.summary(), "Commit Summary")?),
             author_name,
             author_time,
             committer_name,

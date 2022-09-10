@@ -71,12 +71,15 @@
                                 </div>
                             </div>
                             <div class="flex-auto-in-column display-flex-column">
-                                <ul class="nav nav-tabs">
+                                <ul class="nav nav-tabs overflow-hidden flex-nowrap">
                                     <li class="nav-item">
-                                        <button class="nav-link tab-btn-xsm active" id="commit-info-tab" data-bs-toggle="tab" data-bs-target="#commit-info" type="button" role="tab" aria-controls="commit-info" aria-selected="true">Info</button>
+                                        <button class="nav-link tab-btn-xsm white-space-nowrap active" id="commit-info-tab" data-bs-toggle="tab" data-bs-target="#commit-info" type="button" role="tab" aria-controls="commit-info" aria-selected="true">Info</button>
                                     </li>
                                     <li class="nav-item">
-                                        <button class="nav-link tab-btn-xsm" id="commit-diff-tab" data-bs-toggle="tab" data-bs-target="#commit-diff" type="button" role="tab" aria-controls="commit-diff" aria-selected="true">File Changes</button>
+                                        <button class="nav-link tab-btn-xsm white-space-nowrap" id="commit-diff-tab" data-bs-toggle="tab" data-bs-target="#commit-diff" type="button" role="tab" aria-controls="commit-diff" aria-selected="true">File Changes</button>
+                                    </li>
+                                    <li class="nav-item little-padding-left">
+                                        <p id="commitWindowInfo" class="full-height display-flex-column white-space-nowrap"></p>
                                     </li>
                                 </ul>
 

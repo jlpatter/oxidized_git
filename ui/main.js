@@ -279,11 +279,15 @@ class Main {
     showCommitInfo(commit_info) {
         const self = this,
             $commitInfo = $('#commit-info'),
-            $commitChanges = $('#commitChanges');
+            $commitChanges = $('#commitChanges'),
+            $commitWindowInfo = $('#commitWindowInfo');
 
         $commitInfo.empty();
         $commitChanges.empty();
         $('#commitFileDiffTable').empty();
+
+        const formatted_author_time = new Date(commit_info['author_time'] * 1000).toLocaleString();
+        $commitWindowInfo.text(commit_info['summary'] + ' - ' + commit_info['author_name'] + ' - ' + formatted_author_time);
 
         const $newCommitInfo = $('<h4>' + commit_info['author_name'] + '</h4><h4>' + commit_info['committer_name'] + '</h4>');
         $commitInfo.append($newCommitInfo);
