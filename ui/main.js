@@ -122,6 +122,10 @@ class Main {
             self.truncateFilePathText();
         });
 
+        $('#commit-diff-tab').click(() => {
+            self.truncateFilePathText();
+        });
+
         $('#limitCommitsCheckBox').change(() => {
             if ($('#limitCommitsCheckBox').is(':checked')) {
                 $('#commitCountNumber').prop('disabled', false);
