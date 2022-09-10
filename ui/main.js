@@ -286,10 +286,25 @@ class Main {
         $commitChanges.empty();
         $('#commitFileDiffTable').empty();
 
-        const formatted_author_time = new Date(commit_info['author_time'] * 1000).toLocaleString();
-        $commitWindowInfo.text(commit_info['summary'] + ' - ' + commit_info['author_name'] + ' - ' + formatted_author_time);
+        const formattedAuthorTime = new Date(commit_info['author_time'] * 1000).toLocaleString();
+        $commitWindowInfo.text(commit_info['summary'] + ' - ' + commit_info['author_name'] + ' - ' + formattedAuthorTime);
 
-        const $newCommitInfo = $('<h4>' + commit_info['author_name'] + '</h4><h4>' + commit_info['committer_name'] + '</h4>');
+        const formattedCommitterTime = new Date(commit_info['committer_time'] * 1000).toLocaleString();
+        const $newCommitInfo = $(
+            '<p>' +
+            commit_info['sha'] +
+            '</p><p style="white-space: pre-wrap;">' +
+            commit_info['message'] +
+            '</p><table><tr><td>' +
+            commit_info['author_name'] +
+            '</td><td>' +
+            commit_info['committer_name'] +
+            '</td></tr><tr><td>' +
+            formattedAuthorTime +
+            '</td><td>' +
+            formattedCommitterTime +
+            '</td></tr></table>'
+        );
         $commitInfo.append($newCommitInfo);
 
         commit_info['changed_files'].forEach(function(file) {

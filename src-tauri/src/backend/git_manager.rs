@@ -61,6 +61,7 @@ impl FileInfo {
 pub struct CommitInfo {
     sha: String,
     summary: String,
+    message: String,
     author_name: String,
     author_time: i64,
     committer_name: String,
@@ -83,10 +84,11 @@ impl CommitInfo {
 
         let new_commit_info = Self {
             sha: commit.id().to_string(),
-            summary: String::from(GitManager::get_utf8_string(commit.summary(), "Commit Summary")?),
-            author_name,
+            summary: html_escape::encode_text(&String::from(GitManager::get_utf8_string(commit.summary(), "Commit Summary")?)).parse()?,
+            message: html_escape::encode_text(&String::from(GitManager::get_utf8_string(commit.message(), "Commit Message")?)).parse()?,
+            author_name: html_escape::encode_text(&author_name).parse()?,
             author_time,
-            committer_name,
+            committer_name: html_escape::encode_text(&committer_name).parse()?,
             committer_time,
             changed_files: parseable_diff_delta,
         };
