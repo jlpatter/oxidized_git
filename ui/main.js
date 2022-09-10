@@ -276,6 +276,7 @@ class Main {
 
         $commitInfo.empty();
         $commitChanges.empty();
+        $('#commitFileDiffTable').empty();
 
         const $newCommitInfo = $('<h4>' + commit_info['author_name'] + '</h4><h4>' + commit_info['committer_name'] + '</h4>');
         $commitInfo.append($newCommitInfo);
@@ -283,6 +284,7 @@ class Main {
         commit_info['changed_files'].forEach(function(file) {
             self.addFileChangeRow($commitChanges, null, file, 'commit', commit_info['sha']);
         });
+        self.truncateFilePathText();
     }
 
     updateAll(repo_info) {
