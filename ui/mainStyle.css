@@ -9,6 +9,10 @@ body {
     background-color: black;
 }
 
+.tab-btn-xsm {
+    padding: 2px 4px;
+}
+
 .display-flex-column {
     display: flex;
     flex-direction: column;
@@ -76,8 +80,12 @@ body {
     text-align: center;
 }
 
-.file-path-txt {
+.file-path-txt, .no-margin-bottom {
     margin-bottom: 0;
+}
+
+.white-space-nowrap {
+    white-space: nowrap;
 }
 
 .hoverable-row:hover {
@@ -161,12 +169,16 @@ svg text {
     font-family: monospace;
 }
 
-svg .backgroundRect {
+svg .svg-hoverable-row {
     opacity: 0;
 }
 
-svg .backgroundRect:hover {
+svg .svg-hoverable-row:hover {
     opacity: 0.75;
+}
+
+svg .svg-selected-row {
+    opacity: 1.0;
 }
 
 ::-webkit-scrollbar {

@@ -167,6 +167,25 @@ fn main() {
 
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("get-commit-info", move |event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                match event.payload() {
+                    Some(s) => {
+                        let git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let commit_info_result = git_manager.get_commit_info(s);
+                        match commit_info_result {
+                            Ok(r) => main_window_c_c.emit_all("commit-info", r).unwrap(),
+                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                        };
+                    },
+                    None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+                };
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
         main_window.listen("checkout", move |event| {
             let main_window_c_c = main_window_c.clone();
             let git_manager_arc_c_c = git_manager_arc_c.clone();

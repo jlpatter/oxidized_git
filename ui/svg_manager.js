@@ -1,4 +1,5 @@
 import {writeText} from "@tauri-apps/api/clipboard";
+import {emit} from "@tauri-apps/api/event";
 
 /**
  * A class to manage the svg element.
@@ -19,6 +20,7 @@ export class SVGManager {
         this.commitsTop = -99;
         this.commitsBottom = -99;
         this.oldRenderingAreaTop = 0;
+        this.oldRenderingAreaBottom = 0;
         this.setScrollEvent();
     }
 
@@ -48,7 +50,7 @@ export class SVGManager {
 
         self.rows = [];
         const renderingAreaTop = self.oldRenderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
-        const renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
+        const renderingAreaBottom = self.oldRenderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
 
         let maxWidth = 0;
         let currentLocation = 'above';
@@ -97,6 +99,7 @@ export class SVGManager {
             let width = currentX + elements['summary_text']['textContent'].length * singleCharWidth;
             elements['back_rect']['attrs']['width'] = width;
             const backRect = self.makeSVG(elements['back_rect']['tag'], elements['back_rect']['attrs']);
+            backRect.onclick = self.getClickFunction(commit['sha']);
             backRect.oncontextmenu = self.getContextFunction(commit['sha']);
             row['elements'].push(backRect);
 
@@ -166,6 +169,40 @@ export class SVGManager {
 
             self.renderVisibleCommits();
             self.oldRenderingAreaTop = renderingAreaTop;
+            self.oldRenderingAreaBottom = renderingAreaBottom;
+        }
+    }
+
+    // This assumes that scrollTop hasn't changed
+    setVisibleCommitsOnResize() {
+        const self = this;
+        if (self.rows.length > 0) {
+            const renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
+
+            if (renderingAreaBottom < self.oldRenderingAreaBottom) {
+                // Rendering area has shrunk
+                let isInRenderingArea = false;
+                while (!isInRenderingArea) {
+                    if (self.commitsBottom - 1 >= 0 && self.rows[self.commitsBottom]['pixel_y'] > renderingAreaBottom) {
+                        self.commitsBottom--;
+                    } else {
+                        isInRenderingArea = true;
+                    }
+                }
+            } else if (renderingAreaBottom > self.oldRenderingAreaBottom) {
+                // Rendering area has grown
+                let isInRenderingArea = false;
+                while (!isInRenderingArea) {
+                    if (self.commitsBottom + 1 < self.rows.length && self.rows[self.commitsBottom + 1]['pixel_y'] < renderingAreaBottom) {
+                        self.commitsBottom++;
+                    } else {
+                        isInRenderingArea = true;
+                    }
+                }
+            }
+
+            self.renderVisibleCommits();
+            self.oldRenderingAreaBottom = renderingAreaBottom;
         }
     }
 
@@ -180,7 +217,7 @@ export class SVGManager {
                     // Remove visible rows that are below the rendering area
                     let isInRenderingArea = false;
                     while (!isInRenderingArea) {
-                        if (self.rows[self.commitsBottom]['pixel_y'] > renderingAreaBottom) {
+                        if (self.commitsBottom - 1 >= 0 && self.rows[self.commitsBottom]['pixel_y'] > renderingAreaBottom) {
                             self.commitsBottom--;
                         } else {
                             isInRenderingArea = true;
@@ -221,6 +258,7 @@ export class SVGManager {
 
                 self.renderVisibleCommits();
                 self.oldRenderingAreaTop = renderingAreaTop;
+                self.oldRenderingAreaBottom = renderingAreaBottom;
             }
         });
     }
@@ -238,6 +276,33 @@ export class SVGManager {
             el.setAttribute(k, attrs[k]);
         }
         return el;
+    }
+
+    unselectAllRows() {
+        const svgRowElements = document.querySelectorAll('.svg-selected-row');
+        svgRowElements.forEach((svgRowElement) => {
+            svgRowElement.classList.remove('svg-selected-row');
+            svgRowElement.classList.add('svg-hoverable-row');
+        });
+
+        $('#commit-info').empty();
+        $('#commitChanges').empty();
+        $('#commitFileDiffTable').empty();
+    }
+
+    selectRow(row) {
+        row.classList.add('svg-selected-row');
+        row.classList.remove('svg-hoverable-row');
+    }
+
+    getClickFunction(sha) {
+        const self = this;
+        return function(event) {
+            self.unselectAllRows();
+            self.selectRow(event.target);
+            // Will call start-process from back-end
+            emit("get-commit-info", sha).then();
+        };
     }
 
     /**

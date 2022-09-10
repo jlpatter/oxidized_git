@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str;
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
+use git2::{AutotagOption, BranchType, Commit, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
 use serde::Serialize;
-use crate::backend::parseable_info::ParseableDiffDelta;
+use crate::backend::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
 use super::config_manager;
 
 fn trim_newline(s: &mut String) {
@@ -40,6 +40,81 @@ impl FileLineInfo {
         };
         Ok(new_info)
     }
+}
+
+#[derive(Clone, Serialize)]
+pub struct FileInfo {
+    change_type: String,
+    file_lines: Vec<FileLineInfo>,
+}
+
+impl FileInfo {
+    pub fn new(change_type: String, file_lines: Vec<FileLineInfo>) -> Self {
+        Self {
+            change_type,
+            file_lines,
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct CommitInfo {
+    sha: String,
+    summary: String,
+    message: String,
+    author_name: String,
+    author_time: i64,
+    committer_name: String,
+    committer_time: i64,
+    changed_files: Vec<ParseableDiffDelta>,
+}
+
+impl CommitInfo {
+    pub fn from_commit(commit: Commit, repo: &Repository) -> Result<Self, Box<dyn std::error::Error>> {
+        let author_signature = commit.author();
+        let author_name = String::from(GitManager::get_utf8_string(author_signature.name(), "Author Name")?);
+        let author_time = author_signature.when().seconds();
+
+        let committer_signature = commit.committer();
+        let committer_name = String::from(GitManager::get_utf8_string(committer_signature.name(), "Committer Name")?);
+        let committer_time = committer_signature.when().seconds();
+
+        let diff = get_commit_changes(&commit, repo)?;
+        let parseable_diff_delta = get_parseable_diff_delta(diff)?;
+
+        let new_commit_info = Self {
+            sha: commit.id().to_string(),
+            summary: html_escape::encode_text(&String::from(GitManager::get_utf8_string(commit.summary(), "Commit Summary")?)).parse()?,
+            message: html_escape::encode_text(&String::from(GitManager::get_utf8_string(commit.message(), "Commit Message")?)).parse()?,
+            author_name: html_escape::encode_text(&author_name).parse()?,
+            author_time,
+            committer_name: html_escape::encode_text(&committer_name).parse()?,
+            committer_time,
+            changed_files: parseable_diff_delta,
+        };
+
+        Ok(new_commit_info)
+    }
+}
+
+fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Result<Diff<'b>, Box<dyn std::error::Error>> {
+    let commit_tree = commit.tree()?;
+
+    for parent_commit in commit.parents() {
+        let mut diff = repo.diff_tree_to_tree(Some(&parent_commit.tree()?), Some(&commit_tree), None)?;
+        GitManager::set_diff_find_similar(&mut diff)?;
+        // For merge commits, the diff between a merge commit and the parent from the branch that was merged will be empty,
+        // so find the diff that's populated.
+        if diff.stats()?.files_changed() > 0 {
+            return Ok(diff);
+        }
+    }
+
+    // If there are no parents, get the diff between this commit and nothing.
+    let mut diff = repo.diff_tree_to_tree(None, Some(&commit_tree), None)?;
+    GitManager::set_diff_find_similar(&mut diff)?;
+
+    Ok(diff)
 }
 
 pub struct GitManager {
@@ -139,6 +214,16 @@ impl GitManager {
 
     pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference, Box<dyn std::error::Error>> {
         Ok(self.get_repo()?.find_reference(ref_full_name)?)
+    }
+
+    pub fn get_commit_info(&self, sha: &str) -> Result<CommitInfo, Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+
+        let oid = Oid::from_str(sha)?;
+        let commit = repo.find_commit(oid)?;
+        let commit_info = CommitInfo::from_commit(commit, repo)?;
+
+        Ok(commit_info)
     }
 
     pub fn git_checkout(&self, local_ref: &Reference) -> Result<(), Box<dyn std::error::Error>> {
@@ -284,7 +369,8 @@ impl GitManager {
         Ok(diff)
     }
 
-    pub fn get_file_diff(&self, json_str: &str) -> Result<Vec<FileLineInfo>, Box<dyn std::error::Error>> {
+    pub fn get_file_diff(&self, json_str: &str) -> Result<FileInfo, Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
         let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
 
         let file_path = match json_hm.get("file_path") {
@@ -295,14 +381,22 @@ impl GitManager {
             Some(s) => s,
             None => return Err("change_type not returned from front-end payload.".into()),
         };
+        let sha = match json_hm.get("sha") {
+            Some(s) => s,
+            None => return Err("sha not returned from front-end payload.".into()),
+        };
 
         let diff;
         if change_type == "unstaged" {
             diff = self.get_unstaged_changes()?;
         } else if change_type == "staged" {
             diff = self.get_staged_changes()?;
+        } else if change_type == "commit" {
+            let oid = Oid::from_str(sha)?;
+            let commit = repo.find_commit(oid)?;
+            diff = get_commit_changes(&commit, &repo)?;
         } else {
-            return Err("change_type not a valid type. Needs to be 'staged' or 'unstaged'".into());
+            return Err("change_type not a valid type. Needs to be 'staged', 'unstaged', or 'commit'".into());
         }
 
         let file_index_opt = diff.deltas().position(|dd| {
@@ -336,7 +430,9 @@ impl GitManager {
             },
             None => return Err("Patch not found in diff.".into()),
         }
-        Ok(file_lines)
+
+        let file_info = FileInfo::new(change_type.clone(), file_lines);
+        Ok(file_info)
     }
 
     pub fn git_commit(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {

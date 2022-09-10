@@ -35,19 +35,26 @@ class Main {
                 threshold: 10,
                 draggable: false,
             });
-            r.on('resize', function() {
-                self.truncateFilePathText();
-            });
+            if (resizableColumn.classList.contains('resizable-column-file-paths')) {
+                r.on('resize', function() {
+                    self.truncateFilePathText();
+                });
+            }
         });
 
         const resizableRows = document.querySelectorAll(".resizable-row");
         resizableRows.forEach((resizableRow) => {
-            new Resizable(resizableRow, {
+            const r = new Resizable(resizableRow, {
                 within: 'parent',
                 handles: 's',
                 threshold: 10,
                 draggable: false,
             });
+            if (resizableRow.classList.contains('resizable-row-graph')) {
+                r.on('resize', function() {
+                    self.svgManager.setVisibleCommitsOnResize();
+                });
+            }
         });
 
         $(window).click(() => {
@@ -56,7 +63,7 @@ class Main {
 
         $(window).resize(() => {
             self.truncateFilePathText();
-            self.svgManager.setVisibleCommits();
+            self.svgManager.setVisibleCommitsOnResize();
         });
 
         listen("start-process", ev => {
@@ -65,6 +72,10 @@ class Main {
 
         listen("end-process", ev => {
             self.removeProcessCount();
+        }).then();
+
+        listen("commit-info", ev => {
+            self.showCommitInfo(ev.payload);
         }).then();
 
         listen("update_all", ev => {
@@ -108,6 +119,10 @@ class Main {
         });
 
         $('#changes-tab').click(() => {
+            self.truncateFilePathText();
+        });
+
+        $('#commit-diff-tab').click(() => {
             self.truncateFilePathText();
         });
 
@@ -236,11 +251,16 @@ class Main {
         $row.removeClass('hoverable-row');
     }
 
-    showFileDiff(file_lines) {
-        const $fileDiffTable = $('#fileDiffTable');
+    showFileDiff(file_info) {
+        let $fileDiffTable;
+        if (file_info['change_type'] === 'commit') {
+            $fileDiffTable = $('#commitFileDiffTable');
+        } else if (file_info['change_type'] === 'unstaged' || file_info['change_type'] === 'staged') {
+            $fileDiffTable = $('#fileDiffTable');
+        }
 
         $fileDiffTable.empty();
-        file_lines.forEach((line) => {
+        file_info['file_lines'].forEach((line) => {
             let fileLineRow = '<tr><td class="line-no">';
             if (line['origin'] === '+') {
                 fileLineRow = '<tr class="added-code-line"><td class="line-no">';
@@ -258,6 +278,43 @@ class Main {
             $fileDiffTable.append($(fileLineRow));
         });
         hljs.highlightAll();
+    }
+
+    showCommitInfo(commit_info) {
+        const self = this,
+            $commitInfo = $('#commit-info'),
+            $commitChanges = $('#commitChanges'),
+            $commitWindowInfo = $('#commitWindowInfo');
+
+        $commitInfo.empty();
+        $commitChanges.empty();
+        $('#commitFileDiffTable').empty();
+
+        const formattedAuthorTime = new Date(commit_info['author_time'] * 1000).toLocaleString();
+        $commitWindowInfo.text(commit_info['summary'] + ' - ' + commit_info['author_name'] + ' - ' + formattedAuthorTime);
+
+        const formattedCommitterTime = new Date(commit_info['committer_time'] * 1000).toLocaleString();
+        const $newCommitInfo = $(
+            '<p>' +
+            commit_info['sha'] +
+            '</p><p style="white-space: pre-wrap;">' +
+            commit_info['message'] +
+            '</p><table><tr><td>' +
+            commit_info['author_name'] +
+            '</td><td class="little-padding-left">' +
+            commit_info['committer_name'] +
+            '</td></tr><tr><td>' +
+            formattedAuthorTime +
+            '</td><td class="little-padding-left">' +
+            formattedCommitterTime +
+            '</td></tr></table>'
+        );
+        $commitInfo.append($newCommitInfo);
+
+        commit_info['changed_files'].forEach(function(file) {
+            self.addFileChangeRow($commitChanges, null, file, 'commit', commit_info['sha']);
+        });
+        self.truncateFilePathText();
     }
 
     updateAll(repo_info) {
@@ -315,7 +372,7 @@ class Main {
         }
     }
 
-    addFileChangeRow($changesDiv, $button, file, changeType) {
+    addFileChangeRow($changesDiv, $button, file, changeType, sha) {
         const self = this,
             // The outer div is the whole row (minus the button), the next inner div is the "unshrunken" text size (i.e. what size the text should fit in), and the last inner div is the size of the text width.
             // This is all used for truncating the text.
@@ -326,11 +383,13 @@ class Main {
             $('#contextMenu').hide();
             self.unselectAllRows();
             self.selectRow($text);
-            emit('file-diff', {file_path: file['path'], change_type: changeType}).then();
+            emit('file-diff', {file_path: file['path'], change_type: changeType, sha: sha}).then();
         });
         const $row = $('<div class="display-flex-row little-padding-bottom"></div>');
         $row.append($text);
-        $row.append($button);
+        if ($button !== null) {
+            $row.append($button);
+        }
         $changesDiv.append($row);
     }
 
@@ -358,7 +417,7 @@ class Main {
                 e.stopPropagation();
                 emit('stage', unstagedFile).then();
             });
-            self.addFileChangeRow($unstagedChanges, $button, unstagedFile, 'unstaged');
+            self.addFileChangeRow($unstagedChanges, $button, unstagedFile, 'unstaged', '');
         });
 
         // Staged changes
@@ -368,7 +427,7 @@ class Main {
                 e.stopPropagation();
                 emit('unstage', stagedFile).then();
             });
-            self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged');
+            self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged', '');
         });
 
         self.truncateFilePathText();
