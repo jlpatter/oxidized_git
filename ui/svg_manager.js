@@ -278,8 +278,28 @@ export class SVGManager {
         return el;
     }
 
+    unselectAllRows() {
+        const svgRowElements = document.querySelectorAll('.svg-selected-row');
+        svgRowElements.forEach((svgRowElement) => {
+            svgRowElement.classList.remove('svg-selected-row');
+            svgRowElement.classList.add('svg-hoverable-row');
+        });
+
+        $('#commit-info').empty();
+        $('#commitChanges').empty();
+        $('#commitFileDiffTable').empty();
+    }
+
+    selectRow(row) {
+        row.classList.add('svg-selected-row');
+        row.classList.remove('svg-hoverable-row');
+    }
+
     getClickFunction(sha) {
+        const self = this;
         return function(event) {
+            self.unselectAllRows();
+            self.selectRow(event.target);
             // Will call start-process from back-end
             emit("get-commit-info", sha).then();
         };

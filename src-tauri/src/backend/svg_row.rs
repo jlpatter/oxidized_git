@@ -401,7 +401,7 @@ impl SVGRow {
 
         // Get background rectangle
         let rect_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
-            (String::from("class"), SVGPropertyAttrs::SomeString(String::from("backgroundRect"))),
+            (String::from("class"), SVGPropertyAttrs::SomeString(String::from("svg-hoverable-row"))),
             (String::from("x"), SVGPropertyAttrs::SomeInt(pixel_x)),
             (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + RECT_Y_OFFSET)),
             (String::from("width"), SVGPropertyAttrs::SomeInt(0)),
