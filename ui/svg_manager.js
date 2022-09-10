@@ -1,4 +1,5 @@
 import {writeText} from "@tauri-apps/api/clipboard";
+import {emit} from "@tauri-apps/api/event";
 
 /**
  * A class to manage the svg element.
@@ -97,6 +98,7 @@ export class SVGManager {
             let width = currentX + elements['summary_text']['textContent'].length * singleCharWidth;
             elements['back_rect']['attrs']['width'] = width;
             const backRect = self.makeSVG(elements['back_rect']['tag'], elements['back_rect']['attrs']);
+            backRect.onclick = self.getClickFunction(commit['sha']);
             backRect.oncontextmenu = self.getContextFunction(commit['sha']);
             row['elements'].push(backRect);
 
@@ -238,6 +240,13 @@ export class SVGManager {
             el.setAttribute(k, attrs[k]);
         }
         return el;
+    }
+
+    getClickFunction(sha) {
+        return function(event) {
+            // Will call start-process from back-end
+            emit("get-commit-info", sha).then();
+        };
     }
 
     /**

@@ -67,6 +67,10 @@ class Main {
             self.removeProcessCount();
         }).then();
 
+        listen("commit-info", ev => {
+            self.showCommitInfo(ev.payload);
+        }).then();
+
         listen("update_all", ev => {
             self.updateAll(ev.payload);
             self.removeProcessCount();
@@ -258,6 +262,17 @@ class Main {
             $fileDiffTable.append($(fileLineRow));
         });
         hljs.highlightAll();
+    }
+
+    showCommitInfo(commit_info) {
+        const self = this,
+            $commitInfo = $('#commit-info');
+
+        $commitInfo.empty();
+
+        const $newCommitInfo = $('<h4>' + commit_info['author_name'] + '</h4><h4>' + commit_info['committer_name'] + '</h4>');
+
+        $commitInfo.append($newCommitInfo);
     }
 
     updateAll(repo_info) {

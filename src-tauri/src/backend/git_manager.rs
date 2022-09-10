@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str;
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
+use git2::{AutotagOption, BranchType, Commit, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
 use serde::Serialize;
-use crate::backend::parseable_info::ParseableDiffDelta;
+use crate::backend::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
 use super::config_manager;
 
 fn trim_newline(s: &mut String) {
@@ -39,6 +39,46 @@ impl FileLineInfo {
             origin: diff_line.origin(),
         };
         Ok(new_info)
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct CommitInfo {
+    author_name: String,
+    author_time: i64,
+    committer_name: String,
+    committer_time: i64,
+    changed_files: Vec<ParseableDiffDelta>,
+}
+
+impl CommitInfo {
+    pub fn from_commit(commit: Commit, repo: &Repository) -> Result<Self, Box<dyn std::error::Error>> {
+        let author_signature = commit.author();
+        let author_name = String::from(GitManager::get_utf8_string(author_signature.name(), "Author Name")?);
+        let author_time = author_signature.when().seconds();
+
+        let committer_signature = commit.committer();
+        let committer_name = String::from(GitManager::get_utf8_string(committer_signature.name(), "Committer Name")?);
+        let committer_time = committer_signature.when().seconds();
+
+        let head_ref = repo.head()?;
+        let head_tree = match head_ref.target() {
+            Some(oid) => repo.find_commit(oid)?.tree()?,
+            None => return Err("No commit in current repo to find diff against! This error should be impossible in theory.".into()),
+        };
+
+        let diff = repo.diff_tree_to_tree(Some(&commit.tree()?), Some(&head_tree), None)?;
+        let parseable_diff_delta = get_parseable_diff_delta(diff)?;
+
+        let new_commit_info = Self {
+            author_name,
+            author_time,
+            committer_name,
+            committer_time,
+            changed_files: parseable_diff_delta,
+        };
+
+        Ok(new_commit_info)
     }
 }
 
@@ -139,6 +179,16 @@ impl GitManager {
 
     pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference, Box<dyn std::error::Error>> {
         Ok(self.get_repo()?.find_reference(ref_full_name)?)
+    }
+
+    pub fn get_commit_info(&self, sha: &str) -> Result<CommitInfo, Box<dyn std::error::Error>> {
+        let repo = self.get_repo()?;
+
+        let oid = Oid::from_str(sha)?;
+        let commit = repo.find_commit(oid)?;
+        let commit_info = CommitInfo::from_commit(commit, repo)?;
+
+        Ok(commit_info)
     }
 
     pub fn git_checkout(&self, local_ref: &Reference) -> Result<(), Box<dyn std::error::Error>> {
