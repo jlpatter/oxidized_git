@@ -266,13 +266,18 @@ class Main {
 
     showCommitInfo(commit_info) {
         const self = this,
-            $commitInfo = $('#commit-info');
+            $commitInfo = $('#commit-info'),
+            $commitChanges = $('#commitChanges');
 
         $commitInfo.empty();
+        $commitChanges.empty();
 
         const $newCommitInfo = $('<h4>' + commit_info['author_name'] + '</h4><h4>' + commit_info['committer_name'] + '</h4>');
-
         $commitInfo.append($newCommitInfo);
+
+        commit_info['changed_files'].forEach(function(file) {
+            self.addFileChangeRow($commitChanges, null, file, 'commit', commit_info['sha']);
+        });
     }
 
     updateAll(repo_info) {
@@ -330,7 +335,7 @@ class Main {
         }
     }
 
-    addFileChangeRow($changesDiv, $button, file, changeType) {
+    addFileChangeRow($changesDiv, $button, file, changeType, sha) {
         const self = this,
             // The outer div is the whole row (minus the button), the next inner div is the "unshrunken" text size (i.e. what size the text should fit in), and the last inner div is the size of the text width.
             // This is all used for truncating the text.
@@ -341,11 +346,13 @@ class Main {
             $('#contextMenu').hide();
             self.unselectAllRows();
             self.selectRow($text);
-            emit('file-diff', {file_path: file['path'], change_type: changeType}).then();
+            emit('file-diff', {file_path: file['path'], change_type: changeType, sha: sha}).then();
         });
         const $row = $('<div class="display-flex-row little-padding-bottom"></div>');
         $row.append($text);
-        $row.append($button);
+        if ($button !== null) {
+            $row.append($button);
+        }
         $changesDiv.append($row);
     }
 
@@ -373,7 +380,7 @@ class Main {
                 e.stopPropagation();
                 emit('stage', unstagedFile).then();
             });
-            self.addFileChangeRow($unstagedChanges, $button, unstagedFile, 'unstaged');
+            self.addFileChangeRow($unstagedChanges, $button, unstagedFile, 'unstaged', '');
         });
 
         // Staged changes
@@ -383,7 +390,7 @@ class Main {
                 e.stopPropagation();
                 emit('unstage', stagedFile).then();
             });
-            self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged');
+            self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged', '');
         });
 
         self.truncateFilePathText();

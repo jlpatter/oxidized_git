@@ -44,6 +44,7 @@ impl FileLineInfo {
 
 #[derive(Clone, Serialize)]
 pub struct CommitInfo {
+    sha: String,
     author_name: String,
     author_time: i64,
     committer_name: String,
@@ -71,6 +72,7 @@ impl CommitInfo {
         let parseable_diff_delta = get_parseable_diff_delta(diff)?;
 
         let new_commit_info = Self {
+            sha: commit.id().to_string(),
             author_name,
             author_time,
             committer_name,
@@ -345,14 +347,20 @@ impl GitManager {
             Some(s) => s,
             None => return Err("change_type not returned from front-end payload.".into()),
         };
+        let sha = match json_hm.get("sha") {
+            Some(s) => s,
+            None => return Err("sha not returned from front-end payload.".into()),
+        };
 
         let diff;
         if change_type == "unstaged" {
             diff = self.get_unstaged_changes()?;
         } else if change_type == "staged" {
             diff = self.get_staged_changes()?;
+        } else if change_type == "commit" {
+            diff = self.get_commit_changes(sha)?;
         } else {
-            return Err("change_type not a valid type. Needs to be 'staged' or 'unstaged'".into());
+            return Err("change_type not a valid type. Needs to be 'staged', 'unstaged', or 'commit'".into());
         }
 
         let file_index_opt = diff.deltas().position(|dd| {
