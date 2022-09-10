@@ -301,11 +301,11 @@ class Main {
             commit_info['message'] +
             '</p><table><tr><td>' +
             commit_info['author_name'] +
-            '</td><td>' +
+            '</td><td class="little-padding-left">' +
             commit_info['committer_name'] +
             '</td></tr><tr><td>' +
             formattedAuthorTime +
-            '</td><td>' +
+            '</td><td class="little-padding-left">' +
             formattedCommitterTime +
             '</td></tr></table>'
         );
