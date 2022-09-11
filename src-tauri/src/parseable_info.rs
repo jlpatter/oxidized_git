@@ -249,8 +249,9 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
         },
     }
 
-    // Check if a cherrypick is in progress (this means that conflicts occurred during the cherrypick).
+    // Check if an operation is in progress (this means that conflicts occurred during the operation).
     general_info.insert(String::from("is_cherrypicking"), (repo.state() == RepositoryState::CherryPick).to_string());
+    general_info.insert(String::from("is_reverting"), (repo.state() == RepositoryState::Revert).to_string());
 
     Ok(general_info)
 }

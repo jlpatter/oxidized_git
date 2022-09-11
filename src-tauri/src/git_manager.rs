@@ -279,7 +279,45 @@ impl GitManager {
 
         if is_committing && !self.has_conflicts()? && self.has_staged_changes()? {
             let committer = repo.signature()?;
-            self.git_commit(String::from(GitManager::get_utf8_string(commit.message(), "Commit Message")?), &commit.author(), &committer, vec![&commit])?;
+            let head_commit = match repo.head()?.target() {
+                Some(oid) => repo.find_commit(oid)?,
+                None => bail!("HEAD has no target, failed to commit after cherrypick."),
+            };
+            self.git_commit(String::from(GitManager::get_utf8_string(commit.message(), "Commit Message")?), &commit.author(), &committer, vec![&head_commit])?;
+        }
+
+        Ok(())
+    }
+
+    pub fn git_revert(&self, json_str: &str) -> Result<()> {
+        let repo = self.get_repo()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+
+        let sha = match json_hm.get("sha") {
+            Some(s) => s,
+            None => bail!("sha wasn't included in payload from the front-end."),
+        };
+        let is_committing = match json_hm.get("isCommitting") {
+            Some(s) => s == "true",
+            None => bail!("isCommitting wasn't included in payload from the front-end."),
+        };
+
+        let commit = repo.find_commit(Oid::from_str(sha)?)?;
+
+        repo.revert(&commit, None)?;
+
+        if !self.has_conflicts()? {
+            repo.cleanup_state()?;
+        }
+
+        if is_committing && !self.has_conflicts()? && self.has_staged_changes()? {
+            let committer = repo.signature()?;
+            let head_commit = match repo.head()?.target() {
+                Some(oid) => repo.find_commit(oid)?,
+                None => bail!("HEAD has no target, failed to commit after revert."),
+            };
+            self.git_commit(String::from(GitManager::get_utf8_string(commit.message(), "Commit Message")?), &commit.author(), &committer, vec![&head_commit])?;
         }
 
         Ok(())
@@ -309,7 +347,26 @@ impl GitManager {
             };
 
             let committer = repo.signature()?;
+            // TODO: Need message from original cherrypick commit, not head!
             self.git_commit(String::from(GitManager::get_utf8_string(head_commit.message(), "Commit Message")?), &head_commit.author(), &committer, vec![&head_commit])?;
+            repo.cleanup_state()?;
+        }
+
+        Ok(())
+    }
+
+    pub fn git_continue_revert(&self) -> Result<()> {
+        if !self.has_conflicts()? {
+            let repo = self.get_repo()?;
+
+            let head_commit = match repo.head()?.target() {
+                Some(oid) => repo.find_commit(oid)?,
+                None => bail!("HEAD doesn't have a target commit (which is where a revert operation starts on), can't complete revert."),
+            };
+
+            let committer = repo.signature()?;
+            // TODO: Need message from original revert commit, not head!
+            self.git_commit(String::from(GitManager::get_utf8_string(head_commit.message(), "Commit Message")?), &committer, &committer, vec![&head_commit])?;
             repo.cleanup_state()?;
         }
 

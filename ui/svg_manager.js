@@ -332,25 +332,33 @@ export class SVGManager {
             });
             $contextMenu.append($cherrypickBtn);
 
+            const $revertBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-rotate-left"></i> Revert Commit</button>');
+            $revertBtn.click(function() {
+                $('#revertSha').text(sha);
+                $('#commitRevertCheckBox').prop('checked', true);
+                $('#revertModal').modal('show');
+            });
+            $contextMenu.append($revertBtn);
+
             const $copyShaBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-regular fa-clipboard"></i> Copy SHA</button>');
             $copyShaBtn.click(function() {
                 writeText(sha).then();
             });
             $contextMenu.append($copyShaBtn);
 
-            const $softResetBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Soft Reset to Here</button>');
+            const $softResetBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-solid fa-rotate-left"></i> Soft Reset to Here</button>');
             $softResetBtn.click(function() {
                 emit("reset", {sha: sha, type: "soft"}).then();
             });
             $contextMenu.append($softResetBtn);
 
-            const $mixedResetBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Mixed Reset to Here</button>');
+            const $mixedResetBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-solid fa-rotate-left"></i> Mixed Reset to Here</button>');
             $mixedResetBtn.click(function() {
                 emit("reset", {sha: sha, type: "mixed"}).then();
             });
             $contextMenu.append($mixedResetBtn);
 
-            const $hardResetBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Hard Reset to Here</button>');
+            const $hardResetBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-solid fa-rotate-left"></i> Hard Reset to Here</button>');
             $hardResetBtn.click(function() {
                 emit("reset", {sha: sha, type: "hard"}).then();
             });

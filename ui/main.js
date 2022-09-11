@@ -180,10 +180,17 @@ class Main {
         });
 
         $('#cherrypickBtn').click(() => {
-            const $cherryPickSha = $('#cherrypickSha');
-            emit("cherrypick", {sha: $cherryPickSha.text(), isCommitting: $('#commitCherrypickCheckBox').is(':checked').toString()}).then();
+            const $cherrypickSha = $('#cherrypickSha');
+            emit("cherrypick", {sha: $cherrypickSha.text(), isCommitting: $('#commitCherrypickCheckBox').is(':checked').toString()}).then();
             $('#cherrypickModal').modal('hide');
-            $cherryPickSha.text('');
+            $cherrypickSha.text('');
+        });
+
+        $('#revertBtn').click(() => {
+            const $revertSha = $('#revertSha');
+            emit("revert", {sha: $revertSha.text(), isCommitting: $('#commitRevertCheckBox').is(':checked').toString()}).then();
+            $('#revertModal').modal('hide');
+            $revertSha.text('');
         });
 
         $('#fetchBtn').click(() => {
@@ -348,6 +355,8 @@ class Main {
 
         if (self.generalInfo['is_cherrypicking'] === "true") {
             self.showCherrypickControls();
+        } else if (self.generalInfo['is_reverting'] === "true") {
+            self.showRevertControls();
         } else {
             self.showCommitControls();
         }
@@ -591,6 +600,7 @@ class Main {
         $('#commitControls').show();
         $('#mergeControls').hide();
         $('#cherrypickControls').hide();
+        $('#revertControls').hide();
     }
 
     showMergeControls() {
@@ -599,6 +609,7 @@ class Main {
         $('#commitControls').hide();
         $('#mergeControls').show();
         $('#cherrypickControls').hide();
+        $('#revertControls').hide();
     }
 
     showCherrypickControls() {
@@ -607,6 +618,16 @@ class Main {
         $('#commitControls').hide();
         $('#mergeControls').hide();
         $('#cherrypickControls').show();
+        $('#revertControls').hide();
+    }
+
+    showRevertControls() {
+        $('#conflictWarningBanner').show();
+
+        $('#commitControls').hide();
+        $('#mergeControls').hide();
+        $('#cherrypickControls').hide();
+        $('#revertControls').show();
     }
 }
 
