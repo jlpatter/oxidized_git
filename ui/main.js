@@ -586,18 +586,24 @@ class Main {
     }
 
     showCommitControls() {
+        $('#conflictWarningBanner').hide();
+
         $('#commitControls').show();
         $('#mergeControls').hide();
         $('#cherrypickControls').hide();
     }
 
     showMergeControls() {
+        $('#conflictWarningBanner').show();
+
         $('#commitControls').hide();
         $('#mergeControls').show();
         $('#cherrypickControls').hide();
     }
 
     showCherrypickControls() {
+        $('#conflictWarningBanner').show();
+
         $('#commitControls').hide();
         $('#mergeControls').hide();
         $('#cherrypickControls').show();
