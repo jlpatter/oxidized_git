@@ -264,6 +264,48 @@ impl GitManager {
         }
     }
 
+    pub fn git_merge(&mut self, sha: &str) -> Result<()> {
+        // This closure allows self to be borrowed mutably for cleanup.
+        {
+            let repo = self.get_repo()?;
+            let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
+
+            repo.merge(&[&annotated_commit], None, None)?;
+        }
+
+        if !self.has_conflicts()? {
+            if self.has_staged_changes()? {
+                let repo = self.get_repo()?;
+
+                let head_commit = match repo.head()?.target() {
+                    Some(oid) => repo.find_commit(oid)?,
+                    None => bail!("HEAD has no target, failed to commit after merging. It should fail earlier than this since there'd be no HEAD to merge into."),
+                };
+                let merge_parent_two = repo.find_commit(Oid::from_str(sha)?)?;
+                let parent_commits = vec![&head_commit, &merge_parent_two];
+                let committer = repo.signature()?;
+
+                let mut message = String::from("Merge commit ");
+                let mut short_sha = String::from(sha);
+                short_sha.truncate(5);
+                message.push_str(&*short_sha);
+                message.push_str(" into commit ");
+                let mut head_short_sha = head_commit.id().to_string();
+                head_short_sha.truncate(5);
+                message.push_str(&*head_short_sha);
+
+                self.git_commit(message, &committer, &committer, parent_commits)?;
+            } else {
+                bail!("Merge commit had no changes, not really sure what would cause this...");
+            }
+            self.cleanup_state()?;
+        } else {
+            self.sha_from_commit_from_op = Some(String::from(sha.clone()));
+        }
+
+        Ok(())
+    }
+
     pub fn git_cherrypick(&mut self, json_str: &str) -> Result<()> {
         let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
 
@@ -408,6 +450,44 @@ impl GitManager {
                 // Note: using the current user as the author as well since they could've modified the original commit.
                 let committer = repo.signature()?;
                 self.git_commit(String::from(GitManager::get_utf8_string(commit_from_op.message(), "Commit Message")?), &committer, &committer, vec![&head_commit])?;
+            }
+            self.cleanup_state()?;
+        }
+
+        Ok(())
+    }
+
+    pub fn git_continue_merge(&mut self) -> Result<()> {
+        if !self.has_conflicts()? {
+            // This closure allows self to be borrowed mutably for cleanup.
+            {
+                let repo = self.get_repo()?;
+
+                let head_commit = match repo.head()?.target() {
+                    Some(oid) => repo.find_commit(oid)?,
+                    None => bail!("HEAD doesn't have a target commit (which is where a merge operation starts on), can't complete merge."),
+                };
+
+                let commit_from_op;
+                let mut short_sha;
+                match &self.sha_from_commit_from_op {
+                    Some(c) => {
+                        commit_from_op = repo.find_commit(Oid::from_str(c)?)?;
+                        short_sha = c.clone();
+                        short_sha.truncate(5);
+                    },
+                    None => bail!("Original commit from merge operation wasn't captured, can't complete merge."),
+                };
+
+                let mut message = String::from("Merge commit ");
+                message.push_str(&*short_sha);
+                message.push_str(" into commit ");
+                let mut head_short_sha = head_commit.id().to_string();
+                head_short_sha.truncate(5);
+                message.push_str(&*head_short_sha);
+
+                let committer = repo.signature()?;
+                self.git_commit(message, &committer, &committer, vec![&head_commit, &commit_from_op])?;
             }
             self.cleanup_state()?;
         }

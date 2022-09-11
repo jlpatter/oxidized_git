@@ -186,11 +186,27 @@ class Main {
             $cherrypickSha.text('');
         });
 
+        $('#abortRevertBtn').click(() => {
+            emit("abort").then();
+        });
+
+        $('#continueRevertBtn').click(() => {
+            emit("continue-revert").then();
+        });
+
         $('#revertBtn').click(() => {
             const $revertSha = $('#revertSha');
             emit("revert", {sha: $revertSha.text(), isCommitting: $('#commitRevertCheckBox').is(':checked').toString()}).then();
             $('#revertModal').modal('hide');
             $revertSha.text('');
+        });
+
+        $('#abortMergeBtn').click(() => {
+            emit("abort").then();
+        });
+
+        $('#continueMergeBtn').click(() => {
+            emit("continue-merge").then();
         });
 
         $('#fetchBtn').click(() => {
@@ -357,6 +373,8 @@ class Main {
             self.showCherrypickControls();
         } else if (self.generalInfo['is_reverting'] === "true") {
             self.showRevertControls();
+        } else if (self.generalInfo['is_merging'] === "true") {
+            self.showMergeControls();
         } else {
             self.showCommitControls();
         }

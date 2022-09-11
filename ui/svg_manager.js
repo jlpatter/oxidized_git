@@ -319,8 +319,7 @@ export class SVGManager {
 
             const $mergeBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-code-merge"></i> Merge</button>');
             $mergeBtn.click(function() {
-                // TODO: Implement stuff here
-                alert('Not implemented yet.');
+                emit("merge", sha).then();
             });
             $contextMenu.append($mergeBtn);
 
