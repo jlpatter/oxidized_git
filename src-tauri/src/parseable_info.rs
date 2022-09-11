@@ -4,9 +4,8 @@ use std::rc::Rc;
 use anyhow::{bail, Result};
 use git2::{BranchType, Diff, ErrorCode, Oid};
 use serde::{Serialize, Deserialize, Serializer};
-use super::git_manager::GitManager;
-use super::svg_row::RowProperty;
-use super::svg_row::SVGRow;
+use crate::git_manager::GitManager;
+use crate::svg_row::{RowProperty, SVGRow};
 
 #[derive(Clone)]
 pub enum SVGCommitInfoValue {

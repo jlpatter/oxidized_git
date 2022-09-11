@@ -6,8 +6,8 @@ use directories::BaseDirs;
 use git2::{AutotagOption, BranchType, Commit, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
 use serde::Serialize;
-use crate::backend::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
-use super::config_manager;
+use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
+use crate::config_manager;
 
 fn trim_newline(s: &mut String) {
     if s.ends_with('\n') {

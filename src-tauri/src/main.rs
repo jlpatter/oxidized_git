@@ -3,15 +3,17 @@
     windows_subsystem = "windows"
 )]
 
-mod backend;
+pub mod git_manager;
+pub mod config_manager;
+pub mod svg_row;
+pub mod parseable_info;
 
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use tauri::{CustomMenuItem, Manager, Menu, MenuItem, Submenu, Window, WindowBuilder, WindowEvent, Wry};
 use tauri::MenuEntry::NativeItem;
-use backend::git_manager::GitManager;
-use backend::config_manager;
-use backend::parseable_info::{get_parseable_repo_info, get_files_changed_info_list};
+use git_manager::GitManager;
+use parseable_info::{get_parseable_repo_info, get_files_changed_info_list};
 
 fn handle_error(e: anyhow::Error, main_window: &Window<Wry>) {
     let error_string = format!("{:?}", e);
