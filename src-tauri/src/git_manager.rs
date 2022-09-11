@@ -230,9 +230,10 @@ impl GitManager {
         let unstaged_diff = self.get_unstaged_changes()?;
         let staged_diff = self.get_staged_changes()?;
 
-        // If there are unstaged changes, assume there are conflicts.
-        if unstaged_diff.stats()?.files_changed() > 0 {
-            return Ok(true);
+        for delta in unstaged_diff.deltas() {
+            if delta.status() == Delta::Conflicted {
+                return Ok(true);
+            }
         }
 
         for delta in staged_diff.deltas() {
