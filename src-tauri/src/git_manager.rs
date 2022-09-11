@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Commit, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, ResetType, Sort};
+use git2::{AutotagOption, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
 use rfd::FileDialog;
 use serde::Serialize;
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
@@ -220,11 +220,100 @@ impl GitManager {
     pub fn get_commit_info(&self, sha: &str) -> Result<CommitInfo> {
         let repo = self.get_repo()?;
 
-        let oid = Oid::from_str(sha)?;
-        let commit = repo.find_commit(oid)?;
+        let commit = repo.find_commit(Oid::from_str(sha)?)?;
         let commit_info = CommitInfo::from_commit(commit, repo)?;
 
         Ok(commit_info)
+    }
+
+    fn has_conflicts(&self) -> Result<bool> {
+        let unstaged_diff = self.get_unstaged_changes()?;
+        let staged_diff = self.get_staged_changes()?;
+
+        for delta in unstaged_diff.deltas() {
+            if delta.status() == Delta::Conflicted {
+                return Ok(true);
+            }
+        }
+
+        for delta in staged_diff.deltas() {
+            if delta.status() == Delta::Conflicted {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
+    fn has_staged_changes(&self) -> Result<bool> {
+        let diff = self.get_staged_changes()?;
+
+        if diff.stats()?.files_changed() > 0 {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    pub fn git_cherrypick(&self, json_str: &str) -> Result<()> {
+        let repo = self.get_repo()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+
+        let sha = match json_hm.get("sha") {
+            Some(s) => s,
+            None => bail!("sha wasn't included in payload from the front-end."),
+        };
+        let is_committing = match json_hm.get("isCommitting") {
+            Some(s) => s == "true",
+            None => bail!("isCommitting wasn't included in payload from the front-end."),
+        };
+
+        let commit = repo.find_commit(Oid::from_str(sha)?)?;
+
+        repo.cherrypick(&commit, None)?;
+
+        if !self.has_conflicts()? {
+            repo.cleanup_state()?;
+        }
+
+        if is_committing && !self.has_conflicts()? && self.has_staged_changes()? {
+            let committer = repo.signature()?;
+            self.git_commit(String::from(GitManager::get_utf8_string(commit.message(), "Commit Message")?), &commit.author(), &committer, vec![&commit])?;
+        }
+
+        Ok(())
+    }
+
+    pub fn git_abort(&self) -> Result<()> {
+        let repo = self.get_repo()?;
+
+        let head_commit = match repo.head()?.target() {
+            Some(oid) => repo.find_commit(oid)?,
+            None => bail!("HEAD doesn't have a target commit, cannot abort to HEAD"),
+        };
+
+        repo.reset(head_commit.as_object(), ResetType::Hard, None)?;
+        repo.cleanup_state()?;
+
+        Ok(())
+    }
+
+    pub fn git_continue_cherrypick(&self) -> Result<()> {
+        if !self.has_conflicts()? {
+            let repo = self.get_repo()?;
+
+            let head_commit = match repo.head()?.target() {
+                Some(oid) => repo.find_commit(oid)?,
+                None => bail!("HEAD doesn't have a target commit (which is where a cherrypick operation starts on), can't complete cherrypick."),
+            };
+
+            let committer = repo.signature()?;
+            self.git_commit(String::from(GitManager::get_utf8_string(head_commit.message(), "Commit Message")?), &head_commit.author(), &committer, vec![&head_commit])?;
+            repo.cleanup_state()?;
+        }
+
+        Ok(())
     }
 
     pub fn git_reset(&self, json_str: &str) -> Result<()> {
@@ -252,8 +341,7 @@ impl GitManager {
             bail!("type from front-end payload isn't a valid option. Choices are 'soft', 'mixed', or 'hard'");
         }
 
-        let oid = Oid::from_str(sha)?;
-        let commit = repo.find_commit(oid)?;
+        let commit = repo.find_commit(Oid::from_str(sha)?)?;
 
         repo.reset(commit.as_object(), reset_type, None)?;
 
@@ -426,8 +514,7 @@ impl GitManager {
         } else if change_type == "staged" {
             diff = self.get_staged_changes()?;
         } else if change_type == "commit" {
-            let oid = Oid::from_str(sha)?;
-            let commit = repo.find_commit(oid)?;
+            let commit = repo.find_commit(Oid::from_str(sha)?)?;
             diff = get_commit_changes(&commit, &repo)?;
         } else {
             bail!("change_type not a valid type. Needs to be 'staged', 'unstaged', or 'commit'");
@@ -469,7 +556,21 @@ impl GitManager {
         Ok(file_info)
     }
 
-    pub fn git_commit(&self, json_string: &str) -> Result<()> {
+    // This is used for performing commits in rebases, merges, cherrypicks, and reverts
+    fn git_commit(&self, full_message: String, author: &Signature, committer: &Signature, parent_commits: Vec<&Commit>) -> Result<()> {
+        let repo = self.get_repo()?;
+
+        let mut index = repo.index()?;
+        let tree_oid = index.write_tree()?;
+        index.write()?;
+        let tree = repo.find_tree(tree_oid)?;
+
+        repo.commit(Some("HEAD"), author, committer, &*full_message, &tree, parent_commits.as_slice())?;
+
+        Ok(())
+    }
+
+    pub fn git_commit_from_json(&self, json_string: &str) -> Result<()> {
         let repo = self.get_repo()?;
         // TODO: Add way to set signature in git config
         let signature = repo.signature()?;
