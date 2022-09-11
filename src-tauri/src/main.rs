@@ -415,6 +415,34 @@ fn main() {
         });
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("abort", move |_event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                let git_manager = git_manager_arc_c_c.lock().unwrap();
+                let abort_result = git_manager.git_abort();
+                match abort_result {
+                    Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
+                    Err(e) => handle_error(e, &main_window_c_c),
+                };
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("continue-cherrypick", move |_event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                let git_manager = git_manager_arc_c_c.lock().unwrap();
+                let continue_result = git_manager.git_continue_cherrypick();
+                match continue_result {
+                    Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
+                    Err(e) => handle_error(e, &main_window_c_c),
+                };
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
         main_window.listen("delete-local-branch", move |event| {
             let main_window_c_c = main_window_c.clone();
             let git_manager_arc_c_c = git_manager_arc_c.clone();

@@ -172,11 +172,11 @@ class Main {
         });
 
         $('#abortCherrypickBtn').click(() => {
-            alert('Not yet implemented, sorry!');
+            emit("abort").then();
         });
 
         $('#continueCherrypickBtn').click(() => {
-            alert('Not yet implemented, sorry!');
+            emit("continue-cherrypick").then();
         });
 
         $('#cherrypickBtn').click(() => {
@@ -348,6 +348,8 @@ class Main {
 
         if (self.generalInfo['is_cherrypicking'] === "true") {
             self.showCherrypickControls();
+        } else {
+            self.showCommitControls();
         }
     }
 
