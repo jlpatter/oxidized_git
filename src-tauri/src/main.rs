@@ -199,7 +199,7 @@ fn main() {
             thread::spawn(move || {
                 match event.payload() {
                     Some(s) => {
-                        let git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let cherrypick_result = git_manager.git_cherrypick(s);
                         match cherrypick_result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
@@ -218,7 +218,7 @@ fn main() {
             thread::spawn(move || {
                 match event.payload() {
                     Some(s) => {
-                        let git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let revert_result = git_manager.git_revert(s);
                         match revert_result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
@@ -438,7 +438,7 @@ fn main() {
             let main_window_c_c = main_window_c.clone();
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
-                let git_manager = git_manager_arc_c_c.lock().unwrap();
+                let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let abort_result = git_manager.git_abort();
                 match abort_result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
@@ -452,7 +452,7 @@ fn main() {
             let main_window_c_c = main_window_c.clone();
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
-                let git_manager = git_manager_arc_c_c.lock().unwrap();
+                let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let continue_result = git_manager.git_continue_cherrypick();
                 match continue_result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
@@ -466,7 +466,7 @@ fn main() {
             let main_window_c_c = main_window_c.clone();
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
-                let git_manager = git_manager_arc_c_c.lock().unwrap();
+                let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let continue_result = git_manager.git_continue_revert();
                 match continue_result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
