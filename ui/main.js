@@ -171,6 +171,21 @@ class Main {
             $messageTxt.val("");
         });
 
+        $('#abortCherrypickBtn').click(() => {
+            alert('Not yet implemented, sorry!');
+        });
+
+        $('#continueCherrypickBtn').click(() => {
+            alert('Not yet implemented, sorry!');
+        });
+
+        $('#cherrypickBtn').click(() => {
+            const $cherryPickSha = $('#cherrypickSha');
+            emit("cherrypick", {sha: $cherryPickSha.text(), isCommitting: $('#commitCherrypickCheckBox').is(':checked').toString()}).then();
+            $('#cherrypickModal').modal('hide');
+            $cherryPickSha.text('');
+        });
+
         $('#fetchBtn').click(() => {
             self.addProcessCount();
             emit("fetch").then();
@@ -320,11 +335,20 @@ class Main {
 
     updateAll(repo_info) {
         const self = this;
-        self.generalInfo = repo_info['general_info'];
+        self.updateGeneralInfo(repo_info["general_info"]);
         self.svgManager.updateCommitTable(repo_info["commit_info_list"]);
         self.updateFilesChangedInfo(repo_info['files_changed_info_list']);
         self.updateBranchInfo(repo_info["branch_info_list"]);
         self.updateRemoteInfo(repo_info["remote_info_list"]);
+    }
+
+    updateGeneralInfo(general_info) {
+        const self = this;
+        self.generalInfo = general_info;
+
+        if (self.generalInfo['is_cherrypicking'] === "true") {
+            self.showCherrypickControls();
+        }
     }
 
     prependFileIcon($row, status) {

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Commit, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, ResetType, Sort};
+use git2::{AutotagOption, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
 use rfd::FileDialog;
 use serde::Serialize;
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
@@ -225,6 +225,65 @@ impl GitManager {
         let commit_info = CommitInfo::from_commit(commit, repo)?;
 
         Ok(commit_info)
+    }
+
+    fn has_conflicts(&self) -> Result<bool> {
+        let unstaged_diff = self.get_unstaged_changes()?;
+        let staged_diff = self.get_staged_changes()?;
+
+        // If there are unstaged changes, assume there are conflicts.
+        if unstaged_diff.stats()?.files_changed() > 0 {
+            return Ok(true);
+        }
+
+        for delta in staged_diff.deltas() {
+            if delta.status() == Delta::Conflicted {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
+    fn has_staged_changes(&self) -> Result<bool> {
+        let diff = self.get_staged_changes()?;
+
+        if diff.stats()?.files_changed() > 0 {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    pub fn git_cherrypick(&self, json_str: &str) -> Result<()> {
+        let repo = self.get_repo()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+
+        let sha = match json_hm.get("sha") {
+            Some(s) => s,
+            None => bail!("sha wasn't included in payload from the front-end."),
+        };
+        let is_committing = match json_hm.get("isCommitting") {
+            Some(s) => s == "true",
+            None => bail!("isCommitting wasn't included in payload from the front-end."),
+        };
+
+        let oid = Oid::from_str(sha)?;
+        let commit = repo.find_commit(oid)?;
+
+        repo.cherrypick(&commit, None)?;
+
+        if !self.has_conflicts()? {
+            repo.cleanup_state()?;
+        }
+
+        if is_committing && !self.has_conflicts()? && self.has_staged_changes()? {
+            let committer = repo.signature()?;
+            self.git_commit(String::from(GitManager::get_utf8_string(commit.message(), "Commit Message")?), &commit.author(), &committer)?;
+        }
+
+        Ok(())
     }
 
     pub fn git_reset(&self, json_str: &str) -> Result<()> {
@@ -469,7 +528,25 @@ impl GitManager {
         Ok(file_info)
     }
 
-    pub fn git_commit(&self, json_string: &str) -> Result<()> {
+    pub fn git_commit(&self, full_message: String, author: &Signature, committer: &Signature) -> Result<()> {
+        let repo = self.get_repo()?;
+
+        let parent_commit = match repo.head()?.target() {
+            Some(oid) => repo.find_commit(oid)?,
+            None => bail!("HEAD has no target commit"),
+        };
+
+        let mut index = repo.index()?;
+        let tree_oid = index.write_tree()?;
+        index.write()?;
+        let tree = repo.find_tree(tree_oid)?;
+
+        repo.commit(Some("HEAD"), author, committer, &*full_message, &tree, &[&parent_commit])?;
+
+        Ok(())
+    }
+
+    pub fn git_commit_from_json(&self, json_string: &str) -> Result<()> {
         let repo = self.get_repo()?;
         // TODO: Add way to set signature in git config
         let signature = repo.signature()?;

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 use anyhow::{bail, Result};
-use git2::{BranchType, Diff, ErrorCode, Oid};
+use git2::{BranchType, Diff, ErrorCode, Oid, RepositoryState};
 use serde::{Serialize, Deserialize, Serializer};
 use crate::git_manager::GitManager;
 use crate::svg_row::{RowProperty, SVGRow};
@@ -248,6 +248,9 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
             }
         },
     }
+
+    // Check if a cherrypick is in progress (this means that conflicts occurred during the cherrypick).
+    general_info.insert(String::from("is_cherrypicking"), (repo.state() == RepositoryState::CherryPick).to_string());
 
     Ok(general_info)
 }

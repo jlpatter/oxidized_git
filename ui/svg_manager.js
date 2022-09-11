@@ -326,8 +326,9 @@ export class SVGManager {
 
             const $cherrypickBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-bullseye"></i> Cherrypick Commit</button>');
             $cherrypickBtn.click(function() {
-                // TODO: Implement stuff here
-                alert('Not implemented yet.');
+                $('#cherrypickSha').text(sha);
+                $('#commitCherrypickCheckBox').prop('checked', true);
+                $('#cherrypickModal').modal('show');
             });
             $contextMenu.append($cherrypickBtn);
 
