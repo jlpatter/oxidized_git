@@ -165,6 +165,10 @@ pre code.hljs {
     border-radius: 15px;
 }
 
+#errorModalDialog {
+    max-width: 80vw;
+}
+
 svg text {
     font-family: monospace;
 }

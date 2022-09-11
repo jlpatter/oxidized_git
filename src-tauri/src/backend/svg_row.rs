@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use anyhow::{bail, Result};
 use serde::{Serialize, Serializer};
 
 #[derive(Clone)]
@@ -145,14 +146,14 @@ impl SVGRow {
         }
     }
 
-    pub fn get_occupied_table(svg_rows: &mut Vec<Rc<RefCell<SVGRow>>>) -> Result<HashMap<isize, HashMap<isize, bool>>, Box<dyn std::error::Error>> {
+    pub fn get_occupied_table(svg_rows: &mut Vec<Rc<RefCell<SVGRow>>>) -> Result<HashMap<isize, HashMap<isize, bool>>> {
         let mut main_table: HashMap<isize, HashMap<isize, bool>> = HashMap::new();
 
         for svg_row_rc in svg_rows {
             let mut svg_row = svg_row_rc.borrow_mut();
 
             if !svg_row.has_parent_child_svg_rows_set {
-                return Err("SVGRow object didn't have parents or children set. Make sure 'set_parent_and_child_svg_row_values' is run before 'get_occupied_table'!".into());
+                bail!("SVGRow object didn't have parents or children set. Make sure 'set_parent_and_child_svg_row_values' is run before 'get_occupied_table'!");
             }
 
             // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
@@ -212,7 +213,7 @@ impl SVGRow {
                                 hm.insert(child_svg_row.x, true);
                             }
                         },
-                        None => return Err("A 'y' position in the graph with a node wasn't marked as occupied. This error should never happen in theory.".into()),
+                        None => bail!("A 'y' position in the graph with a node wasn't marked as occupied. This error should never happen in theory."),
                     };
                 }
                 else if svg_row.x > child_svg_row.x {

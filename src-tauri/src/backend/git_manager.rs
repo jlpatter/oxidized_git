@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str;
+use anyhow::{bail, Result};
 use directories::BaseDirs;
 use git2::{AutotagOption, BranchType, Commit, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
 use rfd::FileDialog;
@@ -27,7 +28,7 @@ pub struct FileLineInfo {
 }
 
 impl FileLineInfo {
-    pub fn from_diff_line(diff_line: DiffLine, file_type: &String) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_diff_line(diff_line: DiffLine, file_type: &String) -> Result<Self> {
         let mut content_string = String::from(str::from_utf8(diff_line.content())?);
         trim_newline(&mut content_string);
         content_string = html_escape::encode_text(&content_string).parse()?;
@@ -70,7 +71,7 @@ pub struct CommitInfo {
 }
 
 impl CommitInfo {
-    pub fn from_commit(commit: Commit, repo: &Repository) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_commit(commit: Commit, repo: &Repository) -> Result<Self> {
         let author_signature = commit.author();
         let author_name = String::from(GitManager::get_utf8_string(author_signature.name(), "Author Name")?);
         let author_time = author_signature.when().seconds();
@@ -97,7 +98,7 @@ impl CommitInfo {
     }
 }
 
-fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Result<Diff<'b>, Box<dyn std::error::Error>> {
+fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Result<Diff<'b>> {
     let commit_tree = commit.tree()?;
 
     for parent_commit in commit.parents() {
@@ -128,18 +129,18 @@ impl GitManager {
         }
     }
 
-    pub fn get_utf8_string<'a, 'b>(value: Option<&'a str>, str_name_type: &'b str) -> Result<&'a str, Box<dyn std::error::Error>> {
+    pub fn get_utf8_string<'a, 'b>(value: Option<&'a str>, str_name_type: &'b str) -> Result<&'a str> {
         match value {
             Some(n) => Ok(n),
-            None => Err(format!("{} uses invalid utf-8!", str_name_type).into()),
+            None => bail!(format!("{} uses invalid utf-8!", str_name_type)),
         }
     }
 
-    pub fn get_repo(&self) -> Result<&Repository, Box<dyn std::error::Error>> {
+    pub fn get_repo(&self) -> Result<&Repository> {
         let repo_temp_opt = &self.repo;
         match repo_temp_opt {
             Some(repo) => Ok(repo),
-            None => Err("No repo loaded to perform operation on.".into()),
+            None => bail!("No repo loaded to perform operation on."),
         }
     }
 
@@ -158,7 +159,7 @@ impl GitManager {
         }
     }
 
-    pub fn init_repo(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn init_repo(&mut self) -> Result<bool> {
         match self.get_directory() {
             Some(path_buffer) => {
                 self.repo = Some(Repository::init(path_buffer.as_path())?);
@@ -168,7 +169,7 @@ impl GitManager {
         }
     }
 
-    pub fn open_repo(&mut self) -> Result<bool, Box<dyn std::error::Error>> {
+    pub fn open_repo(&mut self) -> Result<bool> {
         match self.get_directory() {
             Some(path_buffer) => {
                 self.repo = Some(Repository::open(path_buffer.as_path())?);
@@ -178,7 +179,7 @@ impl GitManager {
         }
     }
 
-    pub fn git_revwalk(&self) -> Result<Vec<Oid>, Box<dyn std::error::Error>> {
+    pub fn git_revwalk(&self) -> Result<Vec<Oid>> {
         let repo = self.get_repo()?;
         let mut revwalk = repo.revwalk()?;
         let mut oid_vec: Vec<Oid> = vec![];
@@ -212,11 +213,11 @@ impl GitManager {
         Ok(oid_list)
     }
 
-    pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference, Box<dyn std::error::Error>> {
+    pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference> {
         Ok(self.get_repo()?.find_reference(ref_full_name)?)
     }
 
-    pub fn get_commit_info(&self, sha: &str) -> Result<CommitInfo, Box<dyn std::error::Error>> {
+    pub fn get_commit_info(&self, sha: &str) -> Result<CommitInfo> {
         let repo = self.get_repo()?;
 
         let oid = Oid::from_str(sha)?;
@@ -226,13 +227,13 @@ impl GitManager {
         Ok(commit_info)
     }
 
-    pub fn git_checkout(&self, local_ref: &Reference) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_checkout(&self, local_ref: &Reference) -> Result<()> {
         let repo = self.get_repo()?;
 
         let local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
         let commit = match local_ref.target() {
             Some(oid) => repo.find_commit(oid)?,
-            None => return Err("Trying to check out branch that has no target commit.".into()),
+            None => bail!("Trying to check out branch that has no target commit."),
         };
         let tree = commit.tree()?;
 
@@ -241,17 +242,17 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_checkout_remote(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_checkout_remote(&self, json_string: &str) -> Result<()> {
         let repo = self.get_repo()?;
 
         let json_data: HashMap<String, String> = serde_json::from_str(json_string)?;
         let remote_branch_shortname = match json_data.get("branch_shorthand") {
             Some(n) => n,
-            None => return Err("JSON Data is missing branch_shorthand attribute.".into()),
+            None => bail!("JSON Data is missing branch_shorthand attribute."),
         };
         let remote_branch_full_name = match json_data.get("full_branch_name") {
             Some(n) => n,
-            None => return Err("JSON Data is missing full_branch_name attribute.".into()),
+            None => bail!("JSON Data is missing full_branch_name attribute."),
         };
 
         // Look for a local branch that already exists for the specified remote branch. If one exists,
@@ -282,7 +283,7 @@ impl GitManager {
         let remote_branch = repo.find_branch(remote_branch_shortname, BranchType::Remote)?;
         let commit = match remote_branch.get().target() {
             Some(oid) => repo.find_commit(oid)?,
-            None => return Err("Selected remote branch isn't targeting a commit, can't checkout!".into()),
+            None => bail!("Selected remote branch isn't targeting a commit, can't checkout!"),
         };
         let mut local_branch = repo.branch(&*local_branch_shortname, &commit, false)?;
         local_branch.set_upstream(Some(remote_branch_shortname))?;
@@ -290,7 +291,7 @@ impl GitManager {
         self.git_checkout(local_branch.get())
     }
 
-    pub fn git_stage(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_stage(&self, json_string: &str) -> Result<()> {
         let repo = self.get_repo()?;
         let diff_delta: ParseableDiffDelta = serde_json::from_str(json_string)?;
 
@@ -305,7 +306,7 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_unstage(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_unstage(&self, json_string: &str) -> Result<()> {
         let repo = self.get_repo()?;
         let diff_delta: ParseableDiffDelta = serde_json::from_str(json_string)?;
 
@@ -316,7 +317,7 @@ impl GitManager {
                 Some(oid) => {
                     repo.find_commit(oid)?
                 },
-                None => return Err("Head has no target commit".into()),
+                None => bail!("Head has no target commit"),
             };
             repo.reset_default(Some(head_commit.as_object()), [diff_delta.get_path()])?;
         } else {
@@ -327,7 +328,7 @@ impl GitManager {
         Ok(())
     }
 
-    fn set_diff_find_similar(diff: &mut Diff) -> Result<(), Box<dyn std::error::Error>> {
+    fn set_diff_find_similar(diff: &mut Diff) -> Result<()> {
         let mut opts = DiffFindOptions::new();
         opts.renames(true);
         opts.copies(true);
@@ -336,7 +337,7 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn get_unstaged_changes(&self) -> Result<Diff, Box<dyn std::error::Error>> {
+    pub fn get_unstaged_changes(&self) -> Result<Diff> {
         let repo = self.get_repo()?;
 
         let mut diff_options = DiffOptions::new();
@@ -350,7 +351,7 @@ impl GitManager {
         Ok(diff)
     }
 
-    pub fn get_staged_changes(&self) -> Result<Diff, Box<dyn std::error::Error>> {
+    pub fn get_staged_changes(&self) -> Result<Diff> {
         let repo = self.get_repo()?;
 
         let head_ref = repo.head()?;
@@ -369,21 +370,21 @@ impl GitManager {
         Ok(diff)
     }
 
-    pub fn get_file_diff(&self, json_str: &str) -> Result<FileInfo, Box<dyn std::error::Error>> {
+    pub fn get_file_diff(&self, json_str: &str) -> Result<FileInfo> {
         let repo = self.get_repo()?;
         let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
 
         let file_path = match json_hm.get("file_path") {
             Some(s) => s,
-            None => return Err("file_path not returned from front-end payload.".into()),
+            None => bail!("file_path not returned from front-end payload."),
         };
         let change_type = match json_hm.get("change_type") {
             Some(s) => s,
-            None => return Err("change_type not returned from front-end payload.".into()),
+            None => bail!("change_type not returned from front-end payload."),
         };
         let sha = match json_hm.get("sha") {
             Some(s) => s,
-            None => return Err("sha not returned from front-end payload.".into()),
+            None => bail!("sha not returned from front-end payload."),
         };
 
         let diff;
@@ -396,7 +397,7 @@ impl GitManager {
             let commit = repo.find_commit(oid)?;
             diff = get_commit_changes(&commit, &repo)?;
         } else {
-            return Err("change_type not a valid type. Needs to be 'staged', 'unstaged', or 'commit'".into());
+            bail!("change_type not a valid type. Needs to be 'staged', 'unstaged', or 'commit'");
         }
 
         let file_index_opt = diff.deltas().position(|dd| {
@@ -412,7 +413,7 @@ impl GitManager {
         });
         let file_index = match file_index_opt {
             Some(i) => i,
-            None => return Err("Selected file not found. This shouldn't happen since this uses the same methods that are used to generate the file list.".into()),
+            None => bail!("Selected file not found. This shouldn't happen since this uses the same methods that are used to generate the file list."),
         };
 
         let patch_opt = Patch::from_diff(&diff, file_index)?;
@@ -428,14 +429,14 @@ impl GitManager {
                     }
                 }
             },
-            None => return Err("Patch not found in diff.".into()),
+            None => bail!("Patch not found in diff."),
         }
 
         let file_info = FileInfo::new(change_type.clone(), file_lines);
         Ok(file_info)
     }
 
-    pub fn git_commit(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_commit(&self, json_string: &str) -> Result<()> {
         let repo = self.get_repo()?;
         // TODO: Add way to set signature in git config
         let signature = repo.signature()?;
@@ -443,11 +444,11 @@ impl GitManager {
         let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
         let summary = match json_hm.get("summaryText") {
             Some(s) => s,
-            None => return Err("Front-end payload did not include summaryText".into()),
+            None => bail!("Front-end payload did not include summaryText"),
         };
         let message = match json_hm.get("messageText") {
             Some(s) => s,
-            None => return Err("Front-end payload did not include messageText".into()),
+            None => bail!("Front-end payload did not include messageText"),
         };
 
         let mut full_message = summary.clone();
@@ -472,14 +473,14 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_delete_local_branch(&self, branch_shorthand: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_delete_local_branch(&self, branch_shorthand: &str) -> Result<()> {
         let repo = self.get_repo()?;
         let mut branch = repo.find_branch(branch_shorthand, BranchType::Local)?;
         branch.delete()?;
         Ok(())
     }
 
-    pub fn git_delete_remote_branch(&self, branch_shorthand: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_delete_remote_branch(&self, branch_shorthand: &str) -> Result<()> {
         let repo = self.get_repo()?;
 
         let remote_branch = repo.find_branch(branch_shorthand, BranchType::Remote)?;
@@ -507,7 +508,7 @@ impl GitManager {
         let mut sb = String::from(":refs/heads/");
         let first_slash_index = match branch_shorthand.find("/") {
             Some(i) => i,
-            None => return Err("Remote Branch doesn't seem to have a remote in its name?".into()),
+            None => bail!("Remote Branch doesn't seem to have a remote in its name?"),
         };
         let mut remote = repo.find_remote(&branch_shorthand[0..first_slash_index])?;
         sb.push_str(&branch_shorthand[(first_slash_index + 1)..]);
@@ -515,13 +516,13 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_delete_tag(&self, tag_name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_delete_tag(&self, tag_name: &str) -> Result<()> {
         let repo = self.get_repo()?;
         repo.tag_delete(tag_name)?;
         Ok(())
     }
 
-    pub fn git_fetch(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_fetch(&self) -> Result<()> {
         let repo = self.get_repo()?;
         let remote_string_array = repo.remotes()?;
         let empty_refspecs: &[String] = &[];
@@ -537,7 +538,7 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_pull(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_pull(&self) -> Result<()> {
         let repo = self.get_repo()?;
 
         // Fetch first to make sure everything's up to date.
@@ -551,23 +552,23 @@ impl GitManager {
         let remote_ref = remote_branch.get();
         let remote_target = match remote_ref.target() {
             Some(oid) => oid,
-            None => return Err("Remote branch is not targeting a commit, cannot pull.".into()),
+            None => bail!("Remote branch is not targeting a commit, cannot pull."),
         };
         let remote_ac = repo.find_annotated_commit(remote_target)?;
 
         let (ma, mp) = repo.merge_analysis(&[&remote_ac])?;
 
         if ma.is_none() {
-            return Err("Merge analysis indicates no merge is possible. If you're reading this, your repository may be corrupted.".into());
+            bail!("Merge analysis indicates no merge is possible. If you're reading this, your repository may be corrupted.");
         } else if ma.is_unborn() {
-            return Err("The HEAD of the current repository is “unborn” and does not point to a valid commit. No pull can be performed, but the caller may wish to simply set HEAD to the target commit(s).".into());
+            bail!("The HEAD of the current repository is “unborn” and does not point to a valid commit. No pull can be performed, but the caller may wish to simply set HEAD to the target commit(s).");
         } else if ma.is_up_to_date() {
             return Ok(());
         } else if ma.is_fast_forward() && !mp.is_no_fast_forward() {
             println!("Performing fast forward merge for pull!");
             let commit = match remote_ref.target() {
                 Some(oid) => repo.find_commit(oid)?,
-                None => return Err("Trying to check out branch that has no target commit.".into()),
+                None => bail!("Trying to check out branch that has no target commit."),
             };
             let tree = commit.tree()?;
             repo.checkout_tree(tree.as_object(), None)?;
@@ -587,17 +588,17 @@ impl GitManager {
             }
             if has_conflicts {
                 rebase.abort()?;
-                return Err("Pull by rebase aborted because changes on local branch differ from remote branch!".into());
+                bail!("Pull by rebase aborted because changes on local branch differ from remote branch!");
             }
             rebase.finish(None)?;
             return Ok(());
         } else if (ma.is_fast_forward() && mp.is_no_fast_forward()) || (ma.is_normal() && mp.is_fastforward_only()) {
-            return Err("It looks like a pull may be possible, but your MergePreference(s) are preventing it. If you have --no-ff AND/OR --ff-only enabled, consider disabling one or both.".into());
+            bail!("It looks like a pull may be possible, but your MergePreference(s) are preventing it. If you have --no-ff AND/OR --ff-only enabled, consider disabling one or both.");
         }
-        Err("Merge analysis failed to make any determination on how to proceed with the pull. If you're reading this, your repository may be corrupted.".into())
+        bail!("Merge analysis failed to make any determination on how to proceed with the pull. If you're reading this, your repository may be corrupted.")
     }
 
-    pub fn git_push(&self, push_options_json_opt: Option<&str>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_push(&self, push_options_json_opt: Option<&str>) -> Result<()> {
         let repo = self.get_repo()?;
 
         let is_force;
@@ -607,11 +608,11 @@ impl GitManager {
             push_options = serde_json::from_str(push_options_json)?;
             is_force = match push_options.get("isForcePush") {
                 Some(s) => s == "true",
-                None => return Err("isForcePush not included in payload from front-end.".into()),
+                None => bail!("isForcePush not included in payload from front-end."),
             };
             remote_name_from_frontend_opt = match push_options.get("selectedRemote") {
                 Some(s) => Some(s.as_str()),
-                None => return Err("selectedRemote not included in payload from front-end.".into()),
+                None => bail!("selectedRemote not included in payload from front-end."),
             };
         } else {
             is_force = false;
@@ -631,7 +632,7 @@ impl GitManager {
                 is_creating_new_remote_branch = true;
                 match remote_name_from_frontend_opt {
                     Some(rn) => repo.find_remote(rn)?,
-                    None => return Err("Attempted to push with no upstream branch and no specified remote.".into()),
+                    None => bail!("Attempted to push with no upstream branch and no specified remote."),
                 }
             },
         };
@@ -657,22 +658,22 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_branch(&self, json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn git_branch(&self, json_string: &str) -> Result<()> {
         let repo = self.get_repo()?;
 
         let branch_options: HashMap<String, String> = serde_json::from_str(json_string)?;
         let branch_name = match branch_options.get("branch_name") {
             Some(s) => s,
-            None => return Err("branch_name not included in payload from front-end.".into()),
+            None => bail!("branch_name not included in payload from front-end."),
         };
         let checkout_on_create = match branch_options.get("checkout_on_create") {
             Some(s) => s == "true",
-            None => return Err("checkout_on_create not included in payload from front-end.".into()),
+            None => bail!("checkout_on_create not included in payload from front-end."),
         };
 
         let target_commit = match repo.head()?.target() {
             Some(oid) => repo.find_commit(oid)?,
-            None => return Err("Current head not pointing at commit, cannot create branch.".into()),
+            None => bail!("Current head not pointing at commit, cannot create branch."),
         };
 
         let new_branch = repo.branch(branch_name, &target_commit, false)?;
@@ -716,15 +717,15 @@ impl GitManager {
     }
 
     #[allow(unused_unsafe)]
-    pub fn set_credentials(&self, credentials_json_string: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn set_credentials(&self, credentials_json_string: &str) -> Result<()> {
         let credentials_json: HashMap<String, String> = serde_json::from_str(credentials_json_string)?;
         let username = match credentials_json.get("username") {
             Some(u) => u,
-            None => return Err("No username supplied".into()),
+            None => bail!("No username supplied"),
         };
         let password = match credentials_json.get("password") {
             Some(p) => p,
-            None => return Err("No password supplied".into()),
+            None => bail!("No password supplied"),
         };
 
         unsafe {

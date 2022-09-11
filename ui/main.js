@@ -109,9 +109,10 @@ class Main {
         }).then();
 
         listen("error", ev => {
-            // TODO: Maybe make a modal for errors instead?
             self.removeProcessCount();
-            alert(ev.payload);
+            // TODO: if removing jQuery usage, 'text(_)' automatically escapes html characters, so that will need to be handled.
+            $('#errorMessage').text(ev.payload);
+            $('#errorModal').modal('show');
         }).then();
 
         $('#commits-tab').click(() => {

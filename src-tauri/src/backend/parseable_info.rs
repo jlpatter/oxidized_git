@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
+use anyhow::{bail, Result};
 use git2::{BranchType, Diff, ErrorCode, Oid};
 use serde::{Serialize, Deserialize, Serializer};
 use super::git_manager::GitManager;
@@ -171,7 +172,7 @@ impl BranchesInfo {
     }
 }
 
-fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String, String)>>, Box<dyn std::error::Error>> {
+fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String, String)>>> {
     let repo = git_manager.get_repo()?;
 
     // Get HashMap of Oids and their refs based on type (local, remote, or tag)
@@ -229,7 +230,7 @@ fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String,
     Ok(oid_refs)
 }
 
-fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
+fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>> {
     let repo = git_manager.get_repo()?;
 
     let mut general_info: HashMap<String, String> = HashMap::new();
@@ -252,7 +253,7 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>,
     Ok(general_info)
 }
 
-fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<Vec<HashMap<String, SVGCommitInfoValue>>, Box<dyn std::error::Error>> {
+fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<Vec<HashMap<String, SVGCommitInfoValue>>> {
     let repo = git_manager.get_repo()?;
 
     let mut commit_list: Vec<HashMap<String, SVGCommitInfoValue>> = vec![];
@@ -305,12 +306,12 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
             Some(oid) => {
                 match oid {
                     SVGCommitInfoValue::SomeString(oid_string) => oid_string,
-                    SVGCommitInfoValue::SomeStringVec(_some_vector) => return Err("Oid was stored as a vector instead of a string.".into()),
-                    SVGCommitInfoValue::SomeStringTupleVec(_some_hm) => return Err("Oid was stored as a hashmap instead of a string.".into()),
-                    SVGCommitInfoValue::SomeInt(_some_int) => return Err("Oid was stored as an int instead of a string.".into()),
+                    SVGCommitInfoValue::SomeStringVec(_some_vector) => bail!("Oid was stored as a vector instead of a string."),
+                    SVGCommitInfoValue::SomeStringTupleVec(_some_hm) => bail!("Oid was stored as a hashmap instead of a string."),
+                    SVGCommitInfoValue::SomeInt(_some_int) => bail!("Oid was stored as an int instead of a string."),
                 }
             },
-            None => return Err("Commit found with no oid, shouldn't be possible...".into()),
+            None => bail!("Commit found with no oid, shouldn't be possible..."),
         };
         match children_oids.get(oid_string) {
             Some(v) => {
@@ -323,7 +324,7 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
     Ok(commit_list)
 }
 
-fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo, Box<dyn std::error::Error>> {
+fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
     let repo = git_manager.get_repo()?;
 
     // Get all remote heads to be excluded from branches info
@@ -420,7 +421,7 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo, Box<dy
     Ok(BranchesInfo::new(local_branch_info_tree, remote_branch_info_tree, tag_branch_info_tree))
 }
 
-fn get_remote_info_list(git_manager: &GitManager) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+fn get_remote_info_list(git_manager: &GitManager) -> Result<Vec<String>> {
     let repo = git_manager.get_repo()?;
 
     let mut remote_info_list = vec![];
@@ -433,7 +434,7 @@ fn get_remote_info_list(git_manager: &GitManager) -> Result<Vec<String>, Box<dyn
     Ok(remote_info_list)
 }
 
-pub fn get_parseable_diff_delta(diff: Diff) -> Result<Vec<ParseableDiffDelta>, Box<dyn std::error::Error>> {
+pub fn get_parseable_diff_delta(diff: Diff) -> Result<Vec<ParseableDiffDelta>> {
     let mut files: Vec<ParseableDiffDelta> = vec![];
     for delta in diff.deltas() {
         let status = delta.status() as u8;
@@ -441,17 +442,17 @@ pub fn get_parseable_diff_delta(diff: Diff) -> Result<Vec<ParseableDiffDelta>, B
             Some(p) => {
                 match p.to_str() {
                     Some(s) => s,
-                    None => return Err("File Path uses invalid unicode. Not sure how your file system isn't corrupted...".into()),
+                    None => bail!("File Path uses invalid unicode. Not sure how your file system isn't corrupted..."),
                 }
             },
-            None => return Err("Possible invalid file path? I'm not actually sure why this error would occur. It looks like git didn't store a file path with a file or something.".into()),
+            None => bail!("Possible invalid file path? I'm not actually sure why this error would occur. It looks like git didn't store a file path with a file or something."),
         };
         files.push(ParseableDiffDelta::new(status, String::from(path)));
     }
     Ok(files)
 }
 
-pub fn get_files_changed_info_list(git_manager: &GitManager) -> Result<Option<FilesChangedInfo>, Box<dyn std::error::Error>> {
+pub fn get_files_changed_info_list(git_manager: &GitManager) -> Result<Option<FilesChangedInfo>> {
     if !git_manager.has_open_repo() {
         return Ok(None);
     }
@@ -461,7 +462,7 @@ pub fn get_files_changed_info_list(git_manager: &GitManager) -> Result<Option<Fi
     Ok(Some(FilesChangedInfo::new(files_changed, get_parseable_diff_delta(unstaged_diff)?, get_parseable_diff_delta(staged_diff)?)))
 }
 
-pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<Option<HashMap<String, RepoInfoValue>>, Box<dyn std::error::Error>> {
+pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<Option<HashMap<String, RepoInfoValue>>> {
     if !git_manager.has_open_repo() {
         return Ok(None);
     }
@@ -475,70 +476,70 @@ pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<Option<HashMa
                 if let SVGCommitInfoValue::SomeString(s) = civ_oid {
                     s
                 } else {
-                    return Err("Oid was not passed as a string.".into());
+                    bail!("Oid was not passed as a string.");
                 }
             },
-            None => return Err("Oid not found in commit_info hash map.".into()),
+            None => bail!("Oid not found in commit_info hash map."),
         };
         let summary = match commit_info.get("summary") {
             Some(civ_summary) => {
                 if let SVGCommitInfoValue::SomeString(s) = civ_summary {
                     s
                 } else {
-                    return Err("Summary was not passed as a string.".into());
+                    bail!("Summary was not passed as a string.");
                 }
             }
-            None => return Err("Summary not found in commit_info hash map.".into()),
+            None => bail!("Summary not found in commit_info hash map."),
         };
         let branches_and_tags = match commit_info.get("branches_and_tags") {
             Some(civ_branches_and_tags) => {
                 if let SVGCommitInfoValue::SomeStringTupleVec(v) = civ_branches_and_tags {
                     v
                 } else {
-                    return Err("branches_and_tags was not passed as a vector.".into());
+                    bail!("branches_and_tags was not passed as a vector.");
                 }
             }
-            None => return Err("branches_and_tags not found in commit_info hash map.".into()),
+            None => bail!("branches_and_tags not found in commit_info hash map."),
         };
         let parent_oids = match commit_info.get("parent_oids") {
             Some(civ_parent_oids) => {
                 if let SVGCommitInfoValue::SomeStringVec(v) = civ_parent_oids {
                     v
                 } else {
-                    return Err("Parent Oids was not passed as a vector.".into());
+                    bail!("Parent Oids was not passed as a vector.");
                 }
             }
-            None => return Err("Parent Oids not found in commit_info hash map.".into()),
+            None => bail!("Parent Oids not found in commit_info hash map."),
         };
         let child_oids = match commit_info.get("child_oids") {
             Some(civ_child_oids) => {
                 if let SVGCommitInfoValue::SomeStringVec(v) = civ_child_oids {
                     v
                 } else {
-                    return Err("Child Oids was not passed as a vector.".into());
+                    bail!("Child Oids was not passed as a vector.");
                 }
             }
-            None => return Err("Child Oids not found in commit_info hash map.".into()),
+            None => bail!("Child Oids not found in commit_info hash map."),
         };
         let x = match commit_info.get("x") {
             Some(civ_x) => {
                 if let SVGCommitInfoValue::SomeInt(i) = civ_x {
                     i
                 } else {
-                    return Err("X was not passed as an isize.".into());
+                    bail!("X was not passed as an isize.");
                 }
             }
-            None => return Err("X not found in commit_info hash map.".into()),
+            None => bail!("X not found in commit_info hash map."),
         };
         let y = match commit_info.get("y") {
             Some(civ_y) => {
                 if let SVGCommitInfoValue::SomeInt(i) = civ_y {
                     i
                 } else {
-                    return Err("Y was not passed as an isize.".into());
+                    bail!("Y was not passed as an isize.");
                 }
             }
-            None => return Err("Y not found in commit_info hash map.".into()),
+            None => bail!("Y not found in commit_info hash map."),
         };
         let svg_row_rc: Rc<RefCell<SVGRow>> = Rc::new(RefCell::new(SVGRow::new(
             oid.clone(),
@@ -572,7 +573,7 @@ pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<Option<HashMa
     if let Some(fcil) = get_files_changed_info_list(git_manager)? {
         repo_info.insert(String::from("files_changed_info_list"), RepoInfoValue::SomeFilesChangedInfo(fcil));
     } else {
-        return Err("Changes couldn't find repo but repo_info could for some reason?".into());
+        bail!("Changes couldn't find repo but repo_info could for some reason?");
     }
     Ok(Some(repo_info))
 }

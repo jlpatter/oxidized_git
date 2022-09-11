@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
+use anyhow::{bail, Result};
 use serde::{Serialize, Deserialize};
 use directories::ProjectDirs;
 
@@ -27,10 +28,10 @@ impl Config {
     }
 }
 
-pub fn save_default_preferences() -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_default_preferences() -> Result<()> {
     let pd = match ProjectDirs::from("com", "Oxidized Git", "Oxidized Git") {
         Some(pd) => pd,
-        None => return Err("Failed to determine HOME directory on your OS".into()),
+        None => bail!("Failed to determine HOME directory on your OS"),
     };
     let config_path = pd.config_dir();
     config_path.to_path_buf().push(PathBuf::from("config.json"));
@@ -41,11 +42,11 @@ pub fn save_default_preferences() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub fn save_preferences(payload: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_preferences(payload: &str) -> Result<()> {
     let config: Config = serde_json::from_str(payload)?;
     let pd = match ProjectDirs::from("com", "Oxidized Git", "Oxidized Git") {
         Some(pd) => pd,
-        None => return Err("Failed to determine HOME directory on your OS".into()),
+        None => bail!("Failed to determine HOME directory on your OS"),
     };
     let config_path = pd.config_dir();
     config_path.to_path_buf().push(PathBuf::from("config.json"));
@@ -53,10 +54,10 @@ pub fn save_preferences(payload: &str) -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
-pub fn get_preferences() -> Result<Config, Box<dyn std::error::Error>> {
+pub fn get_preferences() -> Result<Config> {
     let pd = match ProjectDirs::from("com", "Oxidized Git", "Oxidized Git") {
         Some(pd) => pd,
-        None => return Err("Failed to determine HOME directory on your OS".into()),
+        None => bail!("Failed to determine HOME directory on your OS"),
     };
     let config_path = pd.config_dir();
     config_path.to_path_buf().push(PathBuf::from("config.json"));

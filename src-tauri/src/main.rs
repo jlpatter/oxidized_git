@@ -13,29 +13,34 @@ use backend::git_manager::GitManager;
 use backend::config_manager;
 use backend::parseable_info::{get_parseable_repo_info, get_files_changed_info_list};
 
-fn emit_update_all(git_manager: &MutexGuard<GitManager>, temp_main_window: &Window<Wry>) {
+fn handle_error(e: anyhow::Error, main_window: &Window<Wry>) {
+    let error_string = format!("{:?}", e);
+    main_window.emit_all("error", error_string).unwrap();
+}
+
+fn emit_update_all(git_manager: &MutexGuard<GitManager>, main_window: &Window<Wry>) {
     let repo_info_result = get_parseable_repo_info(git_manager);
     match repo_info_result {
         Ok(repo_info_opt) => {
             if let Some(repo_info) = repo_info_opt {
-                temp_main_window.emit_all("update_all", repo_info).unwrap();
+                main_window.emit_all("update_all", repo_info).unwrap();
             } else {
-                temp_main_window.emit_all("end-process", "").unwrap();
+                main_window.emit_all("end-process", "").unwrap();
             }
         },
-        Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+        Err(e) => handle_error(e, main_window),
     };
 }
 
-fn emit_update_changes(git_manager: &MutexGuard<GitManager>, temp_main_window: &Window<Wry>) {
+fn emit_update_changes(git_manager: &MutexGuard<GitManager>, main_window: &Window<Wry>) {
     let changes_info_result = get_files_changed_info_list(git_manager);
     match changes_info_result {
         Ok(changes_info_opt) => {
             if let Some(changes_info) = changes_info_opt {
-                temp_main_window.emit_all("update_changes", changes_info).unwrap();
+                main_window.emit_all("update_changes", changes_info).unwrap();
             }
         },
-        Err(e) => temp_main_window.emit_all("error", e.to_string()).unwrap(),
+        Err(e) => handle_error(e, main_window),
     }
 }
 
@@ -117,7 +122,7 @@ fn main() {
                     let preferences = match config_manager::get_preferences() {
                         Ok(p) => p,
                         Err(e) => {
-                            main_window_c.emit_all("error", e.to_string()).unwrap();
+                            handle_error(e, &main_window_c);
                             return;
                         },
                     };
@@ -138,7 +143,7 @@ fn main() {
                                 main_window_c.emit_all("end-process", "").unwrap();
                             }
                         },
-                        Err(e) => main_window_c.emit_all("error", e.to_string()).unwrap(),
+                        Err(e) => handle_error(e, &main_window_c),
                     };
                 },
                 "open" => {
@@ -155,7 +160,7 @@ fn main() {
                                 main_window_c.emit_all("end-process", "").unwrap();
                             }
                         },
-                        Err(e) => main_window_c.emit_all("error", e.to_string()).unwrap(),
+                        Err(e) => handle_error(e, &main_window_c),
                     };
                 },
                 "credentials" => {
@@ -177,7 +182,7 @@ fn main() {
                         let commit_info_result = git_manager.get_commit_info(s);
                         match commit_info_result {
                             Ok(r) => main_window_c_c.emit_all("commit-info", r).unwrap(),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -199,10 +204,10 @@ fn main() {
                                 let checkout_result = git_manager.git_checkout(&r);
                                 match checkout_result {
                                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                                    Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                                    Err(e) => handle_error(e, &main_window_c_c),
                                 };
                             },
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -221,7 +226,7 @@ fn main() {
                         let checkout_result = git_manager.git_checkout_remote(s);
                         match checkout_result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -242,7 +247,7 @@ fn main() {
                                 emit_update_all(&git_manager, &main_window_c_c);
                             });
                         },
-                        Err(e) => main_window_c.emit_all("error", e.to_string()).unwrap(),
+                        Err(e) => handle_error(e, &main_window_c),
                     };
                 },
                 None => main_window_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -260,7 +265,7 @@ fn main() {
                         let set_credentials_result = git_manager.set_credentials(s);
                         match set_credentials_result {
                             Ok(()) => (),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -279,7 +284,7 @@ fn main() {
                         let stage_result = git_manager.git_stage(s);
                         match stage_result {
                             Ok(()) => emit_update_changes(&git_manager, &main_window_c_c),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -298,7 +303,7 @@ fn main() {
                         let stage_result = git_manager.git_unstage(s);
                         match stage_result {
                             Ok(()) => emit_update_changes(&git_manager, &main_window_c_c),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -317,7 +322,7 @@ fn main() {
                         let file_diff_result = git_manager.get_file_diff(s);
                         match file_diff_result {
                             Ok(file_lines) => main_window_c_c.emit_all("show-file-lines", file_lines).unwrap(),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -336,7 +341,7 @@ fn main() {
                         let commit_result = git_manager.git_commit(s);
                         match commit_result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -358,10 +363,10 @@ fn main() {
                                 let push_result = git_manager.git_push(None);
                                 match push_result {
                                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                                    Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                                    Err(e) => handle_error(e, &main_window_c_c),
                                 };
                             },
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -380,7 +385,7 @@ fn main() {
                         let delete_result = git_manager.git_delete_local_branch(s);
                         match delete_result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -399,7 +404,7 @@ fn main() {
                         let delete_result = git_manager.git_delete_remote_branch(s);
                         match delete_result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -418,7 +423,7 @@ fn main() {
                         let delete_result = git_manager.git_delete_tag(s);
                         match delete_result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -435,7 +440,7 @@ fn main() {
                 let fetch_result = git_manager.git_fetch();
                 match fetch_result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                    Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                    Err(e) => handle_error(e, &main_window_c_c),
                 };
             });
         });
@@ -449,7 +454,7 @@ fn main() {
                 let pull_result = git_manager.git_pull();
                 match pull_result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                    Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                    Err(e) => handle_error(e, &main_window_c_c),
                 };
             });
         });
@@ -465,7 +470,7 @@ fn main() {
                         let push_result = git_manager.git_push(Some(s));
                         match push_result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
@@ -484,7 +489,7 @@ fn main() {
                         let branch_result = git_manager.git_branch(s);
                         match branch_result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
-                            Err(e) => main_window_c_c.emit_all("error", e.to_string()).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
