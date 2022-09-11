@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Commit, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, Sort};
+use git2::{AutotagOption, BranchType, Commit, Cred, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, ResetType, Sort};
 use rfd::FileDialog;
 use serde::Serialize;
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
@@ -225,6 +225,39 @@ impl GitManager {
         let commit_info = CommitInfo::from_commit(commit, repo)?;
 
         Ok(commit_info)
+    }
+
+    pub fn git_reset(&self, json_str: &str) -> Result<()> {
+        let repo = self.get_repo()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+
+        let sha = match json_hm.get("sha") {
+            Some(s) => s,
+            None => bail!("sha wasn't included in payload from the front-end."),
+        };
+        let reset_type_string = match json_hm.get("type") {
+            Some(s) => s,
+            None => bail!("type wasn't included in payload from the front-end."),
+        };
+
+        let reset_type;
+        if reset_type_string == "soft" {
+            reset_type = ResetType::Soft;
+        } else if reset_type_string == "mixed" {
+            reset_type = ResetType::Mixed;
+        } else if reset_type_string == "hard" {
+            reset_type = ResetType::Hard;
+        } else {
+            bail!("type from front-end payload isn't a valid option. Choices are 'soft', 'mixed', or 'hard'");
+        }
+
+        let oid = Oid::from_str(sha)?;
+        let commit = repo.find_commit(oid)?;
+
+        repo.reset(commit.as_object(), reset_type, None)?;
+
+        Ok(())
     }
 
     pub fn git_checkout(&self, local_ref: &Reference) -> Result<()> {

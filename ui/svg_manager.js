@@ -337,24 +337,21 @@ export class SVGManager {
             });
             $contextMenu.append($copyShaBtn);
 
-            const $softResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Soft Reset to Here</button>');
+            const $softResetBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Soft Reset to Here</button>');
             $softResetBtn.click(function() {
-                // TODO: Implement stuff here
-                alert('Not implemented yet.');
+                emit("reset", {sha: sha, type: "soft"}).then();
             });
             $contextMenu.append($softResetBtn);
 
-            const $mixedResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Mixed Reset to Here</button>');
+            const $mixedResetBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Mixed Reset to Here</button>');
             $mixedResetBtn.click(function() {
-                // TODO: Implement stuff here
-                alert('Not implemented yet.');
+                emit("reset", {sha: sha, type: "mixed"}).then();
             });
             $contextMenu.append($mixedResetBtn);
 
-            const $hardResetBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Hard Reset to Here</button>');
+            const $hardResetBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-rotate-right"></i> Hard Reset to Here</button>');
             $hardResetBtn.click(function() {
-                // TODO: Implement stuff here
-                alert('Not implemented yet.');
+                emit("reset", {sha: sha, type: "hard"}).then();
             });
             $contextMenu.append($hardResetBtn);
 
