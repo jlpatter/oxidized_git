@@ -537,7 +537,7 @@ class Main {
                 }
                 $innerListItem.contextmenu(function(e) {
                     e.preventDefault();
-                    self.showContextMenu(e, child['branch_info']['branch_shorthand'], child['branch_info']['branch_type']);
+                    self.showBranchContextMenu(e, child['branch_info']['branch_shorthand'], child['branch_info']['branch_type']);
                 });
                 $ul.append($innerListItem);
             }
@@ -589,7 +589,7 @@ class Main {
         }
     }
 
-    showContextMenu(event, branchShorthand, branchType) {
+    showBranchContextMenu(event, branchShorthand, branchType) {
         const self = this,
             $contextMenu = $('#contextMenu');
         $contextMenu.empty();
