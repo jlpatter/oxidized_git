@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
+use git2::{AutotagOption, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
 use rfd::FileDialog;
 use serde::Serialize;
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
@@ -199,6 +199,14 @@ impl GitManager {
                 None => (),
             };
         };
+
+        if repo.head_detached()? {
+            match repo.head()?.target() {
+                Some(oid) => oid_vec.push(oid),
+                None => (),
+            };
+        }
+
         // Sort Oids by date first
         oid_vec.sort_by(|a, b| {
             repo.find_commit(*b).unwrap().time().seconds().partial_cmp(&repo.find_commit(*a).unwrap().time().seconds()).unwrap()
@@ -254,6 +262,16 @@ impl GitManager {
         Ok(false)
     }
 
+    fn has_unstaged_changes(&self) -> Result<bool> {
+        let diff = self.get_unstaged_changes()?;
+
+        if diff.stats()?.files_changed() > 0 {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     fn has_staged_changes(&self) -> Result<bool> {
         let diff = self.get_staged_changes()?;
 
@@ -302,6 +320,42 @@ impl GitManager {
         } else {
             self.sha_from_commit_from_op = Some(String::from(sha.clone()));
         }
+
+        Ok(())
+    }
+
+    fn iterate_through_rebase(&self, repo: &Repository, rebase: &mut Rebase) -> Result<()> {
+        // Unfortunately, using 'rebase' like an iterator doesn't allow us to commit since
+        // rebase has to be borrowed mutably to commit.
+        let mut reached_end = false;
+        while !reached_end {
+            let step = rebase.next();
+            match step {
+                Some(r) => {
+                    r?;
+
+                    // If there are conflicts, need to let the user fix them before resuming
+                    // inside "git_continue_rebase"
+                    if self.has_conflicts()? || self.has_unstaged_changes()? {
+                        return Ok(());
+                    } else if self.has_staged_changes()? {
+                        rebase.commit(None, &repo.signature()?, None)?;
+                    }
+                },
+                None => reached_end = true,
+            };
+        }
+        rebase.finish(None)?;
+
+        Ok(())
+    }
+
+    pub fn git_rebase(&self, sha: &str) -> Result<()> {
+        let repo = self.get_repo()?;
+        let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
+        let mut rebase = repo.rebase(None, None, Some(&annotated_commit), None)?;
+
+        self.iterate_through_rebase(repo, &mut rebase)?;
 
         Ok(())
     }
@@ -491,6 +545,30 @@ impl GitManager {
             }
             self.cleanup_state()?;
         }
+
+        Ok(())
+    }
+
+    pub fn git_abort_rebase(&self) -> Result<()> {
+        let repo = self.get_repo()?;
+        let mut rebase = repo.open_rebase(None)?;
+
+        rebase.abort()?;
+        Ok(())
+    }
+
+    pub fn git_continue_rebase(&self) -> Result<()> {
+        let repo = self.get_repo()?;
+        let mut rebase = repo.open_rebase(None)?;
+
+        // Need to make sure there are no conflicts and we've committed before continuing.
+        if self.has_conflicts()? || self.has_unstaged_changes()? {
+            return Ok(());
+        } else if self.has_staged_changes()? {
+            rebase.commit(None, &repo.signature()?, None)?;
+        }
+
+        self.iterate_through_rebase(repo, &mut rebase)?;
 
         Ok(())
     }
@@ -893,8 +971,7 @@ impl GitManager {
             let mut has_conflicts = false;
             for step in rebase.by_ref() {
                 step?;
-                let diff = repo.diff_index_to_workdir(None, None)?;
-                if diff.stats()?.files_changed() > 0 {
+                if self.has_conflicts()? || self.has_unstaged_changes()? || self.has_staged_changes()? {
                     has_conflicts = true;
                     break;
                 }

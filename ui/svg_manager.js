@@ -323,6 +323,12 @@ export class SVGManager {
             });
             $contextMenu.append($mergeBtn);
 
+            const $rebaseBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-database"></i> Rebase Onto Here</button>');
+            $rebaseBtn.click(function() {
+                emit("rebase", sha).then();
+            });
+            $contextMenu.append($rebaseBtn);
+
             const $cherrypickBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-bullseye"></i> Cherrypick Commit</button>');
             $cherrypickBtn.click(function() {
                 $('#cherrypickSha').text(sha);

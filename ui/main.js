@@ -209,6 +209,14 @@ class Main {
             emit("continue-merge").then();
         });
 
+        $('#abortRebaseBtn').click(() => {
+            emit("abort-rebase").then();
+        });
+
+        $('#continueRebaseBtn').click(() => {
+            emit("continue-rebase").then();
+        });
+
         $('#fetchBtn').click(() => {
             self.addProcessCount();
             emit("fetch").then();
@@ -375,6 +383,8 @@ class Main {
             self.showRevertControls();
         } else if (self.generalInfo['is_merging'] === "true") {
             self.showMergeControls();
+        } else if (self.generalInfo['is_rebasing'] === "true") {
+            self.showRebaseControls();
         } else {
             self.showCommitControls();
         }
@@ -617,6 +627,7 @@ class Main {
 
         $('#commitControls').show();
         $('#mergeControls').hide();
+        $('#rebaseControls').hide();
         $('#cherrypickControls').hide();
         $('#revertControls').hide();
     }
@@ -626,6 +637,17 @@ class Main {
 
         $('#commitControls').hide();
         $('#mergeControls').show();
+        $('#rebaseControls').hide();
+        $('#cherrypickControls').hide();
+        $('#revertControls').hide();
+    }
+
+    showRebaseControls() {
+        $('#conflictWarningBanner').show();
+
+        $('#commitControls').hide();
+        $('#mergeControls').hide();
+        $('#rebaseControls').show();
         $('#cherrypickControls').hide();
         $('#revertControls').hide();
     }
@@ -635,6 +657,7 @@ class Main {
 
         $('#commitControls').hide();
         $('#mergeControls').hide();
+        $('#rebaseControls').hide();
         $('#cherrypickControls').show();
         $('#revertControls').hide();
     }
@@ -644,6 +667,7 @@ class Main {
 
         $('#commitControls').hide();
         $('#mergeControls').hide();
+        $('#rebaseControls').hide();
         $('#cherrypickControls').hide();
         $('#revertControls').show();
     }

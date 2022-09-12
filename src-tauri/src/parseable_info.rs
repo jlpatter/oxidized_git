@@ -199,9 +199,26 @@ fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String,
                 match oid_refs.get_mut(&*oid.to_string()) {
                     Some(oid_ref_vec) => {
                         oid_ref_vec.push((branch_string, branch_type));
-                    }
+                    },
                     None => {
                         oid_refs.insert(oid.to_string(), vec![(branch_string, branch_type)]);
+                    },
+                }
+            },
+            None => (),
+        };
+    }
+
+    // If HEAD is detached, add it too
+    if repo.head_detached()? {
+        match repo.head()?.target() {
+            Some(oid) => {
+                match oid_refs.get_mut(&*oid.to_string()) {
+                    Some(oid_ref_vec) => {
+                        oid_ref_vec.push((String::from("* HEAD"), String::from("local")));
+                    },
+                    None => {
+                        oid_refs.insert(oid.to_string(), vec![(String::from("* HEAD"), String::from("local"))]);
                     },
                 }
             },
@@ -234,11 +251,20 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
 
     let mut general_info: HashMap<String, String> = HashMap::new();
     let head_ref = repo.head()?;
-    let head_branch = repo.find_branch(GitManager::get_utf8_string(head_ref.shorthand(), "Branch Name")?, BranchType::Local)?;
-
-    match head_branch.upstream() {
-        Ok(_) => {
-            general_info.insert(String::from("head_has_upstream"), true.to_string());
+    match repo.find_branch(GitManager::get_utf8_string(head_ref.shorthand(), "Branch Name")?, BranchType::Local) {
+        Ok(head_branch) => {
+            match head_branch.upstream() {
+                Ok(_) => {
+                    general_info.insert(String::from("head_has_upstream"), true.to_string());
+                },
+                Err(e) => {
+                    if e.code() == ErrorCode::NotFound {
+                        general_info.insert(String::from("head_has_upstream"), false.to_string());
+                    } else {
+                        return Err(e.into());
+                    }
+                },
+            }
         },
         Err(e) => {
             if e.code() == ErrorCode::NotFound {
@@ -247,12 +273,14 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
                 return Err(e.into());
             }
         },
-    }
+    };
 
     // Check if an operation is in progress (this means that conflicts occurred during the operation).
-    general_info.insert(String::from("is_cherrypicking"), (repo.state() == RepositoryState::CherryPick).to_string());
-    general_info.insert(String::from("is_reverting"), (repo.state() == RepositoryState::Revert).to_string());
-    general_info.insert(String::from("is_merging"), (repo.state() == RepositoryState::Merge).to_string());
+    let repo_state = repo.state();
+    general_info.insert(String::from("is_cherrypicking"), (repo_state == RepositoryState::CherryPick).to_string());
+    general_info.insert(String::from("is_reverting"), (repo_state == RepositoryState::Revert).to_string());
+    general_info.insert(String::from("is_merging"), (repo_state == RepositoryState::Merge).to_string());
+    general_info.insert(String::from("is_rebasing"), (repo_state == RepositoryState::Rebase || repo_state == RepositoryState::RebaseMerge || repo_state == RepositoryState::RebaseInteractive).to_string());
 
     Ok(general_info)
 }
