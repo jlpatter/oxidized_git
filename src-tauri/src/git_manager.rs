@@ -620,6 +620,17 @@ impl GitManager {
         Ok(())
     }
 
+    pub fn git_checkout_detached_head(&self, sha: &str) -> Result<()> {
+        let repo = self.get_repo()?;
+
+        let oid = Oid::from_str(sha)?;
+        let tree = repo.find_commit(oid)?.tree()?;
+
+        repo.checkout_tree(tree.as_object(), None)?;
+        repo.set_head_detached(oid)?;
+        Ok(())
+    }
+
     pub fn git_checkout_remote(&self, json_string: &str) -> Result<()> {
         let repo = self.get_repo()?;
 

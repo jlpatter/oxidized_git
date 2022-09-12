@@ -100,6 +100,7 @@ export class SVGManager {
             elements['back_rect']['attrs']['width'] = width;
             const backRect = self.makeSVG(elements['back_rect']['tag'], elements['back_rect']['attrs']);
             backRect.onclick = self.getClickFunction(commit['sha']);
+            backRect.ondblclick = self.getDblClickFunction(commit['sha']);
             backRect.oncontextmenu = self.getContextFunction(commit['sha']);
             row['elements'].push(backRect);
 
@@ -303,6 +304,12 @@ export class SVGManager {
             // Will call start-process from back-end
             emit("get-commit-info", sha).then();
         };
+    }
+
+    getDblClickFunction(sha) {
+        return function(event) {
+            emit("checkout-detached-head", sha).then();
+        }
     }
 
     /**
