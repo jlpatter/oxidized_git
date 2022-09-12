@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
@@ -186,6 +186,25 @@ impl GitManager {
         repo.cleanup_state()?;
         self.sha_from_commit_from_op = None;
         Ok(())
+    }
+
+    fn get_message_without_summary(full_message: &str) -> (String, bool) {
+        let mut separate_pieces: VecDeque<&str> = full_message.split("\r\n\r\n").collect();
+        let mut use_crlf = true;
+
+        if separate_pieces.len() == 1 {
+            separate_pieces = full_message.split("\n\n").collect();
+            use_crlf = false;
+        }
+
+        // Remove the summary
+        separate_pieces.pop_front();
+
+        if use_crlf {
+            (separate_pieces.make_contiguous().join("\r\n\r\n"), use_crlf)
+        } else {
+            (separate_pieces.make_contiguous().join("\n\n"), use_crlf)
+        }
     }
 
     pub fn git_revwalk(&self) -> Result<Vec<Oid>> {
@@ -436,7 +455,19 @@ impl GitManager {
                 Some(oid) => repo.find_commit(oid)?,
                 None => bail!("HEAD has no target, failed to commit after revert."),
             };
-            self.git_commit(String::from(GitManager::get_utf8_string(commit.message(), "Commit Message")?), &commit.author(), &committer, vec![&head_commit])?;
+
+            let mut new_full_message = String::from("Revert \"");
+            new_full_message.push_str(GitManager::get_utf8_string(commit.summary(), "Commit Summary")?);
+            new_full_message.push('"');
+            let (message_without_summary, uses_crlf) = GitManager::get_message_without_summary(GitManager::get_utf8_string(commit.message(), "Commit Message")?);
+            if uses_crlf {
+                new_full_message.push_str("\r\n\r\n");
+            } else {
+                new_full_message.push_str("\n\n");
+            }
+            new_full_message.push_str(&*message_without_summary);
+
+            self.git_commit(new_full_message, &commit.author(), &committer, vec![&head_commit])?;
         }
 
         Ok(())
@@ -477,7 +508,19 @@ impl GitManager {
 
                 // Note: using the current user as the author as well since they could've modified the original commit.
                 let committer = repo.signature()?;
-                self.git_commit(String::from(GitManager::get_utf8_string(commit_from_op.message(), "Commit Message")?), &committer, &committer, vec![&head_commit])?;
+
+                let mut new_full_message = String::from("Revert \"");
+                new_full_message.push_str(GitManager::get_utf8_string(commit_from_op.summary(), "Commit Summary")?);
+                new_full_message.push('"');
+                let (message_without_summary, uses_crlf) = GitManager::get_message_without_summary(GitManager::get_utf8_string(commit_from_op.message(), "Commit Message")?);
+                if uses_crlf {
+                    new_full_message.push_str("\r\n\r\n");
+                } else {
+                    new_full_message.push_str("\n\n");
+                }
+                new_full_message.push_str(&*message_without_summary);
+
+                self.git_commit(new_full_message, &committer, &committer, vec![&head_commit])?;
             }
             self.cleanup_state()?;
         }
