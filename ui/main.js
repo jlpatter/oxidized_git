@@ -153,6 +153,10 @@ class Main {
             $('#credentialsModal').modal('hide');
         });
 
+        $('#stageAllBtn').click(() => {
+            emit("stage-all").then();
+        });
+
         $('#commitBtn').click(() => {
             self.addProcessCount();
             const $summaryTxt = $('#summaryTxt'),

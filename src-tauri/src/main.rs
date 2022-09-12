@@ -447,6 +447,20 @@ fn main() {
         });
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("stage-all", move |_event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                let git_manager = git_manager_arc_c_c.lock().unwrap();
+                let stage_result = git_manager.git_stage_all();
+                match stage_result {
+                    Ok(()) => emit_update_changes(&git_manager, &main_window_c_c),
+                    Err(e) => handle_error(e, &main_window_c_c),
+                };
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
         main_window.listen("commit", move |event| {
             let main_window_c_c = main_window_c.clone();
             let git_manager_arc_c_c = git_manager_arc_c.clone();

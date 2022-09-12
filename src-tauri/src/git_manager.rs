@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
+use git2::{AutotagOption, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
 use rfd::FileDialog;
 use serde::Serialize;
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
@@ -865,6 +865,16 @@ impl GitManager {
 
         let file_info = FileInfo::new(change_type.clone(), file_lines);
         Ok(file_info)
+    }
+
+    pub fn git_stage_all(&self) -> Result<()> {
+        let repo = self.get_repo()?;
+
+        let mut index = repo.index()?;
+        index.add_all(&["."], IndexAddOption::DEFAULT, None)?;
+        index.write()?;
+
+        Ok(())
     }
 
     // This is used for performing commits in rebases, merges, cherrypicks, and reverts

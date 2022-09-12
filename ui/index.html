@@ -112,7 +112,12 @@
                                     <div class="overflow-hidden display-flex-column full-height">
                                         <div class="resizable-row half-height full-width">
                                             <div class="display-flex-column full-height">
-                                                <h5>Unstaged Changes</h5>
+                                                <div class="display-flex-row full-width">
+                                                    <h5>Unstaged Changes</h5>
+                                                    <div class="flex-auto-in-row">
+                                                        <button id="stageAllBtn" class="btn btn-success btn-sm right-padding" type="button">Stage All</button>
+                                                    </div>
+                                                </div>
                                                 <div id="unstagedChanges" class="flex-auto-in-column overflow-auto"></div>
                                             </div>
                                         </div>
