@@ -5,7 +5,8 @@ import {emit} from "@tauri-apps/api/event";
  * A class to manage the svg element.
  */
 export class SVGManager {
-    X_SPACING = 20;  // If changing, be sure to update on backend-end too
+    Y_SPACING = 24;  // If changing, be sure to update on backend-end too
+    X_SPACING = 15;  // If changing, be sure to update on backend-end too
     X_OFFSET = 20;  // If changing, be sure to update on backend-end too
     BRANCH_TEXT_SPACING = 5;
     SCROLL_RENDERING_MARGIN = 100;
@@ -46,7 +47,7 @@ export class SVGManager {
         const singleCharWidth = textSizeTest.getBBox().width;
         $textSizeTestContainer.remove();
 
-        self.commitTableSVG.setAttribute('height', (self.repoInfo.length * 30).toString());
+        self.commitTableSVG.setAttribute('height', ((self.repoInfo.length + 1) * self.Y_SPACING).toString());
 
         self.rows = [];
         const renderingAreaTop = self.oldRenderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
