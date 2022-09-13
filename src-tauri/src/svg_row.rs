@@ -74,7 +74,7 @@ const Y_SPACING: isize = 24;  // If changing, be sure to update on front-end too
 const Y_OFFSET: isize = 20;
 const X_SPACING: isize = 15;  // If changing, be sure to update on front-end too
 const X_OFFSET: isize = 20;  // If changing, be sure to update on front-end too
-const TEXT_Y_ALIGNMENT: isize = 5;
+const TEXT_Y_OFFSET: isize = 5;
 const CIRCLE_RADIUS: isize = 5;
 const LINE_STROKE_WIDTH: isize = 2;
 const RECT_HEIGHT: isize = 18;
@@ -351,7 +351,7 @@ impl SVGRow {
             let mut branch_and_tag_properties: Vec<HashMap<String, SVGProperty>> = vec![];
             let text_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
                 (String::from("x"), SVGPropertyAttrs::SomeInt(0)),
-                (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_ALIGNMENT)),
+                (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_OFFSET)),
                 (String::from("fill"), SVGPropertyAttrs::SomeString(String::from("white"))),
             ]);
             branch_and_tag_properties.push(HashMap::from([
@@ -393,7 +393,7 @@ impl SVGRow {
         // Get summary text
         let text_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
             (String::from("x"), SVGPropertyAttrs::SomeInt(0)),
-            (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_ALIGNMENT)),
+            (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_OFFSET)),
             (String::from("fill"), SVGPropertyAttrs::SomeString(String::from("white"))),
         ]);
         draw_properties.insert(String::from("summary_text"), DrawProperty::SomeHashMap(HashMap::from([
