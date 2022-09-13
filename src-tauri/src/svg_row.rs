@@ -70,14 +70,15 @@ impl Serialize for RowProperty {
     }
 }
 
+const Y_SPACING: isize = 24;
 const Y_OFFSET: isize = 20;
+const X_SPACING: isize = 15;  // If changing, be sure to update on front-end too
 const X_OFFSET: isize = 20;  // If changing, be sure to update on front-end too
-const X_SPACING: isize = 20;  // If changing, be sure to update on front-end too
-const Y_SPACING: isize = 30;
-const TEXT_Y_ALIGNMENT: isize = 6;
-const CIRCLE_RADIUS: isize = 10;
-const RECT_Y_OFFSET: isize = -12;
-const RECT_HEIGHT: isize = 24;
+const TEXT_Y_ALIGNMENT: isize = 5;
+const CIRCLE_RADIUS: isize = 5;
+const LINE_STROKE_WIDTH: isize = 2;
+const RECT_HEIGHT: isize = 18;
+const RECT_Y_OFFSET: isize = -(RECT_HEIGHT / 2);
 
 #[derive(Clone)]
 pub struct SVGRow {
@@ -261,7 +262,8 @@ impl SVGRow {
 
                     let mut style_str = String::from("stroke:");
                     style_str.push_str(&*SVGRow::get_color_string(child_svg_row.x));
-                    style_str.push_str(";stroke-width:4");
+                    style_str.push_str(";stroke-width:");
+                    style_str.push_str(&*LINE_STROKE_WIDTH.to_string());
                     let line_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
                         (String::from("x1"), SVGPropertyAttrs::SomeInt(child_pixel_x)),
                         (String::from("y1"), SVGPropertyAttrs::SomeInt(top_pixel_y)),
@@ -287,7 +289,8 @@ impl SVGRow {
                 style_str.push_str(&*SVGRow::get_color_string(self.x));
                 row_y = before_y;
             }
-            style_str.push_str(";fill:transparent;stroke-width:4");
+            style_str.push_str(";fill:transparent;stroke-width:");
+            style_str.push_str(&*LINE_STROKE_WIDTH.to_string());
             if child_pixel_x == pixel_x {
                 let line_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
                     (String::from("x1"), SVGPropertyAttrs::SomeInt(child_pixel_x)),
