@@ -123,6 +123,8 @@ pub struct GitManager {
     repo: Option<Repository>,
     sha_from_commit_from_op: Option<String>,
     old_graph_starting_shas: Vec<String>,
+    old_revwalk_shas: Vec<String>,
+    unchanged_sha: String,
 }
 
 impl GitManager {
@@ -131,6 +133,8 @@ impl GitManager {
             repo: None,
             sha_from_commit_from_op: None,
             old_graph_starting_shas: vec![],
+            old_revwalk_shas: vec![],
+            unchanged_sha: String::new(),
         }
     }
 
@@ -273,13 +277,33 @@ impl GitManager {
         let limit_commits = preferences.get_limit_commits();
         let commit_count = preferences.get_commit_count();
 
+        let mut changed_starting_index: Option<usize> = None;
+        let mut changed_ending_sha = String::new();
         let mut oid_list: Vec<Oid> = vec![];
         for (i, commit_oid_result) in revwalk.enumerate() {
             if limit_commits && i >= commit_count {
                 break;
             }
-            oid_list.push(commit_oid_result?);
+            let oid = commit_oid_result?;
+            if i >= self.old_revwalk_shas.len() || oid.to_string() != self.old_revwalk_shas[i] {
+                changed_starting_index = Some(i);
+            } else if i < self.old_revwalk_shas.len() && oid.to_string() == self.old_revwalk_shas[i] && changed_starting_index != None {
+                changed_ending_sha = oid.to_string();
+                break;
+            }
+            if changed_starting_index != None {
+                oid_list.push(oid);
+            }
         }
+
+        // TODO: Figure out if this variable is actually needed.
+        self.unchanged_sha = changed_ending_sha;
+
+        // TODO: Figure out how to update just the changed commits.
+        // self.old_revwalk_shas = oid_list.iter().map(|oid| {
+        //     oid.to_string()
+        // }).collect();
+
         Ok(Some(oid_list))
     }
 
