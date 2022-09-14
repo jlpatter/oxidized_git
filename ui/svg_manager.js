@@ -5,8 +5,15 @@ import {emit} from "@tauri-apps/api/event";
  * A class to manage the svg element.
  */
 export class SVGManager {
-    Y_SPACING = 24;  // If changing, be sure to update on backend-end too
-    Y_OFFSET = 20;  // If changing, be sure to update on backend-end too
+    Y_SPACING = 24;
+    Y_OFFSET = 20;
+    X_SPACING = 15;
+    X_OFFSET = 20;
+    LINE_STROKE_WIDTH = 2;
+    CIRCLE_RADIUS = 5;
+    TEXT_Y_OFFSET = 5;  // If updating, be sure to update on the back-end as well!
+    RECT_HEIGHT = 18;  // If updating, be sure to update on the back-end as well!
+    RECT_Y_OFFSET = -(this.RECT_HEIGHT / 2);  // If updating, be sure to update on the back-end as well!
     BRANCH_TEXT_SPACING = 5;
     SCROLL_RENDERING_MARGIN = 100;
     /**
@@ -21,12 +28,8 @@ export class SVGManager {
         this.setScrollEvent();
     }
 
-    /**
-     * Refreshes the commit table. Can be called on its own for a passive refresh.
-     */
-    updateGraph(commitsInfo) {
+    getSingleCharWidth() {
         const self = this;
-
         const $textSizeTestContainer = $('<svg width="500" height="500"></svg>');
         const textSizeTest = self.makeSVG('text', {id: 'textSizeTest', x: 0, y: 0, fill: 'white'});
         textSizeTest.textContent = 'A';
@@ -35,47 +38,59 @@ export class SVGManager {
         const singleCharWidth = textSizeTest.getBBox().width;
         $textSizeTestContainer.remove();
 
-        for (let i = 0; i < self.rows.length; i++) {
-            self.removeBranchLabels(self.rows[i]);
-        }
+        return singleCharWidth;
+    }
 
-        let maxWidth = Number(self.commitTableSVG.getAttribute('width'));
-        if (commitsInfo['svg_row_draw_properties'].length > 0) {
+    updateCommitTable(commitsInfo) {
+        const self = this;
+
+        const singleCharWidth = self.getSingleCharWidth();
+
+        if (commitsInfo['clear_entire_old_graph']) {
             self.rows = [];
-
-            maxWidth = 0;
-            for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
-                const commit = commitsInfo['svg_row_draw_properties'][i];
-                const elements = commit['elements'];
-                let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'lines': [], 'branches': [], 'circle': null, 'summaryTxt': null, 'backRect': null};
-                for (const childLine of elements['child_lines']) {
-                    const line = self.makeSVG(childLine['tag'], childLine['attrs']);
-                    if (childLine['row-y'] < i) {
-                        self.rows[childLine['row-y']]['lines'].push(line);
-                    } else if (childLine['row-y'] === i) {
-                        row['lines'].push(line);
-                    } else {
-                        console.error("ERROR: A child line is trying to be added after the current node!");
-                    }
-                }
-                row['circle'] = self.makeSVG(elements['circle']['tag'], elements['circle']['attrs']);
-
-                const summaryTxt = self.makeSVG(elements['summary_text']['tag'], elements['summary_text']['attrs']);
-                summaryTxt.textContent = elements['summary_text']['textContent'];
-                row['summaryTxt'] = summaryTxt;
-
-                let width = elements['circle']['attrs']['cx'] + elements['summary_text']['textContent'].length * singleCharWidth;
-                elements['back_rect']['attrs']['width'] = width;
-                const backRect = self.makeSVG(elements['back_rect']['tag'], elements['back_rect']['attrs']);
-                backRect.onclick = self.getClickFunction(commit['sha']);
-                backRect.ondblclick = self.getDblClickFunction(commit['sha']);
-                backRect.oncontextmenu = self.getContextFunction(commit['sha']);
-                row['backRect'] = backRect;
-
-                self.rows.push(row);
-                maxWidth = Math.max(maxWidth, width);
-            }
         }
+
+        if (!commitsInfo['clear_entire_old_graph'] && commitsInfo['deleted_shas'].length > 0) {
+            self.removeRows(commitsInfo['deleted_shas']);
+        }
+
+        // Remove all lines and branch labels as they will be re-added later.
+        for (let i = 0; i < self.rows.length; i++) {
+            self.rows[i]['lines'] = [];
+            self.rows[i]['branches'] = [];
+            self.rows[i]['x'] = 0;
+        }
+
+        const newRows = [];
+        for (let i = 0; i < commitsInfo['created_commit_info_list'].length; i++) {
+            const commit = commitsInfo['created_commit_info_list'][i];
+
+            const summaryTxtElement = self.makeSVG('text', {'fill': 'white'});
+            summaryTxtElement.textContent = commit['summary'];
+
+            const backRectElement = self.makeSVG('rect', {'class': 'svg-hoverable-row', 'height': self.RECT_HEIGHT, 'style': 'fill:white;fill-opacity:0.1;'});
+            backRectElement.onclick = self.getClickFunction(commit['sha']);
+            backRectElement.ondblclick = self.getDblClickFunction(commit['sha']);
+            backRectElement.oncontextmenu = self.getContextFunction(commit['sha']);
+
+            const row = {
+                'sha': commit['sha'],
+                'x': 0,
+                'childShas': commit['child_shas'],
+                'parentShas': commit['parent_shas'],
+                'circle': self.makeSVG('circle', {'r': self.CIRCLE_RADIUS, 'stroke-width': 1}),
+                'summaryTxt': summaryTxtElement,
+                'backRect': backRectElement,
+                'lines': [],
+                'branches': [],
+            };
+
+            newRows.push(row);
+        }
+        self.rows = newRows.concat(self.rows);
+
+        const occupiedTable = self.getOccupiedTable();
+        let maxWidth = self.setPositions(occupiedTable, singleCharWidth);
 
         maxWidth = self.addBranchLabels(commitsInfo['branch_draw_properties'], singleCharWidth, maxWidth);
 
@@ -84,11 +99,144 @@ export class SVGManager {
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
     }
 
+    getOccupiedTable() {
+        const self = this;
+
+        let occupiedTable = [];
+
+        for (let y = 0; y < self.rows.length; y++) {
+            // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
+            if (y < occupiedTable.length) {
+                while (occupiedTable[y].indexOf(self.rows[y]['x']) !== -1) {
+                    self.rows[y]['x']++;
+                }
+                occupiedTable[y].push(self.rows[y]['x']);
+            } else if (y === occupiedTable.length) {
+                occupiedTable.push([self.rows[y]['x']]);
+            } else {
+                console.error('y was bigger than the next position in the occupied table.');
+            }
+
+            // Set the space of the line from the current node to its parents as occupied.
+            const parentIndexes = self.getIndexesFromSHAs(self.rows[y]['parentShas']);
+            parentIndexes.forEach((parentY) => {
+                for (let lineY = y + 1; lineY < parentY; lineY++) {
+                    if (lineY < occupiedTable.length) {
+                        occupiedTable[lineY].push(self.rows[y]['x']);
+                    } else if (lineY === occupiedTable.length) {
+                        occupiedTable.push([self.rows[y]['x']]);
+                    } else {
+                        console.error('y was bigger than the next position in the occupied table.');
+                    }
+                }
+            });
+
+            // Set curved lines to occupy their space (note this has to be done with children since their x value is already set unlike the parents)
+            const childIndexes = self.getIndexesFromSHAs(self.rows[y]['childShas']);
+            childIndexes.forEach((childY) => {
+                if (self.rows[y]['x'] < self.rows[childY]['x']) {
+                    occupiedTable[y].push(self.rows[childY]['x']);
+                } else if (self.rows[y]['x'] > self.rows[childY]['x']) {
+                    occupiedTable[childY].push(self.rows[y]['x']);
+                }
+            });
+        }
+
+        return occupiedTable;
+    }
+
+    setPositions(occupiedTable, singleCharWidth) {
+        const self = this;
+        let maxWidth = 0;
+        // Since adding or removing even a single row causes all y values to need to be updated, might as well update them all here...
+        for (let y = 0; y < self.rows.length; y++) {
+            const pixelX = self.rows[y]['x'] * self.X_SPACING + self.X_OFFSET;
+            const pixelY = y * self.Y_SPACING + self.Y_OFFSET;
+            const color = self.getColorString(self.rows[y]['x']);
+
+            // Create lines from children to current row.
+            const childIndexes = self.getIndexesFromSHAs(self.rows[y]['childShas']);
+            childIndexes.forEach((childY) => {
+                const childPixelX = self.rows[childY]['x'] * self.X_SPACING + self.X_OFFSET;
+                const beforeY = y - 1;
+                const beforePixelY = beforeY * self.Y_SPACING + self.Y_OFFSET;
+
+                for (let i = childY; i < beforeY; i++) {
+                    const topPixelY = i * self.Y_SPACING + self.Y_OFFSET;
+                    const bottomPixelY = (i + 1) * self.Y_SPACING + self.Y_OFFSET;
+
+                    const styleString = 'stroke:' + self.getColorString(self.rows[childY]['x']) + ';stroke-width:' + self.LINE_STROKE_WIDTH + ';';
+                    const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': topPixelY, 'x2': childPixelX, 'y2': bottomPixelY, 'style': styleString});
+                    self.rows[i + 1]['lines'].push({'target-sha': self.rows[childY]['sha'], 'element': lineElement});
+                }
+
+                let styleString = 'stroke:';
+                if (self.rows[childY]['x'] >= self.rows[y]['x']) {
+                    // Sets the color for "branching" lines and straight lines
+                    styleString += self.getColorString(self.rows[childY]['x']);
+                } else {
+                    // Sets the color for "merging" lines
+                    styleString += self.getColorString(self.rows[y]['x']);
+                }
+                styleString += ';fill:transparent;stroke-width:' + self.LINE_STROKE_WIDTH + ';';
+
+                if (childPixelX === pixelX) {
+                    const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': beforePixelY, 'x2': pixelX, 'y2': pixelY, 'style': styleString});
+                    self.rows[y]['lines'].push({'target-sha': self.rows[childY]['sha'], 'element': lineElement});
+                } else {
+                    let dString = 'M ' + childPixelX + ' ' + beforePixelY + ' C ';
+                    if (childPixelX < pixelX) {
+                        const startControlPointX = childPixelX + self.X_SPACING * 3 / 4;
+                        const endControlPointY = pixelY - self.Y_SPACING * 3 / 4;
+                        dString += startControlPointX + ' ' + beforePixelY + ', ' + pixelX + ' ' + endControlPointY;
+                    } else {
+                        let startControlPointY = beforePixelY + self.Y_SPACING * 3 / 4;
+                        let endControlPointX = pixelX + self.X_SPACING * 3 / 4;
+                        dString += childPixelX + ' ' + startControlPointY + ', ' + endControlPointX + ' ' + pixelY;
+                    }
+                    dString += ', ' + pixelX + ' ' + pixelY;
+
+                    const pathElement = self.makeSVG('path', {'d': dString, 'style': styleString});
+                    self.rows[y]['lines'].push({'target-sha': self.rows[childY]['sha'], 'element': pathElement});
+                }
+            });
+
+            // Set circle attributes
+            self.rows[y]['circle'].setAttribute('cx', pixelX.toString());
+            self.rows[y]['circle'].setAttribute('cy', pixelY.toString());
+            self.rows[y]['circle'].setAttribute('stroke', color);
+            self.rows[y]['circle'].setAttribute('fill', color);
+
+            // Set summaryTxt attributes
+            const largestOccupiedX = Math.max(...occupiedTable[y], 0);
+            const summaryTxtPixelX = (largestOccupiedX + 1) * self.X_SPACING + self.X_OFFSET;
+            self.rows[y]['summaryTxt'].setAttribute('x', summaryTxtPixelX.toString());
+            self.rows[y]['summaryTxt'].setAttribute('y', (pixelY + self.TEXT_Y_OFFSET).toString());
+
+            // Set backRect attributes
+            self.rows[y]['backRect'].setAttribute('x', pixelX.toString());
+            self.rows[y]['backRect'].setAttribute('y', (pixelY + self.RECT_Y_OFFSET).toString());
+            const backRectWidth = summaryTxtPixelX + self.rows[y]['summaryTxt'].textContent.length * singleCharWidth;
+            self.rows[y]['backRect'].setAttribute('width', backRectWidth.toString());
+            maxWidth = Math.max(backRectWidth, maxWidth);
+        }
+        return maxWidth;
+    }
+
+    getIndexesFromSHAs(SHAs) {
+        const self = this;
+        return SHAs.map(function(SHA) {
+            return self.rows.findIndex(function(row) {
+                return row['sha'] === SHA;
+            });
+        }).filter(function(index) { return index !== -1; });
+    }
+
     addBranchLabels(branchDrawProperties, singleCharWidth, maxWidth) {
         const self = this;
 
         for (let i = 0; i < branchDrawProperties.length; i++) {
-            const rowIndex = self.rows.findIndex(function (row) {
+            const rowIndex = self.rows.findIndex(function(row) {
                 return row['sha'] === branchDrawProperties[i][0];
             });
             if (rowIndex !== -1) {
@@ -122,12 +270,49 @@ export class SVGManager {
         return maxWidth;
     }
 
-    removeBranchLabels(row) {
-        if (row['branches'].length > 0) {
-            const startX = Number(row['branches'][1].getAttribute('x'));
-            row['branches'] = [];
-            row['summaryTxt'].setAttribute('x', startX.toString());
+    getColorString(x) {
+        let color_num = x % 4;
+        if (color_num === 0) {
+            return "#00CC19";
+        } else if (color_num === 1) {
+            return "#0198A6";
+        } else if (color_num === 2) {
+            return "#FF7800";
+        } else {
+            return "#FF0D00";
         }
+    }
+
+    removeRows(shas) {
+        const self = this;
+
+        shas.forEach((sha) => {
+            const indexToDelete = self.rows.findIndex(function(row) {
+                return row['sha'] === sha;
+            });
+
+            if (indexToDelete === -1) {
+                console.error("Couldn't find row to remove from graph!");
+            } else {
+                const tempParentShas = self.rows[indexToDelete]['parentShas'];
+
+                self.rows.splice(indexToDelete, 1);
+
+                let parentIndexes = self.getIndexesFromSHAs(tempParentShas);
+
+                // Remove the line coming from the parent commit(s)
+                for (let i = 0; i < parentIndexes.length; i++) {
+                    const lineIndexToRemove = self.rows[parentIndexes[i]]['lines'].findIndex(function(line) {
+                        return line['target-sha'] === sha;
+                    });
+                    if (lineIndexToRemove !== -1) {
+                        self.rows[parentIndexes[i]]['lines'].splice(lineIndexToRemove, 1);
+                    } else {
+                        console.error('Line not found from parent going to deleted child!');
+                    }
+                }
+            }
+        });
     }
 
     renderVisibleCommits() {
@@ -135,17 +320,17 @@ export class SVGManager {
 
         let df = document.createDocumentFragment();
         for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
-            self.rows[i]['lines'].forEach((line) => {
-                df.appendChild(line);
-            });
+            for (const element of self.rows[i]['lines'].map(function(line) {return line['element'];})) {
+                df.appendChild(element);
+            }
         }
 
         for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
+            for (const element of self.rows[i]['branches']) {
+                df.appendChild(element);
+            }
             df.appendChild(self.rows[i]['circle']);
             df.appendChild(self.rows[i]['summaryTxt']);
-            self.rows[i]['branches'].forEach((branch) => {
-                df.appendChild(branch);
-            });
             df.appendChild(self.rows[i]['backRect']);
         }
 

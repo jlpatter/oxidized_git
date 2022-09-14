@@ -119,18 +119,67 @@ fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Resul
     Ok(diff)
 }
 
+#[derive(PartialEq)]
+pub enum GraphOps {
+    AddedOnly,
+    DeletedOnly,
+    Both,
+    RefChange,
+    ConfigChange,
+    DifferentRepo,
+}
+
+#[derive(Clone, Serialize)]
+pub struct SHAChanges {
+    clear_entire_old_graph: bool,
+    created: Vec<String>,
+    deleted: Vec<String>,
+}
+
+impl SHAChanges {
+    pub fn new() -> Self {
+        Self {
+            clear_entire_old_graph: false,
+            created: vec![],
+            deleted: vec![],
+        }
+    }
+
+    pub fn push_created(&mut self, sha: String) {
+        self.created.push(sha);
+    }
+
+    pub fn push_deleted(&mut self, sha: String) {
+        self.deleted.push(sha);
+    }
+
+    pub fn borrow_created(&self) -> &Vec<String> {
+        &self.created
+    }
+
+    pub fn borrow_deleted(&self) -> &Vec<String> {
+        &self.deleted
+    }
+
+    pub fn borrow_clear_entire_old_graph(&self) -> &bool {
+        &self.clear_entire_old_graph
+    }
+}
+
 pub struct GitManager {
     repo: Option<Repository>,
     sha_from_commit_from_op: Option<String>,
     old_graph_starting_shas: Vec<String>,
+    old_revwalk_shas: VecDeque<String>,
 }
 
 impl GitManager {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             repo: None,
             sha_from_commit_from_op: None,
             old_graph_starting_shas: vec![],
+            old_revwalk_shas: VecDeque::new(),
         }
     }
 
@@ -223,7 +272,7 @@ impl GitManager {
         false
     }
 
-    pub fn git_revwalk(&mut self, force_refresh: bool) -> Result<Option<Vec<Oid>>> {
+    pub fn git_revwalk(&mut self, commit_ops: GraphOps) -> Result<SHAChanges> {
         let mut oid_vec: Vec<Oid> = vec![];
         // This closure allows self to be borrowed mutably later for setting the new graph starting shas.
         {
@@ -257,12 +306,15 @@ impl GitManager {
             });
         }
 
-        if force_refresh {
+        let mut sha_changes = SHAChanges::new();
+        if commit_ops == GraphOps::DifferentRepo || commit_ops == GraphOps::ConfigChange {
             self.old_graph_starting_shas = vec![];
+            self.old_revwalk_shas = VecDeque::new();
+            sha_changes.clear_entire_old_graph = true;
         }
 
         if self.old_shas_eq_sorted_new_oids(&oid_vec) {
-            return Ok(None);
+            return Ok(SHAChanges::new());
         }
 
         // If you've reached here, the old and new starting oids are different. Update the old and perform the revwalk.
@@ -273,6 +325,7 @@ impl GitManager {
         let repo = self.borrow_repo()?;
         let mut revwalk = repo.revwalk()?;
 
+        // Sort topologically but each topology is sorted by date.
         for oid in oid_vec {
             revwalk.push(oid)?;
         }
@@ -282,14 +335,164 @@ impl GitManager {
         let limit_commits = preferences.get_limit_commits();
         let commit_count = preferences.get_commit_count();
 
-        let mut oid_list: Vec<Oid> = vec![];
+        let mut is_adding = false;
+        let mut has_deleted = false;
+        let mut last_added_oid = Oid::zero();
+        // change_to_this_sha is to delete and re-add commits that get their y positions changed because of other branches moving.
+        let mut change_to_this_sha = String::new();
+        let mut top_commit_topography_count: usize = 0;
         for (i, commit_oid_result) in revwalk.enumerate() {
             if limit_commits && i >= commit_count {
                 break;
             }
-            oid_list.push(commit_oid_result?);
+            let oid = commit_oid_result?;
+            let sha = oid.to_string();
+
+            if self.old_revwalk_shas.len() > 0 {
+                // If it's the first commit in the graph, it may have been added or deleted.
+                if i == 0 && sha != self.old_revwalk_shas[i] {
+                    let first_non_deleted_commit = self.old_revwalk_shas.iter().position(|old_sha| {
+                        *old_sha == sha
+                    });
+                    match first_non_deleted_commit {
+                        Some(j) => {
+                            for k in i..j {
+                                sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
+                            }
+                            has_deleted = true;
+
+                            // If there's a parent of the last deleted commit that doesn't match the next commit,
+                            // Then there are commits that need their x position updated.
+                            let parent = repo.find_commit(Oid::from_str(self.old_revwalk_shas[j - 1].as_str())?)?.parents().find(|c| {
+                                c.id().to_string() != sha
+                            });
+
+                            match parent {
+                                Some(p) => {
+                                    change_to_this_sha = p.id().to_string();
+                                    sha_changes.push_deleted(sha.clone());
+                                    sha_changes.push_created(sha.clone());
+                                },
+                                None => {
+                                    break;
+                                },
+                            }
+                        },
+                        None => {
+                            is_adding = true;
+                            sha_changes.push_created(sha.clone());
+                            top_commit_topography_count += 1;
+                        },
+                    }
+                } else if i > 0 && !is_adding && change_to_this_sha.as_str() == "" && sha != self.old_revwalk_shas[i - top_commit_topography_count] {
+                    // If we're not adding and there's a difference, then there's commit(s) to remove from the graph.
+                    let first_non_deleted_commit = self.old_revwalk_shas.iter().position(|old_sha| {
+                        *old_sha == sha
+                    });
+                    match first_non_deleted_commit {
+                        Some(j) => {
+                            for k in (i - top_commit_topography_count)..j {
+                                sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
+                            }
+                            has_deleted = true;
+
+                            // If there's a parent of the last deleted commit that doesn't match the next commit,
+                            // Then there are commits that need their x position updated.
+                            let parent = repo.find_commit(Oid::from_str(self.old_revwalk_shas[j - 1].as_str())?)?.parents().find(|c| {
+                                c.id().to_string() != sha
+                            });
+
+                            match parent {
+                                Some(p) => {
+                                    change_to_this_sha = p.id().to_string();
+                                    sha_changes.push_deleted(sha.clone());
+                                    sha_changes.push_created(sha.clone());
+                                },
+                                None => {
+                                    break;
+                                },
+                            }
+                        },
+                        None => {
+                            println!("I didn't think this code path was possible but here we are...");
+                            println!("NOTE: This codepath implies somebody deleted the initial commit at the bottom of the graph!!!");
+                            for k in (i - top_commit_topography_count)..self.old_revwalk_shas.len() {
+                                sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
+                            }
+                            break;
+                        },
+                    }
+                } else if i > 0 && is_adding {
+                    // If we're currently adding, add commit to the graph.
+                    if self.old_revwalk_shas[i - top_commit_topography_count] == sha {
+                        // When the revwalk reaches the last added commit.
+                        is_adding = false;
+                        // If there's a parent of the last added commit that doesn't match the current commit,
+                        // Then there are commits that need their x position updated.
+                        let parent = repo.find_commit(last_added_oid)?.parents().find(|c| {
+                            c.id().to_string() != sha
+                        });
+
+                        match parent {
+                            Some(p) => {
+                                change_to_this_sha = p.id().to_string();
+                                sha_changes.push_deleted(sha.clone());
+                                sha_changes.push_created(sha.clone());
+                            },
+                            None => {
+                                if commit_ops == GraphOps::AddedOnly {
+                                    break;
+                                }
+                            },
+                        };
+                    } else {
+                        last_added_oid = oid;
+                        sha_changes.push_created(sha.clone());
+                        top_commit_topography_count += 1;
+                        if self.old_revwalk_shas.contains(&sha) {
+                            sha_changes.push_deleted(sha.clone());
+                        }
+                    }
+                } else if change_to_this_sha.as_str() != "" {
+                    sha_changes.push_deleted(sha.clone());
+                    sha_changes.push_created(sha.clone());
+                    if sha == change_to_this_sha {
+                        change_to_this_sha = String::new();
+                        if commit_ops == GraphOps::AddedOnly || has_deleted {
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // This runs if the graph was previously empty.
+                sha_changes.push_created(sha);
+            }
         }
-        Ok(Some(oid_list))
+
+        for deleted_change in sha_changes.borrow_deleted() {
+            let index_opt = self.old_revwalk_shas.iter().position(|old_sha| {
+                *old_sha == *deleted_change
+            });
+            match index_opt {
+                Some(i) => {
+                    self.old_revwalk_shas.remove(i);
+                },
+                None => bail!("Deleted change not found in old revwalk, this should technically be impossible..."),
+            }
+        }
+
+        // NOTE: This always assumes created commits are at the top of the graph.
+        // this is due to the way the graph is sorted.
+        // Need to reverse order first before inserting.
+        let mut created_shas = VecDeque::new();
+        for created_change in sha_changes.borrow_created() {
+            created_shas.push_front(created_change.clone());
+        }
+        for sha in created_shas {
+            self.old_revwalk_shas.push_front(sha);
+        }
+
+        Ok(sha_changes)
     }
 
     pub fn get_commit_info(&self, sha: &str) -> Result<CommitInfo> {
@@ -702,8 +905,8 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_checkout_from_json(&self, json_str: &str) -> Result<()> {
-        self.git_checkout(&self.borrow_repo()?.find_reference(json_str)?)?;
+    pub fn git_checkout_from_json(&self, ref_full_name: &str) -> Result<()> {
+        self.git_checkout(&self.borrow_repo()?.find_reference(ref_full_name)?)?;
         Ok(())
     }
 
