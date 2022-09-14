@@ -6,6 +6,7 @@ import {emit} from "@tauri-apps/api/event";
  */
 export class SVGManager {
     Y_SPACING = 24;  // If changing, be sure to update on backend-end too
+    Y_OFFSET = 20;  // If changing, be sure to update on backend-end too
     X_SPACING = 15;  // If changing, be sure to update on backend-end too
     X_OFFSET = 20;  // If changing, be sure to update on backend-end too
     BRANCH_TEXT_SPACING = 5;
@@ -142,126 +143,28 @@ export class SVGManager {
         self.commitTableSVG.appendChild(df);
     }
 
-    // This is used particularly for switching tabs.
     setVisibleCommits() {
         const self = this;
         if (self.rows.length > 0) {
-            self.commitsTop = 0;
-
             const renderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN,
                 renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
-            let isInRenderingArea = false;
-            while (!isInRenderingArea) {
-                if (self.rows[self.commitsTop]['pixel_y'] < renderingAreaTop) {
-                    self.commitsTop++;
-                } else {
-                    isInRenderingArea = true;
-                }
+
+            if (renderingAreaTop !== self.oldRenderingAreaTop || renderingAreaBottom !== self.oldRenderingAreaBottom) {
+                // Convert from pixels to index.
+                self.commitsTop = Math.max(Math.round((renderingAreaTop - self.Y_OFFSET) / self.Y_SPACING), 0);
+                self.commitsBottom = Math.min(Math.round((renderingAreaBottom - self.Y_OFFSET) / self.Y_SPACING), self.rows.length - 1);
+
+                self.renderVisibleCommits();
+                self.oldRenderingAreaTop = renderingAreaTop;
+                self.oldRenderingAreaBottom = renderingAreaBottom;
             }
-
-            self.commitsBottom = self.commitsTop;
-            isInRenderingArea = false;
-            while (!isInRenderingArea) {
-                if (self.commitsBottom + 1 < self.rows.length && self.rows[self.commitsBottom + 1]['pixel_y'] < renderingAreaBottom) {
-                    self.commitsBottom++;
-                } else {
-                    isInRenderingArea = true;
-                }
-            }
-
-            self.renderVisibleCommits();
-            self.oldRenderingAreaTop = renderingAreaTop;
-            self.oldRenderingAreaBottom = renderingAreaBottom;
-        }
-    }
-
-    // This assumes that scrollTop hasn't changed
-    setVisibleCommitsOnResize() {
-        const self = this;
-        if (self.rows.length > 0) {
-            const renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
-
-            if (renderingAreaBottom < self.oldRenderingAreaBottom) {
-                // Rendering area has shrunk
-                let isInRenderingArea = false;
-                while (!isInRenderingArea) {
-                    if (self.commitsBottom - 1 >= 0 && self.rows[self.commitsBottom]['pixel_y'] > renderingAreaBottom) {
-                        self.commitsBottom--;
-                    } else {
-                        isInRenderingArea = true;
-                    }
-                }
-            } else if (renderingAreaBottom > self.oldRenderingAreaBottom) {
-                // Rendering area has grown
-                let isInRenderingArea = false;
-                while (!isInRenderingArea) {
-                    if (self.commitsBottom + 1 < self.rows.length && self.rows[self.commitsBottom + 1]['pixel_y'] < renderingAreaBottom) {
-                        self.commitsBottom++;
-                    } else {
-                        isInRenderingArea = true;
-                    }
-                }
-            }
-
-            self.renderVisibleCommits();
-            self.oldRenderingAreaBottom = renderingAreaBottom;
         }
     }
 
     setScrollEvent() {
         const self = this;
         self.commitColumn.addEventListener('scroll', () => {
-            if (self.rows.length > 0) {
-                const renderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN,
-                    renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
-                if (renderingAreaTop < self.oldRenderingAreaTop) {
-                    // Scrolling Up
-                    // Remove visible rows that are below the rendering area
-                    let isInRenderingArea = false;
-                    while (!isInRenderingArea) {
-                        if (self.commitsBottom - 1 >= 0 && self.rows[self.commitsBottom]['pixel_y'] > renderingAreaBottom) {
-                            self.commitsBottom--;
-                        } else {
-                            isInRenderingArea = true;
-                        }
-                    }
-
-                    // Add above rows to rendering area (if they're present there)
-                    isInRenderingArea = false;
-                    while (!isInRenderingArea) {
-                        if (self.commitsTop - 1 >= 0 && self.rows[self.commitsTop - 1]['pixel_y'] > renderingAreaTop) {
-                            self.commitsTop--;
-                        } else {
-                            isInRenderingArea = true;
-                        }
-                    }
-                } else if (renderingAreaTop > self.oldRenderingAreaTop) {
-                    // Scrolling down
-                    // Remove visible rows that are above the rendering area
-                    let isInRenderingArea = false;
-                    while (!isInRenderingArea) {
-                        if (self.rows[self.commitsTop]['pixel_y'] < renderingAreaTop) {
-                            self.commitsTop++;
-                        } else {
-                            isInRenderingArea = true;
-                        }
-                    }
-
-                    // Add below rows to rendering area (if they're present there)
-                    isInRenderingArea = false;
-                    while (!isInRenderingArea) {
-                        if (self.commitsBottom + 1 < self.rows.length && self.rows[self.commitsBottom + 1]['pixel_y'] < renderingAreaBottom) {
-                            self.commitsBottom++;
-                        } else {
-                            isInRenderingArea = true;
-                        }
-                    }
-                }
-
-                self.renderVisibleCommits();
-                self.oldRenderingAreaTop = renderingAreaTop;
-                self.oldRenderingAreaBottom = renderingAreaBottom;
-            }
+            self.setVisibleCommits();
         });
     }
 

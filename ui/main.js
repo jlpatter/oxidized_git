@@ -52,7 +52,7 @@ class Main {
             });
             if (resizableRow.classList.contains('resizable-row-graph')) {
                 r.on('resize', function() {
-                    self.svgManager.setVisibleCommitsOnResize();
+                    self.svgManager.setVisibleCommits();
                 });
             }
         });
@@ -63,7 +63,7 @@ class Main {
 
         $(window).resize(() => {
             self.truncateFilePathText();
-            self.svgManager.setVisibleCommitsOnResize();
+            self.svgManager.setVisibleCommits();
         });
 
         listen("start-process", ev => {
