@@ -17,12 +17,9 @@ export class SVGManager {
     constructor() {
         this.commitColumn = document.getElementById('commitColumn');
         this.commitTableSVG = document.getElementById('commitTableSVG');
-        this.repoInfo = [];
         this.rows = [];
         this.commitsTop = -99;
         this.commitsBottom = -99;
-        this.oldRenderingAreaTop = 0;
-        this.oldRenderingAreaBottom = 0;
         this.setScrollEvent();
     }
 
@@ -30,14 +27,13 @@ export class SVGManager {
      * Refreshes the commit table with new entry results.
      */
     updateCommitTable(repoInfo) {
-        this.repoInfo = repoInfo;
-        this.refreshCommitTable();
+        this.refreshCommitTable(repoInfo);
     }
 
     /**
      * Refreshes the commit table. Can be called on its own for a passive refresh.
      */
-    refreshCommitTable() {
+    refreshCommitTable(repoInfo) {
         const self = this;
 
         const $textSizeTestContainer = $('<svg width="500" height="500"></svg>');
@@ -48,16 +44,13 @@ export class SVGManager {
         const singleCharWidth = textSizeTest.getBBox().width;
         $textSizeTestContainer.remove();
 
-        self.commitTableSVG.setAttribute('height', ((self.repoInfo.length + 1) * self.Y_SPACING).toString());
+        self.commitTableSVG.setAttribute('height', ((repoInfo.length + 1) * self.Y_SPACING).toString());
 
         self.rows = [];
-        const renderingAreaTop = self.oldRenderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN;
-        const renderingAreaBottom = self.oldRenderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
 
         let maxWidth = 0;
-        let currentLocation = 'above';
-        for (let i = 0; i < self.repoInfo.length; i++) {
-            const commit = self.repoInfo[i];
+        for (let i = 0; i < repoInfo.length; i++) {
+            const commit = repoInfo[i];
             const elements = commit['elements'];
             let row = {'pixel_y': commit['pixel_y'], 'elements': []};
             for (const childLine of elements['child_lines']) {
@@ -107,24 +100,10 @@ export class SVGManager {
             row['elements'].push(backRect);
 
             self.rows.push(row);
-
-            if (currentLocation === 'above' && row['pixel_y'] > renderingAreaTop) {
-                self.commitsTop = i;
-                currentLocation = 'visible';
-            } else if (currentLocation === 'visible' && row['pixel_y'] > renderingAreaBottom) {
-                self.commitsBottom = i - 1;
-                currentLocation = 'below';
-            }
             maxWidth = Math.max(maxWidth, width);
         }
 
-        // If commitsBottom wasn't set then the graph doesn't reach the bottom of the screen,
-        // so set commitsBottom to the last commit
-        if (self.commitsBottom === -99) {
-            self.commitsBottom = self.rows.length - 1;
-        }
-
-        self.renderVisibleCommits();
+        self.setVisibleCommits();
         self.commitTableSVG.setAttribute('width', maxWidth.toString());
     }
 
@@ -149,15 +128,11 @@ export class SVGManager {
             const renderingAreaTop = self.commitColumn.scrollTop - self.SCROLL_RENDERING_MARGIN,
                 renderingAreaBottom = self.commitColumn.scrollTop + self.commitColumn.clientHeight + self.SCROLL_RENDERING_MARGIN;
 
-            if (renderingAreaTop !== self.oldRenderingAreaTop || renderingAreaBottom !== self.oldRenderingAreaBottom) {
-                // Convert from pixels to index.
-                self.commitsTop = Math.max(Math.round((renderingAreaTop - self.Y_OFFSET) / self.Y_SPACING), 0);
-                self.commitsBottom = Math.min(Math.round((renderingAreaBottom - self.Y_OFFSET) / self.Y_SPACING), self.rows.length - 1);
+            // Convert from pixels to index.
+            self.commitsTop = Math.max(Math.round((renderingAreaTop - self.Y_OFFSET) / self.Y_SPACING), 0);
+            self.commitsBottom = Math.min(Math.round((renderingAreaBottom - self.Y_OFFSET) / self.Y_SPACING), self.rows.length - 1);
 
-                self.renderVisibleCommits();
-                self.oldRenderingAreaTop = renderingAreaTop;
-                self.oldRenderingAreaBottom = renderingAreaBottom;
-            }
+            self.renderVisibleCommits();
         }
     }
 
