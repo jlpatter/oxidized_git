@@ -299,10 +299,20 @@ impl GitManager {
         // TODO: Figure out if this variable is actually needed.
         self.unchanged_sha = changed_ending_sha;
 
-        // TODO: Figure out how to update just the changed commits.
-        // self.old_revwalk_shas = oid_list.iter().map(|oid| {
-        //     oid.to_string()
-        // }).collect();
+        match changed_starting_index {
+            Some(s_i) => {
+                for i in 0..oid_list.len() {
+                    if s_i + i < self.old_revwalk_shas.len() {
+                        self.old_revwalk_shas[s_i + i] = oid_list[i].to_string();
+                    } else {
+                        self.old_revwalk_shas.push(oid_list[i].to_string());
+                    }
+                }
+            },
+            None => {
+                bail!("An entire revwalk occur even though there were no changes, this shouldn't happen!");
+            },
+        }
 
         Ok(Some(oid_list))
     }
