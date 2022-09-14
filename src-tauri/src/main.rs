@@ -202,6 +202,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_merge(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -221,6 +222,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_rebase(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -240,6 +242,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_cherrypick(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -259,6 +262,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_revert(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -278,6 +282,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_reset(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -297,6 +302,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_checkout_from_json(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -316,6 +322,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_checkout_detached_head(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -335,6 +342,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_checkout_remote(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -354,6 +362,8 @@ fn main() {
                             let git_manager_arc_c_c = git_manager_arc_c.clone();
                             thread::spawn(move || {
                                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                                // TODO: Only update parts of the graph that changed! You'll need to see if the config was changed
+                                // regarding commit limit. If so, may just have to update the entire graph since the starting commits could be the same.
                                 emit_update_all(&mut git_manager, &main_window_c_c);
                             });
                         },
@@ -464,6 +474,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_commit_from_json(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -486,6 +497,7 @@ fn main() {
                             Ok(()) => {
                                 let result_2 = git_manager.git_push(None);
                                 match result_2 {
+                                    // TODO: Only update parts of the graph that changed!
                                     Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                                     Err(e) => handle_error(e, &main_window_c_c),
                                 };
@@ -506,6 +518,7 @@ fn main() {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let result = git_manager.git_abort();
                 match result {
+                    // TODO: Only update parts of the graph that changed! You shouldn't need to update the graph here ever anyway.
                     Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -520,6 +533,7 @@ fn main() {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let result = git_manager.git_continue_cherrypick();
                 match result {
+                    // TODO: Only update parts of the graph that changed!
                     Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -534,6 +548,7 @@ fn main() {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let result = git_manager.git_continue_revert();
                 match result {
+                    // TODO: Only update parts of the graph that changed!
                     Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -548,6 +563,7 @@ fn main() {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let result = git_manager.git_continue_merge();
                 match result {
+                    // TODO: Only update parts of the graph that changed!
                     Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -562,6 +578,7 @@ fn main() {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let result = git_manager.git_abort_rebase();
                 match result {
+                    // TODO: Only update parts of the graph that changed!
                     Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -576,6 +593,7 @@ fn main() {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let result = git_manager.git_continue_rebase();
                 match result {
+                    // TODO: Only update parts of the graph that changed!
                     Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -611,6 +629,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_delete_local_branch(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -630,6 +649,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_delete_remote_branch(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -649,6 +669,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_delete_tag(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -666,6 +687,7 @@ fn main() {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let result = git_manager.git_fetch();
                 match result {
+                    // TODO: Only update parts of the graph that changed!
                     Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -680,6 +702,7 @@ fn main() {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let result = git_manager.git_pull();
                 match result {
+                    // TODO: Only update parts of the graph that changed!
                     Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -696,6 +719,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_push(Some(s));
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -715,6 +739,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_branch(s);
                         match result {
+                            // TODO: Only update parts of the graph that changed!
                             Ok(()) => emit_update_all(&mut git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
