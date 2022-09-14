@@ -172,7 +172,7 @@ impl BranchesInfo {
 }
 
 fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String, String)>>> {
-    let repo = git_manager.get_repo()?;
+    let repo = git_manager.borrow_repo()?;
 
     // Get HashMap of Oids and their refs based on type (local, remote, or tag)
     let mut oid_refs: HashMap<String, Vec<(String, String)>> = HashMap::new();
@@ -247,7 +247,7 @@ fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String,
 }
 
 fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>> {
-    let repo = git_manager.get_repo()?;
+    let repo = git_manager.borrow_repo()?;
 
     let mut general_info: HashMap<String, String> = HashMap::new();
     let head_ref = repo.head()?;
@@ -286,7 +286,7 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
 }
 
 fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<Vec<HashMap<String, SVGCommitInfoValue>>> {
-    let repo = git_manager.get_repo()?;
+    let repo = git_manager.borrow_repo()?;
 
     let mut commit_list: Vec<HashMap<String, SVGCommitInfoValue>> = vec![];
     let oid_refs_hm = get_oid_refs(git_manager)?;
@@ -460,7 +460,7 @@ fn get_commit_svg_draw_properties_list(git_manager: &GitManager) -> Result<Vec<H
 }
 
 fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
-    let repo = git_manager.get_repo()?;
+    let repo = git_manager.borrow_repo()?;
 
     // Get all remote heads to be excluded from branches info
     let remotes = repo.remotes()?;
@@ -557,7 +557,7 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
 }
 
 fn get_remote_info_list(git_manager: &GitManager) -> Result<Vec<String>> {
-    let repo = git_manager.get_repo()?;
+    let repo = git_manager.borrow_repo()?;
 
     let mut remote_info_list = vec![];
     let remote_string_array = repo.remotes()?;

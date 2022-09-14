@@ -4,6 +4,7 @@ use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
 use git2::{AutotagOption, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
+use git2::build::CheckoutBuilder;
 use rfd::FileDialog;
 use serde::Serialize;
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
@@ -138,7 +139,7 @@ impl GitManager {
         }
     }
 
-    pub fn get_repo(&self) -> Result<&Repository> {
+    pub fn borrow_repo(&self) -> Result<&Repository> {
         let repo_temp_opt = &self.repo;
         match repo_temp_opt {
             Some(repo) => Ok(repo),
@@ -147,7 +148,7 @@ impl GitManager {
     }
 
     pub fn has_open_repo(&self) -> bool {
-        match self.get_repo() {
+        match self.borrow_repo() {
             Ok(_) => true,
             Err(_) => false,
         }
@@ -182,7 +183,7 @@ impl GitManager {
     }
 
     fn cleanup_state(&mut self) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         repo.cleanup_state()?;
         self.sha_from_commit_from_op = None;
         Ok(())
@@ -208,7 +209,7 @@ impl GitManager {
     }
 
     pub fn git_revwalk(&self) -> Result<Vec<Oid>> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         let mut revwalk = repo.revwalk()?;
         let mut oid_vec: Vec<Oid> = vec![];
         for branch_result in repo.branches(None)? {
@@ -250,11 +251,11 @@ impl GitManager {
     }
 
     pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference> {
-        Ok(self.get_repo()?.find_reference(ref_full_name)?)
+        Ok(self.borrow_repo()?.find_reference(ref_full_name)?)
     }
 
     pub fn get_commit_info(&self, sha: &str) -> Result<CommitInfo> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let commit = repo.find_commit(Oid::from_str(sha)?)?;
         let commit_info = CommitInfo::from_commit(commit, repo)?;
@@ -304,7 +305,7 @@ impl GitManager {
     pub fn git_merge(&mut self, sha: &str) -> Result<()> {
         // This closure allows self to be borrowed mutably for cleanup.
         {
-            let repo = self.get_repo()?;
+            let repo = self.borrow_repo()?;
             let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
 
             repo.merge(&[&annotated_commit], None, None)?;
@@ -312,7 +313,7 @@ impl GitManager {
 
         if !self.has_conflicts()? {
             if self.has_staged_changes()? {
-                let repo = self.get_repo()?;
+                let repo = self.borrow_repo()?;
 
                 let head_commit = match repo.head()?.target() {
                     Some(oid) => repo.find_commit(oid)?,
@@ -370,7 +371,7 @@ impl GitManager {
     }
 
     pub fn git_rebase(&self, sha: &str) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
         let mut rebase = repo.rebase(None, None, Some(&annotated_commit), None)?;
 
@@ -393,7 +394,7 @@ impl GitManager {
 
         // This closure allows self to be borrowed mutably for cleanup.
         {
-            let repo = self.get_repo()?;
+            let repo = self.borrow_repo()?;
             let commit = repo.find_commit(Oid::from_str(sha)?)?;
 
             repo.cherrypick(&commit, None)?;
@@ -405,7 +406,7 @@ impl GitManager {
             self.sha_from_commit_from_op = Some(sha.clone());
         }
 
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         let commit = repo.find_commit(Oid::from_str(sha)?)?;
 
         if is_committing && !self.has_conflicts()? && self.has_staged_changes()? {
@@ -434,7 +435,7 @@ impl GitManager {
 
         // This closure allows self to be borrowed mutably for cleanup.
         {
-            let repo = self.get_repo()?;
+            let repo = self.borrow_repo()?;
             let commit = repo.find_commit(Oid::from_str(sha)?)?;
 
             repo.revert(&commit, None)?;
@@ -446,7 +447,7 @@ impl GitManager {
             self.sha_from_commit_from_op = Some(sha.clone());
         }
 
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         let commit = repo.find_commit(Oid::from_str(sha)?)?;
 
         if is_committing && !self.has_conflicts()? && self.has_staged_changes()? {
@@ -476,7 +477,7 @@ impl GitManager {
     pub fn git_abort(&mut self) -> Result<()> {
         // This closure allows self to be borrowed mutably for cleanup.
         {
-            let repo = self.get_repo()?;
+            let repo = self.borrow_repo()?;
 
             let head_commit = match repo.head()?.target() {
                 Some(oid) => repo.find_commit(oid)?,
@@ -494,7 +495,7 @@ impl GitManager {
         if !self.has_conflicts()? {
             // This closure allows self to be borrowed mutably for cleanup.
             {
-                let repo = self.get_repo()?;
+                let repo = self.borrow_repo()?;
 
                 let head_commit = match repo.head()?.target() {
                     Some(oid) => repo.find_commit(oid)?,
@@ -532,7 +533,7 @@ impl GitManager {
         if !self.has_conflicts()? {
             // This closure allows self to be borrowed mutably for cleanup.
             {
-                let repo = self.get_repo()?;
+                let repo = self.borrow_repo()?;
 
                 let head_commit = match repo.head()?.target() {
                     Some(oid) => repo.find_commit(oid)?,
@@ -558,7 +559,7 @@ impl GitManager {
         if !self.has_conflicts()? {
             // This closure allows self to be borrowed mutably for cleanup.
             {
-                let repo = self.get_repo()?;
+                let repo = self.borrow_repo()?;
 
                 let head_commit = match repo.head()?.target() {
                     Some(oid) => repo.find_commit(oid)?,
@@ -593,7 +594,7 @@ impl GitManager {
     }
 
     pub fn git_abort_rebase(&self) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         let mut rebase = repo.open_rebase(None)?;
 
         rebase.abort()?;
@@ -601,7 +602,7 @@ impl GitManager {
     }
 
     pub fn git_continue_rebase(&self) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         let mut rebase = repo.open_rebase(None)?;
 
         // Need to make sure there are no conflicts and we've committed before continuing.
@@ -617,7 +618,7 @@ impl GitManager {
     }
 
     pub fn git_reset(&self, json_str: &str) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
 
@@ -649,7 +650,7 @@ impl GitManager {
     }
 
     pub fn git_checkout(&self, local_ref: &Reference) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
         let commit = match local_ref.target() {
@@ -664,7 +665,7 @@ impl GitManager {
     }
 
     pub fn git_checkout_detached_head(&self, sha: &str) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let oid = Oid::from_str(sha)?;
         let tree = repo.find_commit(oid)?.tree()?;
@@ -675,7 +676,7 @@ impl GitManager {
     }
 
     pub fn git_checkout_remote(&self, json_string: &str) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let json_data: HashMap<String, String> = serde_json::from_str(json_string)?;
         let remote_branch_shortname = match json_data.get("branch_shorthand") {
@@ -723,23 +724,30 @@ impl GitManager {
         self.git_checkout(local_branch.get())
     }
 
-    pub fn git_stage(&self, json_string: &str) -> Result<()> {
-        let repo = self.get_repo()?;
-        let diff_delta: ParseableDiffDelta = serde_json::from_str(json_string)?;
+    fn git_stage(&self, status: u8, path: &String) -> Result<()> {
+        let repo = self.borrow_repo()?;
 
         let mut index = repo.index()?;
-        if diff_delta.get_status() == 2 {  // If file is deleted
-            index.remove_path(diff_delta.get_path().as_ref())?;
+        if status == 2 {  // If file is deleted
+            index.remove_path(path.as_ref())?;
         } else {
-            index.add_path(diff_delta.get_path().as_ref())?;
+            index.add_path(path.as_ref())?;
         }
         index.write()?;
 
         Ok(())
     }
 
+    pub fn git_stage_from_json(&self, json_string: &str) -> Result<()> {
+        let diff_delta: ParseableDiffDelta = serde_json::from_str(json_string)?;
+
+        self.git_stage(diff_delta.get_status(), diff_delta.get_path())?;
+
+        Ok(())
+    }
+
     pub fn git_unstage(&self, json_string: &str) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         let diff_delta: ParseableDiffDelta = serde_json::from_str(json_string)?;
 
         let mut index = repo.index()?;
@@ -770,7 +778,7 @@ impl GitManager {
     }
 
     pub fn get_unstaged_changes(&self) -> Result<Diff> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let mut diff_options = DiffOptions::new();
         diff_options.include_untracked(true);
@@ -784,7 +792,7 @@ impl GitManager {
     }
 
     pub fn get_staged_changes(&self) -> Result<Diff> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let head_ref = repo.head()?;
         let commit = match head_ref.target() {
@@ -802,8 +810,26 @@ impl GitManager {
         Ok(diff)
     }
 
+    fn get_file_index_in_diff(diff: &Diff, path: &str) -> Result<usize> {
+        let file_index_opt = diff.deltas().position(|dd| {
+            match dd.new_file().path() {
+                Some(p) => {
+                    match p.to_str() {
+                        Some(s) => path == s,
+                        None => false,
+                    }
+                },
+                None => false,
+            }
+        });
+        match file_index_opt {
+            Some(i) => Ok(i),
+            None => bail!("Selected file not found."),
+        }
+    }
+
     pub fn get_file_diff(&self, json_str: &str) -> Result<FileInfo> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
 
         let file_path = match json_hm.get("file_path") {
@@ -831,21 +857,7 @@ impl GitManager {
             bail!("change_type not a valid type. Needs to be 'staged', 'unstaged', or 'commit'");
         }
 
-        let file_index_opt = diff.deltas().position(|dd| {
-            match dd.new_file().path() {
-                Some(p) => {
-                    match p.to_str() {
-                        Some(s) => file_path.as_str() == s,
-                        None => false,
-                    }
-                },
-                None => false,
-            }
-        });
-        let file_index = match file_index_opt {
-            Some(i) => i,
-            None => bail!("Selected file not found. This shouldn't happen since this uses the same methods that are used to generate the file list."),
-        };
+        let file_index = GitManager::get_file_index_in_diff(&diff, file_path.as_str())?;
 
         let patch_opt = Patch::from_diff(&diff, file_index)?;
         let mut file_lines = vec![];
@@ -868,7 +880,7 @@ impl GitManager {
     }
 
     pub fn git_stage_all(&self) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let mut index = repo.index()?;
         index.add_all(&["."], IndexAddOption::DEFAULT, None)?;
@@ -879,7 +891,7 @@ impl GitManager {
 
     // This is used for performing commits in rebases, merges, cherrypicks, and reverts
     fn git_commit(&self, full_message: String, author: &Signature, committer: &Signature, parent_commits: Vec<&Commit>) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let mut index = repo.index()?;
         let tree_oid = index.write_tree()?;
@@ -892,7 +904,7 @@ impl GitManager {
     }
 
     pub fn git_commit_from_json(&self, json_string: &str) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         // TODO: Add way to set signature in git config
         let signature = repo.signature()?;
 
@@ -928,15 +940,66 @@ impl GitManager {
         Ok(())
     }
 
+    pub fn git_discard_changes(&self, json_str: &str) -> Result<()> {
+        let repo = self.borrow_repo()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+        let path = match json_hm.get("path") {
+            Some(s) => s,
+            None => bail!("path was not included in the payload from the front-end"),
+        };
+        let change_type = match json_hm.get("change_type") {
+            Some(s) => s,
+            None => bail!("change_type was not included in the payload from the front-end"),
+        };
+        let status: u8 = match json_hm.get("status") {
+            Some(s) => s.parse()?,
+            None => bail!("status was not included in the payload from the front-end"),
+        };
+
+        let mut cb = CheckoutBuilder::new();
+        cb.path(path);
+        cb.force();
+
+        if change_type == "unstaged" && status == 7 {  // if unstaged and untracked need to stage it to discard.
+            self.git_stage(status, path)?;
+        } else if status == 4 {  // if renamed, need to discard the new file and old file.
+            let diff;
+            if change_type == "unstaged" {
+                diff = self.get_unstaged_changes()?;
+            } else if change_type == "staged" {
+                diff = self.get_staged_changes()?;
+            } else {
+                bail!("Attempting to discard a renamed file that's neither staged nor unstaged. This error should technically be impossible.");
+            }
+
+            let diff_delta = match diff.get_delta(GitManager::get_file_index_in_diff(&diff, path.as_str())?) {
+                Some(dd) => dd,
+                None => bail!("Couldn't find DiffDelta associated with the renamed file, unable to discard changes."),
+            };
+
+            let old_path = match diff_delta.old_file().path() {
+                Some(p) => p,
+                None => bail!("Couldn't find old file path of renamed file, unable to discard changes."),
+            };
+
+            cb.path(old_path);
+        }
+
+        repo.checkout_head(Some(&mut cb))?;
+
+        Ok(())
+    }
+
     pub fn git_delete_local_branch(&self, branch_shorthand: &str) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         let mut branch = repo.find_branch(branch_shorthand, BranchType::Local)?;
         branch.delete()?;
         Ok(())
     }
 
     pub fn git_delete_remote_branch(&self, branch_shorthand: &str) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let remote_branch = repo.find_branch(branch_shorthand, BranchType::Remote)?;
         let remote_branch_full_name = GitManager::get_utf8_string(remote_branch.get().name(), "Branch Name")?;
@@ -972,13 +1035,13 @@ impl GitManager {
     }
 
     pub fn git_delete_tag(&self, tag_name: &str) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         repo.tag_delete(tag_name)?;
         Ok(())
     }
 
     pub fn git_fetch(&self) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
         let remote_string_array = repo.remotes()?;
         let empty_refspecs: &[String] = &[];
         for remote_string_opt in remote_string_array.iter() {
@@ -994,7 +1057,7 @@ impl GitManager {
     }
 
     pub fn git_pull(&self) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         // Fetch first to make sure everything's up to date.
         self.git_fetch()?;
@@ -1053,7 +1116,7 @@ impl GitManager {
     }
 
     pub fn git_push(&self, push_options_json_opt: Option<&str>) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let is_force;
         let remote_name_from_frontend_opt;
@@ -1113,7 +1176,7 @@ impl GitManager {
     }
 
     pub fn git_branch(&self, json_string: &str) -> Result<()> {
-        let repo = self.get_repo()?;
+        let repo = self.borrow_repo()?;
 
         let branch_options: HashMap<String, String> = serde_json::from_str(json_string)?;
         let branch_name = match branch_options.get("branch_name") {

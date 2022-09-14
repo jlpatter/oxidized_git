@@ -453,6 +453,12 @@ class Main {
             self.selectRow($text);
             emit('file-diff', {file_path: file['path'], change_type: changeType, sha: sha}).then();
         });
+        if (changeType === 'unstaged' || changeType === 'staged') {
+            $text.contextmenu((e) => {
+                e.preventDefault();
+                self.showFileChangeContextMenu(e, file['path'], changeType, file['status']);
+            });
+        }
         const $row = $('<div class="display-flex-row little-padding-bottom"></div>');
         $row.append($text);
         if ($button !== null) {
@@ -591,6 +597,21 @@ class Main {
                 $remoteSelect.append($option);
             });
         }
+    }
+
+    showFileChangeContextMenu(event, path, changeType, status) {
+        const $contextMenu = $('#contextMenu');
+        $contextMenu.empty();
+        $contextMenu.css('left', event.pageX + 'px');
+        $contextMenu.css('top', event.pageY + 'px');
+
+        const $discardBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-regular fa-trash-can"></i> Discard Changes</button>');
+        $discardBtn.click(() => {
+            emit("discard-changes", {path: path, change_type: changeType, status: status.toString()}).then();
+        });
+        $contextMenu.append($discardBtn);
+
+        $contextMenu.show();
     }
 
     showBranchContextMenu(event, branchShorthand, branchType) {

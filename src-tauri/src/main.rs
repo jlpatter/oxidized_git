@@ -21,8 +21,8 @@ fn handle_error(e: anyhow::Error, main_window: &Window<Wry>) {
 }
 
 fn emit_update_all(git_manager: &MutexGuard<GitManager>, main_window: &Window<Wry>) {
-    let repo_info_result = get_parseable_repo_info(git_manager);
-    match repo_info_result {
+    let result = get_parseable_repo_info(git_manager);
+    match result {
         Ok(repo_info_opt) => {
             if let Some(repo_info) = repo_info_opt {
                 main_window.emit_all("update_all", repo_info).unwrap();
@@ -35,8 +35,8 @@ fn emit_update_all(git_manager: &MutexGuard<GitManager>, main_window: &Window<Wr
 }
 
 fn emit_update_changes(git_manager: &MutexGuard<GitManager>, main_window: &Window<Wry>) {
-    let changes_info_result = get_files_changed_info_list(git_manager);
-    match changes_info_result {
+    let result = get_files_changed_info_list(git_manager);
+    match result {
         Ok(changes_info_opt) => {
             if let Some(changes_info) = changes_info_opt {
                 main_window.emit_all("update_changes", changes_info).unwrap();
@@ -134,8 +134,8 @@ fn main() {
                 "init" => {
                     main_window_c.emit_all("start-process", "").unwrap();
                     let mut git_manager = git_manager_arc_c.lock().unwrap();
-                    let init_result = git_manager.init_repo();
-                    match init_result {
+                    let result = git_manager.init_repo();
+                    match result {
                         Ok(did_init) => {
                             if did_init {
                                 emit_update_all(&git_manager, &main_window_c);
@@ -151,8 +151,8 @@ fn main() {
                 "open" => {
                     main_window_c.emit_all("start-process", "").unwrap();
                     let mut git_manager = git_manager_arc_c.lock().unwrap();
-                    let open_result = git_manager.open_repo();
-                    match open_result {
+                    let result = git_manager.open_repo();
+                    match result {
                         Ok(did_open) => {
                             if did_open {
                                 emit_update_all(&git_manager, &main_window_c);
@@ -181,8 +181,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let commit_info_result = git_manager.get_commit_info(s);
-                        match commit_info_result {
+                        let result = git_manager.get_commit_info(s);
+                        match result {
                             Ok(r) => main_window_c_c.emit_all("commit-info", r).unwrap(),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -200,8 +200,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let merge_result = git_manager.git_merge(s);
-                        match merge_result {
+                        let result = git_manager.git_merge(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -219,8 +219,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let rebase_result = git_manager.git_rebase(s);
-                        match rebase_result {
+                        let result = git_manager.git_rebase(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -238,8 +238,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let cherrypick_result = git_manager.git_cherrypick(s);
-                        match cherrypick_result {
+                        let result = git_manager.git_cherrypick(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -257,8 +257,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let revert_result = git_manager.git_revert(s);
-                        match revert_result {
+                        let result = git_manager.git_revert(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -276,8 +276,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let reset_result = git_manager.git_reset(s);
-                        match reset_result {
+                        let result = git_manager.git_reset(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -295,11 +295,11 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let ref_result = git_manager.get_ref_from_name(s);
-                        match ref_result {
+                        let result = git_manager.get_ref_from_name(s);
+                        match result {
                             Ok(r) => {
-                                let checkout_result = git_manager.git_checkout(&r);
-                                match checkout_result {
+                                let result_2 = git_manager.git_checkout(&r);
+                                match result_2 {
                                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                                     Err(e) => handle_error(e, &main_window_c_c),
                                 };
@@ -320,8 +320,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let checkout_result = git_manager.git_checkout_detached_head(s);
-                        match checkout_result {
+                        let result = git_manager.git_checkout_detached_head(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -339,8 +339,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let checkout_result = git_manager.git_checkout_remote(s);
-                        match checkout_result {
+                        let result = git_manager.git_checkout_remote(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -378,8 +378,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let set_credentials_result = git_manager.set_credentials(s);
-                        match set_credentials_result {
+                        let result = git_manager.set_credentials(s);
+                        match result {
                             Ok(()) => (),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -397,8 +397,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let stage_result = git_manager.git_stage(s);
-                        match stage_result {
+                        let result = git_manager.git_stage_from_json(s);
+                        match result {
                             Ok(()) => emit_update_changes(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -416,8 +416,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let stage_result = git_manager.git_unstage(s);
-                        match stage_result {
+                        let result = git_manager.git_unstage(s);
+                        match result {
                             Ok(()) => emit_update_changes(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -435,8 +435,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let file_diff_result = git_manager.get_file_diff(s);
-                        match file_diff_result {
+                        let result = git_manager.get_file_diff(s);
+                        match result {
                             Ok(file_lines) => main_window_c_c.emit_all("show-file-lines", file_lines).unwrap(),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -452,8 +452,8 @@ fn main() {
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
                 let git_manager = git_manager_arc_c_c.lock().unwrap();
-                let stage_result = git_manager.git_stage_all();
-                match stage_result {
+                let result = git_manager.git_stage_all();
+                match result {
                     Ok(()) => emit_update_changes(&git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -468,8 +468,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let commit_result = git_manager.git_commit_from_json(s);
-                        match commit_result {
+                        let result = git_manager.git_commit_from_json(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -487,11 +487,11 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let commit_result = git_manager.git_commit_from_json(s);
-                        match commit_result {
+                        let result = git_manager.git_commit_from_json(s);
+                        match result {
                             Ok(()) => {
-                                let push_result = git_manager.git_push(None);
-                                match push_result {
+                                let result_2 = git_manager.git_push(None);
+                                match result_2 {
                                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                                     Err(e) => handle_error(e, &main_window_c_c),
                                 };
@@ -510,8 +510,8 @@ fn main() {
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                let abort_result = git_manager.git_abort();
-                match abort_result {
+                let result = git_manager.git_abort();
+                match result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -524,8 +524,8 @@ fn main() {
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                let continue_result = git_manager.git_continue_cherrypick();
-                match continue_result {
+                let result = git_manager.git_continue_cherrypick();
+                match result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -538,8 +538,8 @@ fn main() {
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                let continue_result = git_manager.git_continue_revert();
-                match continue_result {
+                let result = git_manager.git_continue_revert();
+                match result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -552,8 +552,8 @@ fn main() {
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                let continue_result = git_manager.git_continue_merge();
-                match continue_result {
+                let result = git_manager.git_continue_merge();
+                match result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -566,8 +566,8 @@ fn main() {
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
                 let git_manager = git_manager_arc_c_c.lock().unwrap();
-                let abort_result = git_manager.git_abort_rebase();
-                match abort_result {
+                let result = git_manager.git_abort_rebase();
+                match result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -580,11 +580,30 @@ fn main() {
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
                 let git_manager = git_manager_arc_c_c.lock().unwrap();
-                let continue_result = git_manager.git_continue_rebase();
-                match continue_result {
+                let result = git_manager.git_continue_rebase();
+                match result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("discard-changes", move |event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                match event.payload() {
+                    Some(s) => {
+                        let git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let result = git_manager.git_discard_changes(s);
+                        match result {
+                            Ok(()) => emit_update_changes(&git_manager, &main_window_c_c),
+                            Err(e) => handle_error(e, &main_window_c_c),
+                        };
+                    },
+                    None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+                }
             });
         });
         let main_window_c = main_window.clone();
@@ -596,8 +615,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let delete_result = git_manager.git_delete_local_branch(s);
-                        match delete_result {
+                        let result = git_manager.git_delete_local_branch(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -615,8 +634,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let delete_result = git_manager.git_delete_remote_branch(s);
-                        match delete_result {
+                        let result = git_manager.git_delete_remote_branch(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -634,8 +653,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let delete_result = git_manager.git_delete_tag(s);
-                        match delete_result {
+                        let result = git_manager.git_delete_tag(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -651,8 +670,8 @@ fn main() {
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
                 let git_manager = git_manager_arc_c_c.lock().unwrap();
-                let fetch_result = git_manager.git_fetch();
-                match fetch_result {
+                let result = git_manager.git_fetch();
+                match result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -665,8 +684,8 @@ fn main() {
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
                 let git_manager = git_manager_arc_c_c.lock().unwrap();
-                let pull_result = git_manager.git_pull();
-                match pull_result {
+                let result = git_manager.git_pull();
+                match result {
                     Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
@@ -681,8 +700,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let push_result = git_manager.git_push(Some(s));
-                        match push_result {
+                        let result = git_manager.git_push(Some(s));
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
@@ -700,8 +719,8 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let branch_result = git_manager.git_branch(s);
-                        match branch_result {
+                        let result = git_manager.git_branch(s);
+                        match result {
                             Ok(()) => emit_update_all(&git_manager, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
