@@ -31,7 +31,7 @@ export class SVGManager {
     }
 
     /**
-     * Refreshes the commit table. Can be called on its own for a passive refresh.
+     * Refreshes the commit table.
      */
     refreshCommitTable(repoInfo) {
         const self = this;
@@ -52,7 +52,7 @@ export class SVGManager {
         for (let i = 0; i < repoInfo.length; i++) {
             const commit = repoInfo[i];
             const elements = commit['elements'];
-            let row = {'pixel_y': commit['pixel_y'], 'elements': []};
+            let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'elements': []};
             for (const childLine of elements['child_lines']) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                 if (childLine['row-y'] < i) {
@@ -105,6 +105,66 @@ export class SVGManager {
 
         self.setVisibleCommits();
         self.commitTableSVG.setAttribute('width', maxWidth.toString());
+    }
+
+    removeRow(sha) {
+        const self = this;
+        const commitIndex = self.rows.findIndex(function(row) {
+            return row['sha'] === sha;
+        });
+        let pixel_y = self.rows[commitIndex]['pixel_y'];
+        self.rows.splice(commitIndex, 1);
+
+        for (let i = commitIndex; i < self.rows.length; i++) {
+            self.rows[i]['pixel_y'] = pixel_y;
+            for (let j = 0; j < self.rows[i]['elements'].length; j++) {
+                if (self.rows[i]['elements'][j].hasAttribute('y1')) {
+                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y1')) - self.Y_SPACING;
+                    self.rows[i]['elements'][j].setAttribute('y1', new_y1.toString());
+                }
+                if (self.rows[i]['elements'][j].hasAttribute('y2')) {
+                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y2')) - self.Y_SPACING;
+                    self.rows[i]['elements'][j].setAttribute('y2', new_y1.toString());
+                }
+                if (self.rows[i]['elements'][j].hasAttribute('d')) {
+                    // This assumes 'd' is structured like the following: "M x1 y1 C x2 y2, x3 y3, x4 y4, x5 y5, x6 y6"
+                    const oldD = self.rows[i]['elements'][j].getAttribute('d').split(', ');
+                    const firstElemSplit = oldD.shift().split(' C ');
+                    const firstPair = firstElemSplit[0].slice(2).split(' ');
+                    const secondPair = firstElemSplit[1].split(' ');
+                    const thirdPair = oldD[0].split(' ');
+                    const fourthPair = oldD[1].split(' ');
+                    const fifthPair = oldD[2].split(' ');
+                    const sixthPair = oldD[3].split(' ');
+                    const newD = 'M ' +
+                        firstPair[0] + ' ' +
+                        (Number(firstPair[1]) - self.Y_SPACING).toString() +
+                        ' C ' +
+                        secondPair[0] + ' ' +
+                        (Number(secondPair[1]) - self.Y_SPACING).toString() + ', ' +
+                        thirdPair[0] + ' ' +
+                        (Number(thirdPair[1]) - self.Y_SPACING).toString() + ', ' +
+                        fourthPair[0] + ' ' +
+                        (Number(fourthPair[1]) - self.Y_SPACING).toString() + ', ' +
+                        fifthPair[0] + ' ' +
+                        (Number(fifthPair[1]) - self.Y_SPACING).toString() + ', ' +
+                        sixthPair[0] + ' ' +
+                        (Number(sixthPair[1]) - self.Y_SPACING).toString();
+                    self.rows[i]['elements'][j].setAttribute('d', newD);
+                }
+                if (self.rows[i]['elements'][j].hasAttribute('cy')) {
+                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('cy')) - self.Y_SPACING;
+                    self.rows[i]['elements'][j].setAttribute('cy', new_y1.toString());
+                }
+                if (self.rows[i]['elements'][j].hasAttribute('y')) {
+                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y')) - self.Y_SPACING;
+                    self.rows[i]['elements'][j].setAttribute('y', new_y1.toString());
+                }
+            }
+        }
+
+        self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
+        self.setVisibleCommits();
     }
 
     renderVisibleCommits() {
