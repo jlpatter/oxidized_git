@@ -28,7 +28,7 @@ impl Serialize for SVGCommitInfoValue {
 
 #[derive(Clone)]
 pub enum RepoInfoValue {
-    SomeCommitInfo(Vec<HashMap<String, RowProperty>>),
+    SomeCommitInfo(CommitsInfo),
     SomeBranchInfo(BranchesInfo),
     SomeRemoteInfo(Vec<String>),
     SomeGeneralInfo(HashMap<String, String>),
@@ -43,6 +43,21 @@ impl Serialize for RepoInfoValue {
             RepoInfoValue::SomeRemoteInfo(v) => v.serialize(serializer),
             RepoInfoValue::SomeGeneralInfo(hm) => hm.serialize(serializer),
             RepoInfoValue::SomeFilesChangedInfo(f) => f.serialize(serializer),
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct CommitsInfo {
+    starting_index: isize,
+    svg_row_draw_properties: Vec<HashMap<String, RowProperty>>,
+}
+
+impl CommitsInfo {
+    pub fn new(starting_index: isize, svg_row_draw_properties: Vec<HashMap<String, RowProperty>>) -> Self {
+        Self {
+            starting_index,
+            svg_row_draw_properties,
         }
     }
 }
@@ -285,7 +300,7 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
     Ok(general_info)
 }
 
-fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<Vec<HashMap<String, SVGCommitInfoValue>>> {
+fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>, starting_index: isize) -> Result<Vec<HashMap<String, SVGCommitInfoValue>>> {
     let repo = git_manager.borrow_repo()?;
 
     let mut commit_list: Vec<HashMap<String, SVGCommitInfoValue>> = vec![];
@@ -296,7 +311,7 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
         let mut commit_info: HashMap<String, SVGCommitInfoValue> = HashMap::new();
         commit_info.insert("oid".into(), SVGCommitInfoValue::SomeString(oid.to_string()));
         commit_info.insert("x".into(), SVGCommitInfoValue::SomeInt(0));
-        commit_info.insert("y".into(), SVGCommitInfoValue::SomeInt(i as isize));
+        commit_info.insert("y".into(), SVGCommitInfoValue::SomeInt(starting_index + (i as isize)));
 
         let commit = repo.find_commit(*oid)?;
 
@@ -356,12 +371,12 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
     Ok(commit_list)
 }
 
-fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager) -> Result<Option<Vec<HashMap<String, RowProperty>>>> {
-    let oids = match git_manager.git_revwalk()? {
+fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager) -> Result<Option<CommitsInfo>> {
+    let (starting_index, oids) = match git_manager.git_revwalk()? {
         Some(v) => v,
         None => return Ok(None),
     };
-    let commit_info_list = get_commit_info_list(git_manager, oids)?;
+    let commit_info_list = get_commit_info_list(git_manager, oids, starting_index)?;
     let mut svg_rows: Vec<Rc<RefCell<SVGRow>>> = vec![];
     let mut svg_row_hm: HashMap<String, Rc<RefCell<SVGRow>>> = HashMap::new();
     for commit_info in commit_info_list {
@@ -460,7 +475,7 @@ fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager) -> Result<O
         ));
     }
 
-    Ok(Some(svg_row_draw_properties))
+    Ok(Some(CommitsInfo::new(starting_index, svg_row_draw_properties)))
 }
 
 fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
@@ -607,8 +622,8 @@ pub fn get_parseable_repo_info(git_manager: &mut GitManager) -> Result<Option<Ha
     }
     let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
     repo_info.insert(String::from("general_info"), RepoInfoValue::SomeGeneralInfo(get_general_info(git_manager)?));
-    if let Some(v) = get_commit_svg_draw_properties_list(git_manager)? {
-        repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(v));
+    if let Some(c) = get_commit_svg_draw_properties_list(git_manager)? {
+        repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(c));
     }
     repo_info.insert(String::from("branch_info_list"), RepoInfoValue::SomeBranchInfo(get_branch_info_list(git_manager)?));
     repo_info.insert(String::from("remote_info_list"), RepoInfoValue::SomeRemoteInfo(get_remote_info_list(git_manager)?));

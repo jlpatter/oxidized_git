@@ -30,12 +30,8 @@ export class SVGManager {
         this.refreshCommitTable(repoInfo);
     }
 
-    /**
-     * Refreshes the commit table.
-     */
-    refreshCommitTable(repoInfo) {
+    getSingleCharWidth() {
         const self = this;
-
         const $textSizeTestContainer = $('<svg width="500" height="500"></svg>');
         const textSizeTest = self.makeSVG('text', {id: 'textSizeTest', x: 0, y: 0, fill: 'white'});
         textSizeTest.textContent = 'A';
@@ -44,20 +40,27 @@ export class SVGManager {
         const singleCharWidth = textSizeTest.getBBox().width;
         $textSizeTestContainer.remove();
 
-        self.commitTableSVG.setAttribute('height', ((repoInfo.length + 1) * self.Y_SPACING).toString());
+        return singleCharWidth;
+    }
 
-        self.rows = [];
+    /**
+     * Refreshes the commit table.
+     */
+    refreshCommitTable(commitsInfo) {
+        const self = this;
 
-        let maxWidth = 0;
-        for (let i = 0; i < repoInfo.length; i++) {
-            const commit = repoInfo[i];
+        const singleCharWidth = self.getSingleCharWidth();
+
+        let maxWidth = Number(self.commitTableSVG.getAttribute('width'));
+        for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
+            const commit = commitsInfo['svg_row_draw_properties'][i];
             const elements = commit['elements'];
             let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'elements': []};
             for (const childLine of elements['child_lines']) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
-                if (childLine['row-y'] < i) {
+                if (childLine['row-y'] < i + commitsInfo['starting_index']) {
                     self.rows[childLine['row-y']]['elements'].unshift(line);
-                } else if (childLine['row-y'] === i) {
+                } else if (childLine['row-y'] === i + commitsInfo['starting_index']) {
                     row['elements'].push(line);
                 } else {
                     console.error("ERROR: A child line is trying to be drawn after the current node!");
@@ -99,12 +102,17 @@ export class SVGManager {
             backRect.oncontextmenu = self.getContextFunction(commit['sha']);
             row['elements'].push(backRect);
 
-            self.rows.push(row);
+            if (i + commitsInfo['starting_index'] < self.rows.length) {
+                self.rows[i + commitsInfo['starting_index']] = row;
+            } else {
+                self.rows.push(row);
+            }
             maxWidth = Math.max(maxWidth, width);
         }
 
         self.setVisibleCommits();
         self.commitTableSVG.setAttribute('width', maxWidth.toString());
+        self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
     }
 
     removeRow(sha) {

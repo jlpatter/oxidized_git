@@ -124,7 +124,6 @@ pub struct GitManager {
     sha_from_commit_from_op: Option<String>,
     old_graph_starting_shas: Vec<String>,
     old_revwalk_shas: Vec<String>,
-    unchanged_sha: String,
 }
 
 impl GitManager {
@@ -134,7 +133,6 @@ impl GitManager {
             sha_from_commit_from_op: None,
             old_graph_starting_shas: vec![],
             old_revwalk_shas: vec![],
-            unchanged_sha: String::new(),
         }
     }
 
@@ -227,7 +225,7 @@ impl GitManager {
         false
     }
 
-    pub fn git_revwalk(&mut self) -> Result<Option<Vec<Oid>>> {
+    pub fn git_revwalk(&mut self) -> Result<Option<(isize, Vec<Oid>)>> {
         let mut oid_vec: Vec<Oid> = vec![];
         // This closure allows self to be borrowed mutably later for setting the new graph starting shas.
         {
@@ -261,7 +259,7 @@ impl GitManager {
             return Ok(None);
         }
 
-        // If you've reached here, the old and new are different. Update the old and perform the revwalk.
+        // If you've reached here, the old and new starting oids are different. Update the old and perform the revwalk.
         self.old_graph_starting_shas = oid_vec.iter().map(|new_oid| {
             new_oid.to_string()
         }).collect();
@@ -277,44 +275,37 @@ impl GitManager {
         let limit_commits = preferences.get_limit_commits();
         let commit_count = preferences.get_commit_count();
 
-        let mut changed_starting_index: Option<usize> = None;
-        let mut changed_ending_sha = String::new();
+        let mut changed_starting_index: isize = -1;
         let mut oid_list: Vec<Oid> = vec![];
         for (i, commit_oid_result) in revwalk.enumerate() {
             if limit_commits && i >= commit_count {
                 break;
             }
             let oid = commit_oid_result?;
-            if i >= self.old_revwalk_shas.len() || oid.to_string() != self.old_revwalk_shas[i] {
-                changed_starting_index = Some(i);
-            } else if i < self.old_revwalk_shas.len() && oid.to_string() == self.old_revwalk_shas[i] && changed_starting_index != None {
-                changed_ending_sha = oid.to_string();
+            if changed_starting_index == -1 && (i >= self.old_revwalk_shas.len() || oid.to_string() != self.old_revwalk_shas[i]) {
+                changed_starting_index = i as isize;
+            } else if i < self.old_revwalk_shas.len() && oid.to_string() == self.old_revwalk_shas[i] && changed_starting_index >= 0 {
                 break;
             }
-            if changed_starting_index != None {
+            if changed_starting_index >= 0 {
                 oid_list.push(oid);
             }
         }
 
-        // TODO: Figure out if this variable is actually needed.
-        self.unchanged_sha = changed_ending_sha;
-
-        match changed_starting_index {
-            Some(s_i) => {
-                for i in 0..oid_list.len() {
-                    if s_i + i < self.old_revwalk_shas.len() {
-                        self.old_revwalk_shas[s_i + i] = oid_list[i].to_string();
-                    } else {
-                        self.old_revwalk_shas.push(oid_list[i].to_string());
-                    }
+        if changed_starting_index >= 0 {
+            let s_i = changed_starting_index as usize;
+            for i in 0..oid_list.len() {
+                if s_i + i < self.old_revwalk_shas.len() {
+                    self.old_revwalk_shas[s_i + i] = oid_list[i].to_string();
+                } else {
+                    self.old_revwalk_shas.push(oid_list[i].to_string());
                 }
-            },
-            None => {
-                bail!("An entire revwalk occur even though there were no changes, this shouldn't happen!");
-            },
+            }
+        } else {
+            bail!("A full revwalk was performed but nothing changed! This shouldn't happen!");
         }
 
-        Ok(Some(oid_list))
+        Ok(Some((changed_starting_index, oid_list)))
     }
 
     pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference> {
