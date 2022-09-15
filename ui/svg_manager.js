@@ -55,15 +55,15 @@ export class SVGManager {
         for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
             const commit = commitsInfo['svg_row_draw_properties'][i];
             const elements = commit['elements'];
-            let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'elements': []};
+            let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'elements': [], 'priority-elements': []};
             for (const childLine of elements['child_lines']) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                 if (childLine['row-y'] < i + commitsInfo['starting_index']) {
-                    self.rows[childLine['row-y']]['elements'].unshift(line);
+                    self.rows[childLine['row-y']]['priority-elements'].push(line);
                 } else if (childLine['row-y'] === i + commitsInfo['starting_index']) {
-                    row['elements'].push(line);
+                    row['priority-elements'].push(line);
                 } else {
-                    console.error("ERROR: A child line is trying to be drawn after the current node!");
+                    console.error("ERROR: childLine tried to be added after a row!");
                 }
             }
             const circle = self.makeSVG(elements['circle']['tag'], elements['circle']['attrs']);
@@ -179,6 +179,12 @@ export class SVGManager {
         const self = this;
 
         let df = document.createDocumentFragment();
+        for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
+            for (const element of self.rows[i]['priority-elements']) {
+                df.appendChild(element);
+            }
+        }
+
         for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
             for (const element of self.rows[i]['elements']) {
                 df.appendChild(element);

@@ -279,15 +279,13 @@ impl SVGRow {
                 }
             }
             let mut style_str = String::from("stroke:");
-            let row_y;
+            let row_y = self.y;
             if child_svg_row.x >= self.x {
                 // Sets the color for "branching" lines and straight lines
                 style_str.push_str(&*SVGRow::get_color_string(child_svg_row.x));
-                row_y = self.y;
             } else {
                 // Sets the color for "merging" lines
                 style_str.push_str(&*SVGRow::get_color_string(self.x));
-                row_y = before_y;
             }
             style_str.push_str(";fill:transparent;stroke-width:");
             style_str.push_str(&*LINE_STROKE_WIDTH.to_string());
