@@ -23,13 +23,6 @@ export class SVGManager {
         this.setScrollEvent();
     }
 
-    /**
-     * Refreshes the commit table with new entry results.
-     */
-    updateCommitTable(repoInfo) {
-        this.refreshCommitTable(repoInfo);
-    }
-
     getSingleCharWidth() {
         const self = this;
         const $textSizeTestContainer = $('<svg width="500" height="500"></svg>');
@@ -43,10 +36,7 @@ export class SVGManager {
         return singleCharWidth;
     }
 
-    /**
-     * Refreshes the commit table.
-     */
-    refreshCommitTable(commitsInfo) {
+    updateCommitTable(commitsInfo) {
         const self = this;
 
         const singleCharWidth = self.getSingleCharWidth();
@@ -55,6 +45,7 @@ export class SVGManager {
             self.removeRows(commitsInfo['deleted_sha_changes']);
         }
 
+        const newRows = [];
         let maxWidth = Number(self.commitTableSVG.getAttribute('width'));
         for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
             const commit = commitsInfo['svg_row_draw_properties'][i];
@@ -63,7 +54,7 @@ export class SVGManager {
             for (const childLine of elements['child_lines']) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                 if (childLine['row-y'] < i) {
-                    self.rows[childLine['row-y']]['priority-elements'].push(line);
+                    newRows[childLine['row-y']]['priority-elements'].push(line);
                 } else if (childLine['row-y'] === i) {
                     row['priority-elements'].push(line);
                 } else {
@@ -106,73 +97,95 @@ export class SVGManager {
             backRect.oncontextmenu = self.getContextFunction(commit['sha']);
             row['elements'].push(backRect);
 
-            self.rows.push(row);
+            newRows.push(row);
             maxWidth = Math.max(maxWidth, width);
         }
+
+        self.addRows(newRows);
 
         self.setVisibleCommits();
         self.commitTableSVG.setAttribute('width', maxWidth.toString());
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
     }
 
-    removeRows(shaChanges) {
+    addRows(newRows) {
         const self = this,
-            start_index = shaChanges[0]['index'],
-            num_to_remove = shaChanges.length;
-        let pixel_y = self.rows[start_index]['pixel_y'];
-        self.rows.splice(start_index, num_to_remove);
+            startIndex = newRows.length,
+            amountToMove = self.Y_SPACING * newRows.length;
 
-        for (let i = start_index; i < self.rows.length; i++) {
+        // This is technically 0 * self.Y_SPACING + self.Y_OFFSET but...y'know...
+        let pixel_y = self.Y_OFFSET;
+        self.rows = newRows.concat(self.rows);
+
+        for (let i = startIndex; i < self.rows.length; i++) {
             self.rows[i]['pixel_y'] = pixel_y;
-            for (let j = 0; j < self.rows[i]['elements'].length; j++) {
-                if (self.rows[i]['elements'][j].hasAttribute('y1')) {
-                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y1')) - self.Y_SPACING * num_to_remove;
-                    self.rows[i]['elements'][j].setAttribute('y1', new_y1.toString());
-                }
-                if (self.rows[i]['elements'][j].hasAttribute('y2')) {
-                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y2')) - self.Y_SPACING * num_to_remove;
-                    self.rows[i]['elements'][j].setAttribute('y2', new_y1.toString());
-                }
-                if (self.rows[i]['elements'][j].hasAttribute('d')) {
-                    // This assumes 'd' is structured like the following: "M x1 y1 C x2 y2, x3 y3, x4 y4, x5 y5, x6 y6"
-                    const oldD = self.rows[i]['elements'][j].getAttribute('d').split(', ');
-                    const firstElemSplit = oldD.shift().split(' C ');
-                    const firstPair = firstElemSplit[0].slice(2).split(' ');
-                    const secondPair = firstElemSplit[1].split(' ');
-                    const thirdPair = oldD[0].split(' ');
-                    const fourthPair = oldD[1].split(' ');
-                    const fifthPair = oldD[2].split(' ');
-                    const sixthPair = oldD[3].split(' ');
-                    const newD = 'M ' +
-                        firstPair[0] + ' ' +
-                        (Number(firstPair[1]) - self.Y_SPACING * num_to_remove).toString() +
-                        ' C ' +
-                        secondPair[0] + ' ' +
-                        (Number(secondPair[1]) - self.Y_SPACING * num_to_remove).toString() + ', ' +
-                        thirdPair[0] + ' ' +
-                        (Number(thirdPair[1]) - self.Y_SPACING * num_to_remove).toString() + ', ' +
-                        fourthPair[0] + ' ' +
-                        (Number(fourthPair[1]) - self.Y_SPACING * num_to_remove).toString() + ', ' +
-                        fifthPair[0] + ' ' +
-                        (Number(fifthPair[1]) - self.Y_SPACING * num_to_remove).toString() + ', ' +
-                        sixthPair[0] + ' ' +
-                        (Number(sixthPair[1]) - self.Y_SPACING * num_to_remove).toString();
-                    self.rows[i]['elements'][j].setAttribute('d', newD);
-                }
-                if (self.rows[i]['elements'][j].hasAttribute('cy')) {
-                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('cy')) - self.Y_SPACING * num_to_remove;
-                    self.rows[i]['elements'][j].setAttribute('cy', new_y1.toString());
-                }
-                if (self.rows[i]['elements'][j].hasAttribute('y')) {
-                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y')) - self.Y_SPACING * num_to_remove;
-                    self.rows[i]['elements'][j].setAttribute('y', new_y1.toString());
-                }
-            }
+            self.moveYAttributes(self.rows[i]['priority-elements'], amountToMove);
+            self.moveYAttributes(self.rows[i]['elements'], amountToMove);
             pixel_y += self.Y_SPACING;
         }
 
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
         self.setVisibleCommits();
+    }
+
+    removeRows(shaChanges) {
+        const self = this,
+            startIndex = shaChanges[0]['index'],
+            numToRemove = shaChanges.length;
+
+        let pixel_y = self.rows[startIndex]['pixel_y'];
+        self.rows.splice(startIndex, numToRemove);
+
+        for (let i = startIndex; i < self.rows.length; i++) {
+            self.rows[i]['pixel_y'] = pixel_y;
+            self.moveYAttributes(self.rows[i]['priority-elements'], -(self.Y_SPACING * numToRemove));
+            self.moveYAttributes(self.rows[i]['elements'], -(self.Y_SPACING * numToRemove));
+            pixel_y += self.Y_SPACING;
+        }
+
+        self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
+        self.setVisibleCommits();
+    }
+
+    moveYAttributes(elements, amountToMove) {
+        for (let j = 0; j < elements.length; j++) {
+            if (elements[j].hasAttribute('y1')) {
+                const new_y1 = Number(elements[j].getAttribute('y1')) + amountToMove;
+                elements[j].setAttribute('y1', new_y1.toString());
+            }
+            if (elements[j].hasAttribute('y2')) {
+                const new_y1 = Number(elements[j].getAttribute('y2')) + amountToMove;
+                elements[j].setAttribute('y2', new_y1.toString());
+            }
+            if (elements[j].hasAttribute('d')) {
+                // This assumes 'd' is structured like the following: "M x1 y1 C x2 y2, x3 y3, x4 y4"
+                const oldD = elements[j].getAttribute('d').split(', ');
+                const firstElemSplit = oldD.shift().split(' C ');
+                const firstPair = firstElemSplit[0].slice(2).split(' ');
+                const secondPair = firstElemSplit[1].split(' ');
+                const thirdPair = oldD[0].split(' ');
+                const fourthPair = oldD[1].split(' ');
+                const newD = 'M ' +
+                    firstPair[0] + ' ' +
+                    (Number(firstPair[1]) + amountToMove).toString() +
+                    ' C ' +
+                    secondPair[0] + ' ' +
+                    (Number(secondPair[1]) + amountToMove).toString() + ', ' +
+                    thirdPair[0] + ' ' +
+                    (Number(thirdPair[1]) + amountToMove).toString() + ', ' +
+                    fourthPair[0] + ' ' +
+                    (Number(fourthPair[1]) + amountToMove).toString();
+                elements[j].setAttribute('d', newD);
+            }
+            if (elements[j].hasAttribute('cy')) {
+                const new_y1 = Number(elements[j].getAttribute('cy')) + amountToMove;
+                elements[j].setAttribute('cy', new_y1.toString());
+            }
+            if (elements[j].hasAttribute('y')) {
+                const new_y1 = Number(elements[j].getAttribute('y')) + amountToMove;
+                elements[j].setAttribute('y', new_y1.toString());
+            }
+        }
     }
 
     renderVisibleCommits() {

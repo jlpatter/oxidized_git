@@ -4,7 +4,7 @@ use std::rc::Rc;
 use anyhow::{bail, Result};
 use git2::{BranchType, Diff, ErrorCode, Oid, RepositoryState};
 use serde::{Serialize, Deserialize, Serializer};
-use crate::git_manager::{CommitOps, GitManager, SHAChange, SHAChanges};
+use crate::git_manager::{GraphOps, GitManager, SHAChange, SHAChanges};
 use crate::svg_row::{RowProperty, SVGRow};
 
 #[derive(Clone)]
@@ -372,17 +372,16 @@ fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> R
     Ok(commit_list)
 }
 
-fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops: CommitOps) -> Result<Option<CommitsInfo>> {
+fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops: GraphOps) -> Result<Option<CommitsInfo>> {
     let sha_changes;
-    if commit_ops == CommitOps::RefChange {
+    if commit_ops == GraphOps::RefChange {
         // TODO: Implement this!
-        bail!("Not implemented yet, sorry!");
-    } else if commit_ops == CommitOps::ConfigChange {
+        println!("Attempted Ref Change which is not implemented yet.");
+        return Ok(None);
+    } else if commit_ops == GraphOps::ConfigChange {
         // TODO: Implement this!
-        bail!("Not implemented yet, sorry!");
-    } else if commit_ops == CommitOps::Abort {
-        // TODO: Implement this!
-        bail!("Not implemented yet, sorry!");
+        println!("Attempted Config Change which is not implemented yet.");
+        return Ok(None);
     } else {
         sha_changes = match git_manager.git_revwalk(commit_ops)? {
             Some(v) => v,
@@ -626,7 +625,7 @@ pub fn get_files_changed_info_list(git_manager: &GitManager) -> Result<Option<Fi
     Ok(Some(FilesChangedInfo::new(files_changed, get_parseable_diff_delta(unstaged_diff)?, get_parseable_diff_delta(staged_diff)?)))
 }
 
-pub fn get_parseable_repo_info(git_manager: &mut GitManager, commit_ops: CommitOps) -> Result<Option<HashMap<String, RepoInfoValue>>> {
+pub fn get_parseable_repo_info(git_manager: &mut GitManager, commit_ops: GraphOps) -> Result<Option<HashMap<String, RepoInfoValue>>> {
     if !git_manager.has_open_repo() {
         return Ok(None);
     }

@@ -120,11 +120,10 @@ fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Resul
 }
 
 #[derive(PartialEq)]
-pub enum CommitOps {
+pub enum GraphOps {
     AddedOnly,
     DeletedOnly,
     Both,
-    Abort,
     RefChange,
     ConfigChange,
     DifferentRepo,
@@ -290,7 +289,7 @@ impl GitManager {
         false
     }
 
-    pub fn git_revwalk(&mut self, commit_ops: CommitOps) -> Result<Option<SHAChanges>> {
+    pub fn git_revwalk(&mut self, commit_ops: GraphOps) -> Result<Option<SHAChanges>> {
         let mut oid_vec: Vec<Oid> = vec![];
         // This closure allows self to be borrowed mutably later for setting the new graph starting shas.
         {
@@ -324,7 +323,7 @@ impl GitManager {
             });
         }
 
-        if commit_ops == CommitOps::DifferentRepo {
+        if commit_ops == GraphOps::DifferentRepo {
             self.old_graph_starting_shas = vec![];
             self.old_revwalk_shas = VecDeque::new();
         }
@@ -358,7 +357,6 @@ impl GitManager {
             let oid = commit_oid_result?;
             let sha = oid.to_string();
 
-            // Check first commit for added or deleted commits.
             if self.old_revwalk_shas.len() > 0 {
                 if i == 0 && sha != self.old_revwalk_shas[i] {
                     let first_non_deleted_commit = self.old_revwalk_shas.iter().position(|old_sha| {
@@ -399,7 +397,7 @@ impl GitManager {
                 } else if i > 0 && is_adding {
                     if self.old_revwalk_shas.contains(&sha) {
                         is_adding = false;
-                        if commit_ops == CommitOps::AddedOnly {
+                        if commit_ops == GraphOps::AddedOnly {
                             break;
                         }
                     } else {
