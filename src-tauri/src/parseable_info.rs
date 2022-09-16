@@ -4,7 +4,7 @@ use std::rc::Rc;
 use anyhow::{bail, Result};
 use git2::{BranchType, Diff, ErrorCode, Oid, RepositoryState};
 use serde::{Serialize, Deserialize, Serializer};
-use crate::git_manager::GitManager;
+use crate::git_manager::{CommitOps, GitManager, SHAChange, SHAChanges};
 use crate::svg_row::{RowProperty, SVGRow};
 
 #[derive(Clone)]
@@ -49,14 +49,14 @@ impl Serialize for RepoInfoValue {
 
 #[derive(Clone, Serialize)]
 pub struct CommitsInfo {
-    starting_index: isize,
+    deleted_sha_changes: Vec<SHAChange>,
     svg_row_draw_properties: Vec<HashMap<String, RowProperty>>,
 }
 
 impl CommitsInfo {
-    pub fn new(starting_index: isize, svg_row_draw_properties: Vec<HashMap<String, RowProperty>>) -> Self {
+    pub fn new(deleted_sha_changes: Vec<SHAChange>, svg_row_draw_properties: Vec<HashMap<String, RowProperty>>) -> Self {
         Self {
-            starting_index,
+            deleted_sha_changes,
             svg_row_draw_properties,
         }
     }
@@ -300,20 +300,21 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
     Ok(general_info)
 }
 
-fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>, starting_index: isize) -> Result<Vec<HashMap<String, SVGCommitInfoValue>>> {
+fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> Result<Vec<HashMap<String, SVGCommitInfoValue>>> {
     let repo = git_manager.borrow_repo()?;
 
     let mut commit_list: Vec<HashMap<String, SVGCommitInfoValue>> = vec![];
     let oid_refs_hm = get_oid_refs(git_manager)?;
 
     let mut children_oids: HashMap<String, Vec<String>> = HashMap::new();
-    for (i, oid) in oid_list.iter().enumerate() {
+    for sha_change in sha_changes.borrow_created() {
+        let oid = Oid::from_str(sha_change.borrow_sha())?;
         let mut commit_info: HashMap<String, SVGCommitInfoValue> = HashMap::new();
-        commit_info.insert("oid".into(), SVGCommitInfoValue::SomeString(oid.to_string()));
+        commit_info.insert("oid".into(), SVGCommitInfoValue::SomeString(sha_change.borrow_sha().clone()));
         commit_info.insert("x".into(), SVGCommitInfoValue::SomeInt(0));
-        commit_info.insert("y".into(), SVGCommitInfoValue::SomeInt(starting_index + (i as isize)));
+        commit_info.insert("y".into(), SVGCommitInfoValue::SomeInt(sha_change.borrow_index().clone() as isize));
 
-        let commit = repo.find_commit(*oid)?;
+        let commit = repo.find_commit(oid)?;
 
         // Get commit summary
         let commit_summary = GitManager::get_utf8_string(commit.summary(), "Commit Summary")?;
@@ -371,12 +372,24 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>, starting_i
     Ok(commit_list)
 }
 
-fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager) -> Result<Option<CommitsInfo>> {
-    let (starting_index, oids) = match git_manager.git_revwalk()? {
-        Some(v) => v,
-        None => return Ok(None),
-    };
-    let commit_info_list = get_commit_info_list(git_manager, oids, starting_index)?;
+fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops: CommitOps) -> Result<Option<CommitsInfo>> {
+    let sha_changes;
+    if commit_ops == CommitOps::RefChange {
+        // TODO: Implement this!
+        bail!("Not implemented yet, sorry!");
+    } else if commit_ops == CommitOps::ConfigChange {
+        // TODO: Implement this!
+        bail!("Not implemented yet, sorry!");
+    } else if commit_ops == CommitOps::Abort {
+        // TODO: Implement this!
+        bail!("Not implemented yet, sorry!");
+    } else {
+        sha_changes = match git_manager.git_revwalk(commit_ops)? {
+            Some(v) => v,
+            None => return Ok(None),
+        };
+    }
+    let commit_info_list = get_commit_info_list(git_manager, &sha_changes)?;
     let mut svg_rows: Vec<Rc<RefCell<SVGRow>>> = vec![];
     let mut svg_row_hm: HashMap<String, Rc<RefCell<SVGRow>>> = HashMap::new();
     for commit_info in commit_info_list {
@@ -475,7 +488,7 @@ fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager) -> Result<O
         ));
     }
 
-    Ok(Some(CommitsInfo::new(starting_index, svg_row_draw_properties)))
+    Ok(Some(CommitsInfo::new(sha_changes.borrow_deleted().clone(), svg_row_draw_properties)))
 }
 
 fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
@@ -500,10 +513,7 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
         let branch_shorthand = String::from(GitManager::get_utf8_string(reference.shorthand(), "Branch Name")?);
 
         // If this is the remote head, don't add it to the branches info
-        let is_remote_head = remote_heads.iter().any(|head_name| {
-            branch_shorthand == *head_name
-        });
-        if is_remote_head {
+        if remote_heads.contains(&branch_shorthand) {
             continue;
         }
 
@@ -616,13 +626,13 @@ pub fn get_files_changed_info_list(git_manager: &GitManager) -> Result<Option<Fi
     Ok(Some(FilesChangedInfo::new(files_changed, get_parseable_diff_delta(unstaged_diff)?, get_parseable_diff_delta(staged_diff)?)))
 }
 
-pub fn get_parseable_repo_info(git_manager: &mut GitManager) -> Result<Option<HashMap<String, RepoInfoValue>>> {
+pub fn get_parseable_repo_info(git_manager: &mut GitManager, commit_ops: CommitOps) -> Result<Option<HashMap<String, RepoInfoValue>>> {
     if !git_manager.has_open_repo() {
         return Ok(None);
     }
     let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
     repo_info.insert(String::from("general_info"), RepoInfoValue::SomeGeneralInfo(get_general_info(git_manager)?));
-    if let Some(c) = get_commit_svg_draw_properties_list(git_manager)? {
+    if let Some(c) = get_commit_svg_draw_properties_list(git_manager, commit_ops)? {
         repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(c));
     }
     repo_info.insert(String::from("branch_info_list"), RepoInfoValue::SomeBranchInfo(get_branch_info_list(git_manager)?));

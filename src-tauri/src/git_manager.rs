@@ -119,20 +119,85 @@ fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Resul
     Ok(diff)
 }
 
+#[derive(PartialEq)]
+pub enum CommitOps {
+    AddedOnly,
+    DeletedOnly,
+    Both,
+    Abort,
+    RefChange,
+    ConfigChange,
+    DifferentRepo,
+}
+
+#[derive(Clone, Serialize)]
+pub struct SHAChange {
+    index: usize,
+    sha: String,
+}
+
+impl SHAChange {
+    pub fn new(index: usize, sha: String) -> Self {
+        Self {
+            index,
+            sha,
+        }
+    }
+
+    pub fn borrow_index(&self) -> &usize {
+        &self.index
+    }
+
+    pub fn borrow_sha(&self) -> &String {
+        &self.sha
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct SHAChanges {
+    created: Vec<SHAChange>,
+    deleted: Vec<SHAChange>,
+}
+
+impl SHAChanges {
+    pub fn new() -> Self {
+        Self {
+            created: vec![],
+            deleted: vec![],
+        }
+    }
+
+    pub fn push_created(&mut self, sha_change: SHAChange) {
+        self.created.push(sha_change);
+    }
+
+    pub fn push_deleted(&mut self, sha_change: SHAChange) {
+        self.deleted.push(sha_change);
+    }
+
+    pub fn borrow_created(&self) -> &Vec<SHAChange> {
+        &self.created
+    }
+
+    pub fn borrow_deleted(&self) -> &Vec<SHAChange> {
+        &self.deleted
+    }
+}
+
 pub struct GitManager {
     repo: Option<Repository>,
     sha_from_commit_from_op: Option<String>,
     old_graph_starting_shas: Vec<String>,
-    old_revwalk_shas: Vec<String>,
+    old_revwalk_shas: VecDeque<String>,
 }
 
 impl GitManager {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             repo: None,
             sha_from_commit_from_op: None,
             old_graph_starting_shas: vec![],
-            old_revwalk_shas: vec![],
+            old_revwalk_shas: VecDeque::new(),
         }
     }
 
@@ -225,7 +290,7 @@ impl GitManager {
         false
     }
 
-    pub fn git_revwalk(&mut self) -> Result<Option<(isize, Vec<Oid>)>> {
+    pub fn git_revwalk(&mut self, commit_ops: CommitOps) -> Result<Option<SHAChanges>> {
         let mut oid_vec: Vec<Oid> = vec![];
         // This closure allows self to be borrowed mutably later for setting the new graph starting shas.
         {
@@ -234,7 +299,9 @@ impl GitManager {
                 let (branch, _) = branch_result?;
                 match branch.get().target() {
                     Some(oid) => {
-                        oid_vec.push(oid);
+                        if !oid_vec.contains(&oid) {
+                            oid_vec.push(oid);
+                        }
                     },
                     None => (),
                 };
@@ -242,7 +309,11 @@ impl GitManager {
 
             if repo.head_detached()? {
                 match repo.head()?.target() {
-                    Some(oid) => oid_vec.push(oid),
+                    Some(oid) => {
+                        if !oid_vec.contains(&oid) {
+                            oid_vec.push(oid);
+                        }
+                    },
                     None => (),
                 };
             }
@@ -253,8 +324,11 @@ impl GitManager {
             });
         }
 
-        // NOTE: The oid_vec may have duplicates but that is intentional. Each duplicate represents a different branch.
-        // If more duplicates are added, then a branch was added and the graph needs to be updated.
+        if commit_ops == CommitOps::DifferentRepo {
+            self.old_graph_starting_shas = vec![];
+            self.old_revwalk_shas = VecDeque::new();
+        }
+
         if self.old_shas_eq_sorted_new_oids(&oid_vec) {
             return Ok(None);
         }
@@ -275,37 +349,90 @@ impl GitManager {
         let limit_commits = preferences.get_limit_commits();
         let commit_count = preferences.get_commit_count();
 
-        let mut changed_starting_index: isize = -1;
-        let mut oid_list: Vec<Oid> = vec![];
+        let mut sha_changes = SHAChanges::new();
+        let mut is_adding = false;
         for (i, commit_oid_result) in revwalk.enumerate() {
             if limit_commits && i >= commit_count {
                 break;
             }
             let oid = commit_oid_result?;
-            if changed_starting_index == -1 && (i >= self.old_revwalk_shas.len() || oid.to_string() != self.old_revwalk_shas[i]) {
-                changed_starting_index = i as isize;
-            } else if i < self.old_revwalk_shas.len() && oid.to_string() == self.old_revwalk_shas[i] && changed_starting_index >= 0 {
-                break;
-            }
-            if changed_starting_index >= 0 {
-                oid_list.push(oid);
-            }
-        }
+            let sha = oid.to_string();
 
-        if changed_starting_index >= 0 {
-            let s_i = changed_starting_index as usize;
-            for i in 0..oid_list.len() {
-                if s_i + i < self.old_revwalk_shas.len() {
-                    self.old_revwalk_shas[s_i + i] = oid_list[i].to_string();
-                } else {
-                    self.old_revwalk_shas.push(oid_list[i].to_string());
+            // Check first commit for added or deleted commits.
+            if self.old_revwalk_shas.len() > 0 {
+                if i == 0 && sha != self.old_revwalk_shas[i] {
+                    let first_non_deleted_commit = self.old_revwalk_shas.iter().position(|old_sha| {
+                        *old_sha == sha
+                    });
+                    match first_non_deleted_commit {
+                        Some(j) => {
+                            for k in i..j {
+                                sha_changes.push_deleted(SHAChange::new(k, self.old_revwalk_shas[k].clone()));
+                            }
+                            break;
+                        },
+                        None => {
+                            is_adding = true;
+                            sha_changes.push_created(SHAChange::new(i, sha));
+                        },
+                    }
+                } else if i > 0 && !is_adding && sha != self.old_revwalk_shas[i] {
+                    let first_non_deleted_commit = self.old_revwalk_shas.iter().position(|old_sha| {
+                        *old_sha == sha
+                    });
+                    match first_non_deleted_commit {
+                        Some(j) => {
+                            for k in i..j {
+                                sha_changes.push_deleted(SHAChange::new(k, self.old_revwalk_shas[k].clone()));
+                            }
+                            break;
+                        },
+                        None => {
+                            println!("I didn't think this code path was possible but here we are...");
+                            println!("NOTE: This codepath implies somebody deleted the initial commit at the bottom of the graph!!!");
+                            for k in i..self.old_revwalk_shas.len() {
+                                sha_changes.push_deleted(SHAChange::new(k, self.old_revwalk_shas[k].clone()));
+                            }
+                            break;
+                        },
+                    }
+                } else if i > 0 && is_adding {
+                    if self.old_revwalk_shas.contains(&sha) {
+                        is_adding = false;
+                        if commit_ops == CommitOps::AddedOnly {
+                            break;
+                        }
+                    } else {
+                        sha_changes.push_created(SHAChange::new(i, sha));
+                    }
                 }
+            } else {
+                sha_changes.push_created(SHAChange::new(i, sha));
             }
-        } else {
-            bail!("A full revwalk was performed but nothing changed! This shouldn't happen!");
         }
 
-        Ok(Some((changed_starting_index, oid_list)))
+        for deleted_change in sha_changes.borrow_deleted() {
+            let index_opt = self.old_revwalk_shas.iter().position(|old_sha| {
+                *old_sha == *deleted_change.borrow_sha()
+            });
+            match index_opt {
+                Some(i) => {
+                    self.old_revwalk_shas.remove(i);
+                },
+                None => bail!("Deleted change not found in old revwalk, this should technically be impossible..."),
+            }
+        }
+
+        // Need to reverse order first before inserting.
+        let mut created_shas = VecDeque::new();
+        for created_change in sha_changes.borrow_created() {
+            created_shas.push_front(created_change.borrow_sha().clone());
+        }
+        for sha in created_shas {
+            self.old_revwalk_shas.push_front(sha);
+        }
+
+        Ok(Some(sha_changes))
     }
 
     pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference> {
