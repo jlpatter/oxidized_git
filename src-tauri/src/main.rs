@@ -611,7 +611,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_delete_local_branch(s);
                         match result {
-                            Ok(()) => emit_update_all(&mut git_manager, CommitOps::RefChange, &main_window_c_c),
+                            Ok(()) => emit_update_all(&mut git_manager, CommitOps::DeletedOnly, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
@@ -630,7 +630,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_delete_remote_branch(s);
                         match result {
-                            Ok(()) => emit_update_all(&mut git_manager, CommitOps::RefChange, &main_window_c_c),
+                            Ok(()) => emit_update_all(&mut git_manager, CommitOps::DeletedOnly, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
@@ -649,7 +649,7 @@ fn main() {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_delete_tag(s);
                         match result {
-                            Ok(()) => emit_update_all(&mut git_manager, CommitOps::RefChange, &main_window_c_c),
+                            Ok(()) => emit_update_all(&mut git_manager, CommitOps::DeletedOnly, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },

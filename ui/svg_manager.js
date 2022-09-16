@@ -51,6 +51,10 @@ export class SVGManager {
 
         const singleCharWidth = self.getSingleCharWidth();
 
+        if (commitsInfo['deleted_sha_changes'].length > 0) {
+            self.removeRows(commitsInfo['deleted_sha_changes']);
+        }
+
         let maxWidth = Number(self.commitTableSVG.getAttribute('width'));
         for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
             const commit = commitsInfo['svg_row_draw_properties'][i];
@@ -58,9 +62,9 @@ export class SVGManager {
             let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'elements': [], 'priority-elements': []};
             for (const childLine of elements['child_lines']) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
-                if (childLine['row-y'] < i + commitsInfo['starting_index']) {
+                if (childLine['row-y'] < i) {
                     self.rows[childLine['row-y']]['priority-elements'].push(line);
-                } else if (childLine['row-y'] === i + commitsInfo['starting_index']) {
+                } else if (childLine['row-y'] === i) {
                     row['priority-elements'].push(line);
                 } else {
                     console.error("ERROR: childLine tried to be added after a row!");
@@ -102,11 +106,7 @@ export class SVGManager {
             backRect.oncontextmenu = self.getContextFunction(commit['sha']);
             row['elements'].push(backRect);
 
-            if (i + commitsInfo['starting_index'] < self.rows.length) {
-                self.rows[i + commitsInfo['starting_index']] = row;
-            } else {
-                self.rows.push(row);
-            }
+            self.rows.push(row);
             maxWidth = Math.max(maxWidth, width);
         }
 
@@ -115,23 +115,22 @@ export class SVGManager {
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
     }
 
-    removeRow(sha) {
-        const self = this;
-        const commitIndex = self.rows.findIndex(function(row) {
-            return row['sha'] === sha;
-        });
-        let pixel_y = self.rows[commitIndex]['pixel_y'];
-        self.rows.splice(commitIndex, 1);
+    removeRows(shaChanges) {
+        const self = this,
+            start_index = shaChanges[0]['index'],
+            num_to_remove = shaChanges.length;
+        let pixel_y = self.rows[start_index]['pixel_y'];
+        self.rows.splice(start_index, num_to_remove);
 
-        for (let i = commitIndex; i < self.rows.length; i++) {
+        for (let i = start_index; i < self.rows.length; i++) {
             self.rows[i]['pixel_y'] = pixel_y;
             for (let j = 0; j < self.rows[i]['elements'].length; j++) {
                 if (self.rows[i]['elements'][j].hasAttribute('y1')) {
-                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y1')) - self.Y_SPACING;
+                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y1')) - self.Y_SPACING * num_to_remove;
                     self.rows[i]['elements'][j].setAttribute('y1', new_y1.toString());
                 }
                 if (self.rows[i]['elements'][j].hasAttribute('y2')) {
-                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y2')) - self.Y_SPACING;
+                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y2')) - self.Y_SPACING * num_to_remove;
                     self.rows[i]['elements'][j].setAttribute('y2', new_y1.toString());
                 }
                 if (self.rows[i]['elements'][j].hasAttribute('d')) {
@@ -146,29 +145,30 @@ export class SVGManager {
                     const sixthPair = oldD[3].split(' ');
                     const newD = 'M ' +
                         firstPair[0] + ' ' +
-                        (Number(firstPair[1]) - self.Y_SPACING).toString() +
+                        (Number(firstPair[1]) - self.Y_SPACING * num_to_remove).toString() +
                         ' C ' +
                         secondPair[0] + ' ' +
-                        (Number(secondPair[1]) - self.Y_SPACING).toString() + ', ' +
+                        (Number(secondPair[1]) - self.Y_SPACING * num_to_remove).toString() + ', ' +
                         thirdPair[0] + ' ' +
-                        (Number(thirdPair[1]) - self.Y_SPACING).toString() + ', ' +
+                        (Number(thirdPair[1]) - self.Y_SPACING * num_to_remove).toString() + ', ' +
                         fourthPair[0] + ' ' +
-                        (Number(fourthPair[1]) - self.Y_SPACING).toString() + ', ' +
+                        (Number(fourthPair[1]) - self.Y_SPACING * num_to_remove).toString() + ', ' +
                         fifthPair[0] + ' ' +
-                        (Number(fifthPair[1]) - self.Y_SPACING).toString() + ', ' +
+                        (Number(fifthPair[1]) - self.Y_SPACING * num_to_remove).toString() + ', ' +
                         sixthPair[0] + ' ' +
-                        (Number(sixthPair[1]) - self.Y_SPACING).toString();
+                        (Number(sixthPair[1]) - self.Y_SPACING * num_to_remove).toString();
                     self.rows[i]['elements'][j].setAttribute('d', newD);
                 }
                 if (self.rows[i]['elements'][j].hasAttribute('cy')) {
-                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('cy')) - self.Y_SPACING;
+                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('cy')) - self.Y_SPACING * num_to_remove;
                     self.rows[i]['elements'][j].setAttribute('cy', new_y1.toString());
                 }
                 if (self.rows[i]['elements'][j].hasAttribute('y')) {
-                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y')) - self.Y_SPACING;
+                    const new_y1 = Number(self.rows[i]['elements'][j].getAttribute('y')) - self.Y_SPACING * num_to_remove;
                     self.rows[i]['elements'][j].setAttribute('y', new_y1.toString());
                 }
             }
+            pixel_y += self.Y_SPACING;
         }
 
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
