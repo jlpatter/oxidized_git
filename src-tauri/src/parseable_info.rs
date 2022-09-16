@@ -11,7 +11,6 @@ use crate::svg_row::{RowProperty, SVGRow};
 pub enum SVGCommitInfoValue {
     SomeString(String),
     SomeStringVec(Vec<String>),
-    SomeStringTupleVec(Vec<(String, String)>),
     SomeInt(isize),
 }
 
@@ -20,7 +19,6 @@ impl Serialize for SVGCommitInfoValue {
         match &self {
             SVGCommitInfoValue::SomeString(st) => st.serialize(serializer),
             SVGCommitInfoValue::SomeStringVec(v) => v.serialize(serializer),
-            SVGCommitInfoValue::SomeStringTupleVec(v) => v.serialize(serializer),
             SVGCommitInfoValue::SomeInt(i) => i.serialize(serializer),
         }
     }
@@ -304,7 +302,6 @@ fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> R
     let repo = git_manager.borrow_repo()?;
 
     let mut commit_list: Vec<HashMap<String, SVGCommitInfoValue>> = vec![];
-    let oid_refs_hm = get_oid_refs(git_manager)?;
 
     let mut children_oids: HashMap<String, Vec<String>> = HashMap::new();
     for sha_change in sha_changes.borrow_created() {
@@ -319,16 +316,6 @@ fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> R
         // Get commit summary
         let commit_summary = GitManager::get_utf8_string(commit.summary(), "Commit Summary")?;
         commit_info.insert("summary".into(), SVGCommitInfoValue::SomeString(commit_summary.into()));
-
-        // Get branches pointing to this commit
-        match oid_refs_hm.get(&*oid.to_string()) {
-            Some(ref_vec) => {
-                commit_info.insert("branches_and_tags".into(), SVGCommitInfoValue::SomeStringTupleVec(ref_vec.clone()));
-            }
-            None => {
-                commit_info.insert("branches_and_tags".into(), SVGCommitInfoValue::SomeStringTupleVec(vec![]));
-            },
-        };
 
         // Get parent Oids
         let mut parent_oids: Vec<String> = vec![];
@@ -352,11 +339,10 @@ fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> R
     for commit_hm in commit_list.iter_mut() {
         let oid_string = match commit_hm.get("oid") {
             Some(oid) => {
-                match oid {
-                    SVGCommitInfoValue::SomeString(oid_string) => oid_string,
-                    SVGCommitInfoValue::SomeStringVec(_some_vector) => bail!("Oid was stored as a vector instead of a string."),
-                    SVGCommitInfoValue::SomeStringTupleVec(_some_hm) => bail!("Oid was stored as a hashmap instead of a string."),
-                    SVGCommitInfoValue::SomeInt(_some_int) => bail!("Oid was stored as an int instead of a string."),
+                if let SVGCommitInfoValue::SomeString(oid_string) = oid {
+                    oid_string
+                } else {
+                    bail!("Oid wasn't stored as a string!");
                 }
             },
             None => bail!("Commit found with no oid, shouldn't be possible..."),
@@ -412,16 +398,6 @@ fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops:
             }
             None => bail!("Summary not found in commit_info hash map."),
         };
-        let branches_and_tags = match commit_info.get("branches_and_tags") {
-            Some(civ_branches_and_tags) => {
-                if let SVGCommitInfoValue::SomeStringTupleVec(v) = civ_branches_and_tags {
-                    v
-                } else {
-                    bail!("branches_and_tags was not passed as a vector.");
-                }
-            }
-            None => bail!("branches_and_tags not found in commit_info hash map."),
-        };
         let parent_oids = match commit_info.get("parent_oids") {
             Some(civ_parent_oids) => {
                 if let SVGCommitInfoValue::SomeStringVec(v) = civ_parent_oids {
@@ -465,7 +441,6 @@ fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops:
         let svg_row_rc: Rc<RefCell<SVGRow>> = Rc::new(RefCell::new(SVGRow::new(
             oid.clone(),
             summary.clone(),
-            branches_and_tags.clone(),
             parent_oids.clone(),
             child_oids.clone(),
             x.clone(),
@@ -486,6 +461,9 @@ fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops:
             &main_table,
         ));
     }
+
+    // TODO: Need to call "svg_row_rc.borrow().get_draw_properties(&main_table)" here!
+    let oid_refs_hm = get_oid_refs(git_manager)?;
 
     Ok(Some(CommitsInfo::new(sha_changes.borrow_deleted().clone(), svg_row_draw_properties)))
 }
