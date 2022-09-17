@@ -170,24 +170,19 @@ export class SVGManager {
     removeRows(shas) {
         const self = this;
 
-        const indexesToRemove = [];
-        for (let i = 0; i < self.rows.length; i++) {
-            if (shas.includes(self.rows[i]['sha'])) {
-                indexesToRemove.push(i);
-            }
-        }
+        shas.forEach((sha) => {
+            let startIndex = self.rows.findIndex(function(row) {
+                return row['sha'] === sha;
+            });
 
-        // Remove from bottom up so the spacing doesn't go weird.
-        indexesToRemove.reverse();
-
-        indexesToRemove.forEach((i) => {
-            const pixelY = self.rows[i]['pixel_y'];
-            self.rows.splice(i, 1);
-            if (i < self.rows.length) {
-                self.rows[i]['pixel_y'] = pixelY;
-                self.moveYAttributes(self.rows[i]['lines'], -self.Y_SPACING);
-                self.moveYAttributes(self.rows[i]['branches'], -self.Y_SPACING);
-                self.moveYAttributes([self.rows[i]['circle'], self.rows[i]['summaryTxt'], self.rows[i]['backRect']], -self.Y_SPACING);
+            let pixelY = self.rows[startIndex]['pixel_y'];
+            self.rows.splice(startIndex, 1);
+            for (let j = startIndex; j < self.rows.length; j++) {
+                self.rows[j]['pixel_y'] = pixelY;
+                self.moveYAttributes(self.rows[j]['lines'], -self.Y_SPACING);
+                self.moveYAttributes(self.rows[j]['branches'], -self.Y_SPACING);
+                self.moveYAttributes([self.rows[j]['circle'], self.rows[j]['summaryTxt'], self.rows[j]['backRect']], -self.Y_SPACING);
+                pixelY += self.Y_SPACING;
             }
         });
 
