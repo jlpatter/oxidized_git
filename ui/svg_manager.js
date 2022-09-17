@@ -49,8 +49,8 @@ export class SVGManager {
             self.removeBranchLabels(self.rows[i], singleCharWidth);
         }
 
-        if (!commitsInfo['clear_entire_old_graph'] && commitsInfo['deleted_sha_changes'].length > 0) {
-            self.removeRows(commitsInfo['deleted_sha_changes']);
+        if (!commitsInfo['clear_entire_old_graph'] && commitsInfo['deleted_shas'].length > 0) {
+            self.removeRows(commitsInfo['deleted_shas']);
         }
 
         const newRows = [];
@@ -167,21 +167,31 @@ export class SVGManager {
         self.setVisibleCommits();
     }
 
-    removeRows(shaChanges) {
-        const self = this,
-            startIndex = shaChanges[0]['index'],
-            numToRemove = shaChanges.length;
+    removeRows(shas) {
+        // TODO: Figure out why it's deleting the entire graph!
+        console.log(shas);
+        const self = this;
 
-        let pixel_y = self.rows[startIndex]['pixel_y'];
-        self.rows.splice(startIndex, numToRemove);
-
-        for (let i = startIndex; i < self.rows.length; i++) {
-            self.rows[i]['pixel_y'] = pixel_y;
-            self.moveYAttributes(self.rows[i]['lines'], -(self.Y_SPACING * numToRemove));
-            self.moveYAttributes(self.rows[i]['branches'], -(self.Y_SPACING * numToRemove));
-            self.moveYAttributes([self.rows[i]['circle'], self.rows[i]['summaryTxt'], self.rows[i]['backRect']], -(self.Y_SPACING * numToRemove));
-            pixel_y += self.Y_SPACING;
+        const indexesToRemove = [];
+        for (let i = 0; i < self.rows.length; i++) {
+            if (shas.includes(self.rows[i]['sha'])) {
+                indexesToRemove.push(i);
+            }
         }
+
+        // Remove from bottom up so the spacing doesn't go weird.
+        indexesToRemove.reverse();
+
+        indexesToRemove.forEach((i) => {
+            const pixelY = self.rows[i]['pixel_y'];
+            self.rows.splice(i, 1);
+            if (i < self.rows.length) {
+                self.rows[i]['pixel_y'] = pixelY;
+                self.moveYAttributes(self.rows[i]['lines'], -self.Y_SPACING);
+                self.moveYAttributes(self.rows[i]['branches'], -self.Y_SPACING);
+                self.moveYAttributes([self.rows[i]['circle'], self.rows[i]['summaryTxt'], self.rows[i]['backRect']], -self.Y_SPACING);
+            }
+        });
 
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
         self.setVisibleCommits();

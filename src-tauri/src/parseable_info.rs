@@ -4,7 +4,7 @@ use std::rc::Rc;
 use anyhow::{bail, Result};
 use git2::{BranchType, Diff, ErrorCode, Oid, RepositoryState};
 use serde::{Serialize, Deserialize, Serializer};
-use crate::git_manager::{GraphOps, GitManager, SHAChange, SHAChanges};
+use crate::git_manager::{GraphOps, GitManager, SHAChanges};
 use crate::svg_row::{RowProperty, SVGProperty, SVGRow};
 
 #[derive(Clone)]
@@ -47,16 +47,16 @@ impl Serialize for RepoInfoValue {
 
 #[derive(Clone, Serialize)]
 pub struct CommitsInfo {
-    deleted_sha_changes: Vec<SHAChange>,
+    deleted_shas: Vec<String>,
     clear_entire_old_graph: bool,
     branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>,
     svg_row_draw_properties: Vec<HashMap<String, RowProperty>>,
 }
 
 impl CommitsInfo {
-    pub fn new(deleted_sha_changes: Vec<SHAChange>, clear_entire_old_graph: bool, branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>, svg_row_draw_properties: Vec<HashMap<String, RowProperty>>) -> Self {
+    pub fn new(deleted_shas: Vec<String>, clear_entire_old_graph: bool, branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>, svg_row_draw_properties: Vec<HashMap<String, RowProperty>>) -> Self {
         Self {
-            deleted_sha_changes,
+            deleted_shas,
             clear_entire_old_graph,
             branch_draw_properties,
             svg_row_draw_properties,
@@ -331,12 +331,12 @@ fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> R
     let mut commit_list: Vec<HashMap<String, SVGCommitInfoValue>> = vec![];
 
     let mut children_oids: HashMap<String, Vec<String>> = HashMap::new();
-    for sha_change in sha_changes.borrow_created() {
-        let oid = Oid::from_str(sha_change.borrow_sha())?;
+    for (i, sha_change) in sha_changes.borrow_created().iter().enumerate() {
+        let oid = Oid::from_str(sha_change)?;
         let mut commit_info: HashMap<String, SVGCommitInfoValue> = HashMap::new();
-        commit_info.insert("oid".into(), SVGCommitInfoValue::SomeString(sha_change.borrow_sha().clone()));
+        commit_info.insert("oid".into(), SVGCommitInfoValue::SomeString(sha_change.clone()));
         commit_info.insert("x".into(), SVGCommitInfoValue::SomeInt(0));
-        commit_info.insert("y".into(), SVGCommitInfoValue::SomeInt(sha_change.borrow_index().clone() as isize));
+        commit_info.insert("y".into(), SVGCommitInfoValue::SomeInt(i as isize));
 
         let commit = repo.find_commit(oid)?;
 

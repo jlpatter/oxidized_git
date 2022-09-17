@@ -129,35 +129,11 @@ pub enum GraphOps {
     DifferentRepo,
 }
 
-// TODO: Delete this and just use shas!
-#[derive(Clone, Serialize)]
-pub struct SHAChange {
-    index: usize,
-    sha: String,
-}
-
-impl SHAChange {
-    pub fn new(index: usize, sha: String) -> Self {
-        Self {
-            index,
-            sha,
-        }
-    }
-
-    pub fn borrow_index(&self) -> &usize {
-        &self.index
-    }
-
-    pub fn borrow_sha(&self) -> &String {
-        &self.sha
-    }
-}
-
 #[derive(Clone, Serialize)]
 pub struct SHAChanges {
     clear_entire_old_graph: bool,
-    created: Vec<SHAChange>,
-    deleted: Vec<SHAChange>,
+    created: Vec<String>,
+    deleted: Vec<String>,
 }
 
 impl SHAChanges {
@@ -169,19 +145,19 @@ impl SHAChanges {
         }
     }
 
-    pub fn push_created(&mut self, sha_change: SHAChange) {
-        self.created.push(sha_change);
+    pub fn push_created(&mut self, sha: String) {
+        self.created.push(sha);
     }
 
-    pub fn push_deleted(&mut self, sha_change: SHAChange) {
-        self.deleted.push(sha_change);
+    pub fn push_deleted(&mut self, sha: String) {
+        self.deleted.push(sha);
     }
 
-    pub fn borrow_created(&self) -> &Vec<SHAChange> {
+    pub fn borrow_created(&self) -> &Vec<String> {
         &self.created
     }
 
-    pub fn borrow_deleted(&self) -> &Vec<SHAChange> {
+    pub fn borrow_deleted(&self) -> &Vec<String> {
         &self.deleted
     }
 
@@ -377,20 +353,14 @@ impl GitManager {
                     match first_non_deleted_commit {
                         Some(j) => {
                             for k in i..j {
-                                sha_changes.push_deleted(SHAChange::new(k, self.old_revwalk_shas[k].clone()));
+                                sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
                             }
                             break;
                         },
                         None => {
                             is_adding = true;
                             last_added_oid = oid;
-                            sha_changes.push_created(SHAChange::new(i, sha.clone()));
-                            let existing_index = self.old_revwalk_shas.iter().position(|old_sha| {
-                                *old_sha == sha
-                            });
-                            if let Some(j) = existing_index {
-                                sha_changes.push_deleted(SHAChange::new(j, sha.clone()));
-                            }
+                            sha_changes.push_created(sha.clone());
                         },
                     }
                 // If we're not adding and there's a difference, then there's commit(s) to remove from the graph.
@@ -401,7 +371,7 @@ impl GitManager {
                     match first_non_deleted_commit {
                         Some(j) => {
                             for k in i..j {
-                                sha_changes.push_deleted(SHAChange::new(k, self.old_revwalk_shas[k].clone()));
+                                sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
                             }
                             break;
                         },
@@ -409,7 +379,7 @@ impl GitManager {
                             println!("I didn't think this code path was possible but here we are...");
                             println!("NOTE: This codepath implies somebody deleted the initial commit at the bottom of the graph!!!");
                             for k in i..self.old_revwalk_shas.len() {
-                                sha_changes.push_deleted(SHAChange::new(k, self.old_revwalk_shas[k].clone()));
+                                sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
                             }
                             break;
                         },
@@ -438,18 +408,18 @@ impl GitManager {
                         }
                     } else {
                         last_added_oid = oid;
-                        sha_changes.push_created(SHAChange::new(i, sha.clone()));
+                        sha_changes.push_created(sha.clone());
                         let existing_index = self.old_revwalk_shas.iter().position(|old_sha| {
                             *old_sha == sha
                         });
-                        if let Some(j) = existing_index {
-                            sha_changes.push_deleted(SHAChange::new(j, sha.clone()));
+                        if let Some(_) = existing_index {
+                            sha_changes.push_deleted(sha.clone());
                         }
                     }
                 // After adding, there may be commits that need their x position updated.
                 } else if change_to_this_sha != "" {
-                    sha_changes.push_deleted(SHAChange::new(i, sha.clone()));
-                    sha_changes.push_created(SHAChange::new(i, sha.clone()));
+                    sha_changes.push_deleted(sha.clone());
+                    sha_changes.push_created(sha.clone());
                     if sha == change_to_this_sha {
                         change_to_this_sha = String::new();
                         if commit_ops == GraphOps::AddedOnly {
@@ -459,13 +429,13 @@ impl GitManager {
                 }
             } else {
                 // This runs if the graph was previously empty.
-                sha_changes.push_created(SHAChange::new(i, sha));
+                sha_changes.push_created(sha);
             }
         }
 
         for deleted_change in sha_changes.borrow_deleted() {
             let index_opt = self.old_revwalk_shas.iter().position(|old_sha| {
-                *old_sha == *deleted_change.borrow_sha()
+                *old_sha == *deleted_change
             });
             match index_opt {
                 Some(i) => {
@@ -475,10 +445,12 @@ impl GitManager {
             }
         }
 
+        // NOTE: This always assumes created commits are at the top of the graph.
+        // this is due to the way the graph is sorted.
         // Need to reverse order first before inserting.
         let mut created_shas = VecDeque::new();
         for created_change in sha_changes.borrow_created() {
-            created_shas.push_front(created_change.borrow_sha().clone());
+            created_shas.push_front(created_change.clone());
         }
         for sha in created_shas {
             self.old_revwalk_shas.push_front(sha);
