@@ -129,6 +129,7 @@ pub enum GraphOps {
     DifferentRepo,
 }
 
+// TODO: Delete this and just use shas!
 #[derive(Clone, Serialize)]
 pub struct SHAChange {
     index: usize,
@@ -357,6 +358,9 @@ impl GitManager {
         let commit_count = preferences.get_commit_count();
 
         let mut is_adding = false;
+        let mut last_added_oid = Oid::zero();
+        // change_to_this_sha is to delete and re-add commits that get shifted over due to pushing to a branch lower in the tree.
+        let mut change_to_this_sha = String::new();
         for (i, commit_oid_result) in revwalk.enumerate() {
             if limit_commits && i >= commit_count {
                 break;
@@ -365,6 +369,7 @@ impl GitManager {
             let sha = oid.to_string();
 
             if self.old_revwalk_shas.len() > 0 {
+                // If it's the first commit in the graph, it may have been added or deleted.
                 if i == 0 && sha != self.old_revwalk_shas[i] {
                     let first_non_deleted_commit = self.old_revwalk_shas.iter().position(|old_sha| {
                         *old_sha == sha
@@ -378,9 +383,17 @@ impl GitManager {
                         },
                         None => {
                             is_adding = true;
-                            sha_changes.push_created(SHAChange::new(i, sha));
+                            last_added_oid = oid;
+                            sha_changes.push_created(SHAChange::new(i, sha.clone()));
+                            let existing_index = self.old_revwalk_shas.iter().position(|old_sha| {
+                                *old_sha == sha
+                            });
+                            if let Some(j) = existing_index {
+                                sha_changes.push_deleted(SHAChange::new(j, sha.clone()));
+                            }
                         },
                     }
+                // If we're not adding and there's a difference, then there's commit(s) to remove from the graph.
                 } else if i > 0 && !is_adding && sha != self.old_revwalk_shas[i] {
                     let first_non_deleted_commit = self.old_revwalk_shas.iter().position(|old_sha| {
                         *old_sha == sha
@@ -401,17 +414,51 @@ impl GitManager {
                             break;
                         },
                     }
+                // If we're currently adding, add commit to the graph.
                 } else if i > 0 && is_adding {
-                    if self.old_revwalk_shas.contains(&sha) {
+                    // When the revwalk reaches the last added commit.
+                    if sha_changes.borrow_created().len() < self.old_revwalk_shas.len() && self.old_revwalk_shas[sha_changes.borrow_created().len()] == sha {
                         is_adding = false;
+
+                        // If there's a parent of the last added commit that doesn't match the current commit,
+                        // Then there are commits that need their x position updated.
+                        let parent = repo.find_commit(last_added_oid)?.parents().find(|c| {
+                            c.id().to_string() != sha
+                        });
+
+                        match parent {
+                            Some(p) => {
+                                change_to_this_sha = p.id().to_string();
+                            },
+                            None => {
+                                if commit_ops == GraphOps::AddedOnly {
+                                    break;
+                                }
+                            },
+                        }
+                    } else {
+                        last_added_oid = oid;
+                        sha_changes.push_created(SHAChange::new(i, sha.clone()));
+                        let existing_index = self.old_revwalk_shas.iter().position(|old_sha| {
+                            *old_sha == sha
+                        });
+                        if let Some(j) = existing_index {
+                            sha_changes.push_deleted(SHAChange::new(j, sha.clone()));
+                        }
+                    }
+                // After adding, there may be commits that need their x position updated.
+                } else if change_to_this_sha != "" {
+                    sha_changes.push_deleted(SHAChange::new(i, sha.clone()));
+                    sha_changes.push_created(SHAChange::new(i, sha.clone()));
+                    if sha == change_to_this_sha {
+                        change_to_this_sha = String::new();
                         if commit_ops == GraphOps::AddedOnly {
                             break;
                         }
-                    } else {
-                        sha_changes.push_created(SHAChange::new(i, sha));
                     }
                 }
             } else {
+                // This runs if the graph was previously empty.
                 sha_changes.push_created(SHAChange::new(i, sha));
             }
         }
