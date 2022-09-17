@@ -385,14 +385,11 @@ fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> R
     Ok(commit_list)
 }
 
-fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops: GraphOps) -> Result<Option<CommitsInfo>> {
+fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops: GraphOps) -> Result<CommitsInfo> {
     let mut svg_row_draw_properties: Vec<HashMap<String, RowProperty>> = vec![];
     let mut sha_changes = SHAChanges::new();
     if commit_ops != GraphOps::RefChange {
-        sha_changes = match git_manager.git_revwalk(commit_ops)? {
-            Some(v) => v,
-            None => return Ok(None),
-        };
+        sha_changes = git_manager.git_revwalk(commit_ops)?;
 
         let commit_info_list = get_commit_info_list(git_manager, &sha_changes)?;
         let mut svg_rows: Vec<Rc<RefCell<SVGRow>>> = vec![];
@@ -488,7 +485,7 @@ fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops:
         branch_draw_properties.push((k, SVGRow::get_branch_draw_properties(v)));
     }
 
-    Ok(Some(CommitsInfo::new(sha_changes.borrow_deleted().clone(), sha_changes.borrow_clear_entire_old_graph().clone(), branch_draw_properties, svg_row_draw_properties)))
+    Ok(CommitsInfo::new(sha_changes.borrow_deleted().clone(), sha_changes.borrow_clear_entire_old_graph().clone(), branch_draw_properties, svg_row_draw_properties))
 }
 
 fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
@@ -632,9 +629,7 @@ pub fn get_parseable_repo_info(git_manager: &mut GitManager, commit_ops: GraphOp
     }
     let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
     repo_info.insert(String::from("general_info"), RepoInfoValue::SomeGeneralInfo(get_general_info(git_manager)?));
-    if let Some(c) = get_commit_svg_draw_properties_list(git_manager, commit_ops)? {
-        repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(c));
-    }
+    repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(get_commit_svg_draw_properties_list(git_manager, commit_ops)?));
     repo_info.insert(String::from("branch_info_list"), RepoInfoValue::SomeBranchInfo(get_branch_info_list(git_manager)?));
     repo_info.insert(String::from("remote_info_list"), RepoInfoValue::SomeRemoteInfo(get_remote_info_list(git_manager)?));
     if let Some(fcil) = get_files_changed_info_list(git_manager)? {

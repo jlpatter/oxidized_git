@@ -272,7 +272,7 @@ impl GitManager {
         false
     }
 
-    pub fn git_revwalk(&mut self, commit_ops: GraphOps) -> Result<Option<SHAChanges>> {
+    pub fn git_revwalk(&mut self, commit_ops: GraphOps) -> Result<SHAChanges> {
         let mut oid_vec: Vec<Oid> = vec![];
         // This closure allows self to be borrowed mutably later for setting the new graph starting shas.
         {
@@ -314,7 +314,7 @@ impl GitManager {
         }
 
         if self.old_shas_eq_sorted_new_oids(&oid_vec) {
-            return Ok(None);
+            return Ok(SHAChanges::new());
         }
 
         // If you've reached here, the old and new starting oids are different. Update the old and perform the revwalk.
@@ -458,7 +458,7 @@ impl GitManager {
             self.old_revwalk_shas.push_front(sha);
         }
 
-        Ok(Some(sha_changes))
+        Ok(sha_changes)
     }
 
     pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference> {

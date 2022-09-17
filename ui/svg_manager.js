@@ -89,7 +89,9 @@ export class SVGManager {
             maxWidth = Math.max(maxWidth, width);
         }
 
-        self.addRows(newRows);
+        if (newRows.length > 0) {
+            self.addRows(newRows);
+        }
 
         maxWidth = self.addBranchLabels(commitsInfo['branch_draw_properties'], singleCharWidth, maxWidth);
 
