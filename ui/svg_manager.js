@@ -41,7 +41,9 @@ export class SVGManager {
 
         const singleCharWidth = self.getSingleCharWidth();
 
-        // TODO: Need to delete branches somehow. Maybe store elements separately instead of in 2 arrays?
+        for (let i = 0; i < self.rows.length; i++) {
+            self.removeBranchLabels(self.rows[i], singleCharWidth);
+        }
 
         if (commitsInfo['deleted_sha_changes'].length > 0) {
             self.removeRows(commitsInfo['deleted_sha_changes']);
@@ -52,25 +54,24 @@ export class SVGManager {
         for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
             const commit = commitsInfo['svg_row_draw_properties'][i];
             const elements = commit['elements'];
-            let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'elements': [], 'priority-elements': []};
+            let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'lines': [], 'branches': []};
             for (const childLine of elements['child_lines']) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                 if (childLine['row-y'] < i) {
-                    newRows[childLine['row-y']]['priority-elements'].push(line);
+                    newRows[childLine['row-y']]['lines'].push(line);
                 } else if (childLine['row-y'] === i) {
-                    row['priority-elements'].push(line);
+                    row['lines'].push(line);
                 } else {
                     console.error("ERROR: childLine tried to be added after a row!");
                 }
             }
-            const circle = self.makeSVG(elements['circle']['tag'], elements['circle']['attrs']);
-            row['elements'].push(circle);
+            row['circle'] = self.makeSVG(elements['circle']['tag'], elements['circle']['attrs']);
 
             let currentX = (elements['summary_text']['largestXValue'] + 1) * self.X_SPACING + self.X_OFFSET;
             elements['summary_text']['attrs']['x'] = currentX;
             const summaryTxt = self.makeSVG(elements['summary_text']['tag'], elements['summary_text']['attrs']);
             summaryTxt.textContent = elements['summary_text']['textContent'];
-            row['elements'].push(summaryTxt);
+            row['summaryTxt'] = summaryTxt;
 
             let width = currentX + elements['summary_text']['textContent'].length * singleCharWidth;
             elements['back_rect']['attrs']['width'] = width;
@@ -78,7 +79,7 @@ export class SVGManager {
             backRect.onclick = self.getClickFunction(commit['sha']);
             backRect.ondblclick = self.getDblClickFunction(commit['sha']);
             backRect.oncontextmenu = self.getContextFunction(commit['sha']);
-            row['elements'].push(backRect);
+            row['backRect'] = backRect;
 
             newRows.push(row);
             maxWidth = Math.max(maxWidth, width);
@@ -101,8 +102,8 @@ export class SVGManager {
                 return row['sha'] === branchDrawProperties[i][0];
             });
             if (rowIndex !== -1) {
-                const summaryTxtElem = self.rows[rowIndex]['elements'][1];
-                const backRectElem = self.rows[rowIndex]['elements'][2];
+                const summaryTxtElem = self.rows[rowIndex]['summaryTxt'];
+                const backRectElem = self.rows[rowIndex]['backRect'];
                 let currentPixelX = Number(summaryTxtElem.getAttribute('x'));
                 for (let j = 0; j < branchDrawProperties[i][1].length; j++) {
                     const branch = branchDrawProperties[i][1][j];
@@ -117,8 +118,8 @@ export class SVGManager {
                     const rectElem = self.makeSVG(branch[1]['tag'], branch[1]['attrs']);
                     txtElem.textContent = branch[0]['textContent'];
 
-                    self.rows[rowIndex]['elements'].unshift(txtElem);
-                    self.rows[rowIndex]['elements'].unshift(rectElem);
+                    self.rows[rowIndex]['branches'].push(rectElem);
+                    self.rows[rowIndex]['branches'].push(txtElem);
 
                     currentPixelX += box_width + self.BRANCH_TEXT_SPACING;
                     summaryTxtElem.setAttribute('x', currentPixelX.toString());
@@ -130,19 +131,31 @@ export class SVGManager {
         return maxWidth;
     }
 
+    removeBranchLabels(row, singleCharWidth) {
+        if (row['branches'].length > 0) {
+            // row['branches'][1] gets the first branch label's txtElem.
+            const startingPixelX = Number(row['branches'][1].getAttribute('x'));
+
+            row['branches'] = [];
+
+            row['summaryTxt'].setAttribute('x', startingPixelX.toString());
+            row['backRect'].setAttribute('width', (startingPixelX + row['summaryTxt'].textContent.length * singleCharWidth).toString());
+        }
+    }
+
     addRows(newRows) {
         const self = this,
             startIndex = newRows.length,
             amountToMove = self.Y_SPACING * newRows.length;
 
-        // This is technically 0 * self.Y_SPACING + self.Y_OFFSET but...y'know...
-        let pixel_y = self.Y_OFFSET;
+        let pixel_y = amountToMove + self.Y_OFFSET;
         self.rows = newRows.concat(self.rows);
 
         for (let i = startIndex; i < self.rows.length; i++) {
             self.rows[i]['pixel_y'] = pixel_y;
-            self.moveYAttributes(self.rows[i]['priority-elements'], amountToMove);
-            self.moveYAttributes(self.rows[i]['elements'], amountToMove);
+            self.moveYAttributes(self.rows[i]['lines'], amountToMove);
+            self.moveYAttributes(self.rows[i]['branches'], amountToMove);
+            self.moveYAttributes([self.rows[i]['circle'], self.rows[i]['summaryTxt'], self.rows[i]['backRect']], amountToMove);
             pixel_y += self.Y_SPACING;
         }
 
@@ -160,8 +173,9 @@ export class SVGManager {
 
         for (let i = startIndex; i < self.rows.length; i++) {
             self.rows[i]['pixel_y'] = pixel_y;
-            self.moveYAttributes(self.rows[i]['priority-elements'], -(self.Y_SPACING * numToRemove));
-            self.moveYAttributes(self.rows[i]['elements'], -(self.Y_SPACING * numToRemove));
+            self.moveYAttributes(self.rows[i]['lines'], -(self.Y_SPACING * numToRemove));
+            self.moveYAttributes(self.rows[i]['branches'], -(self.Y_SPACING * numToRemove));
+            self.moveYAttributes([self.rows[i]['circle'], self.rows[i]['summaryTxt'], self.rows[i]['backRect']], -(self.Y_SPACING * numToRemove));
             pixel_y += self.Y_SPACING;
         }
 
@@ -215,15 +229,18 @@ export class SVGManager {
 
         let df = document.createDocumentFragment();
         for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
-            for (const element of self.rows[i]['priority-elements']) {
+            for (const element of self.rows[i]['lines']) {
                 df.appendChild(element);
             }
         }
 
         for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
-            for (const element of self.rows[i]['elements']) {
+            for (const element of self.rows[i]['branches']) {
                 df.appendChild(element);
             }
+            df.appendChild(self.rows[i]['circle']);
+            df.appendChild(self.rows[i]['summaryTxt']);
+            df.appendChild(self.rows[i]['backRect']);
         }
 
         self.commitTableSVG.innerHTML = '';

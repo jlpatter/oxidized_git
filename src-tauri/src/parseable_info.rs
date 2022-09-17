@@ -388,8 +388,7 @@ fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops:
     let mut sha_changes = SHAChanges::new();
     if commit_ops == GraphOps::ConfigChange {
         // TODO: Implement this!
-        println!("Attempted Config Change which is not implemented yet.");
-        return Ok(None);
+        bail!("Attempted Config Change which is not implemented yet.");
     } else if commit_ops != GraphOps::RefChange {
         sha_changes = match git_manager.git_revwalk(commit_ops)? {
             Some(v) => v,
