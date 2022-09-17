@@ -48,14 +48,16 @@ impl Serialize for RepoInfoValue {
 #[derive(Clone, Serialize)]
 pub struct CommitsInfo {
     deleted_sha_changes: Vec<SHAChange>,
+    clear_entire_old_graph: bool,
     branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>,
     svg_row_draw_properties: Vec<HashMap<String, RowProperty>>,
 }
 
 impl CommitsInfo {
-    pub fn new(deleted_sha_changes: Vec<SHAChange>, branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>, svg_row_draw_properties: Vec<HashMap<String, RowProperty>>) -> Self {
+    pub fn new(deleted_sha_changes: Vec<SHAChange>, clear_entire_old_graph: bool, branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>, svg_row_draw_properties: Vec<HashMap<String, RowProperty>>) -> Self {
         Self {
             deleted_sha_changes,
+            clear_entire_old_graph,
             branch_draw_properties,
             svg_row_draw_properties,
         }
@@ -386,10 +388,7 @@ fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> R
 fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops: GraphOps) -> Result<Option<CommitsInfo>> {
     let mut svg_row_draw_properties: Vec<HashMap<String, RowProperty>> = vec![];
     let mut sha_changes = SHAChanges::new();
-    if commit_ops == GraphOps::ConfigChange {
-        // TODO: Implement this!
-        bail!("Attempted Config Change which is not implemented yet.");
-    } else if commit_ops != GraphOps::RefChange {
+    if commit_ops != GraphOps::RefChange {
         sha_changes = match git_manager.git_revwalk(commit_ops)? {
             Some(v) => v,
             None => return Ok(None),
@@ -489,7 +488,7 @@ fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops:
         branch_draw_properties.push((k, SVGRow::get_branch_draw_properties(v)));
     }
 
-    Ok(Some(CommitsInfo::new(sha_changes.borrow_deleted().clone(), branch_draw_properties, svg_row_draw_properties)))
+    Ok(Some(CommitsInfo::new(sha_changes.borrow_deleted().clone(), sha_changes.borrow_clear_entire_old_graph().clone(), branch_draw_properties, svg_row_draw_properties)))
 }
 
 fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {

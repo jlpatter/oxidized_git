@@ -154,6 +154,7 @@ impl SHAChange {
 
 #[derive(Clone, Serialize)]
 pub struct SHAChanges {
+    clear_entire_old_graph: bool,
     created: Vec<SHAChange>,
     deleted: Vec<SHAChange>,
 }
@@ -161,6 +162,7 @@ pub struct SHAChanges {
 impl SHAChanges {
     pub fn new() -> Self {
         Self {
+            clear_entire_old_graph: false,
             created: vec![],
             deleted: vec![],
         }
@@ -180,6 +182,10 @@ impl SHAChanges {
 
     pub fn borrow_deleted(&self) -> &Vec<SHAChange> {
         &self.deleted
+    }
+
+    pub fn borrow_clear_entire_old_graph(&self) -> &bool {
+        &self.clear_entire_old_graph
     }
 }
 
@@ -323,9 +329,11 @@ impl GitManager {
             });
         }
 
-        if commit_ops == GraphOps::DifferentRepo {
+        let mut sha_changes = SHAChanges::new();
+        if commit_ops == GraphOps::DifferentRepo || commit_ops == GraphOps::ConfigChange {
             self.old_graph_starting_shas = vec![];
             self.old_revwalk_shas = VecDeque::new();
+            sha_changes.clear_entire_old_graph = true;
         }
 
         if self.old_shas_eq_sorted_new_oids(&oid_vec) {
@@ -348,7 +356,6 @@ impl GitManager {
         let limit_commits = preferences.get_limit_commits();
         let commit_count = preferences.get_commit_count();
 
-        let mut sha_changes = SHAChanges::new();
         let mut is_adding = false;
         for (i, commit_oid_result) in revwalk.enumerate() {
             if limit_commits && i >= commit_count {

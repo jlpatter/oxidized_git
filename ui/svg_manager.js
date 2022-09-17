@@ -41,11 +41,15 @@ export class SVGManager {
 
         const singleCharWidth = self.getSingleCharWidth();
 
+        if (commitsInfo['clear_entire_old_graph']) {
+            self.rows = [];
+        }
+
         for (let i = 0; i < self.rows.length; i++) {
             self.removeBranchLabels(self.rows[i], singleCharWidth);
         }
 
-        if (commitsInfo['deleted_sha_changes'].length > 0) {
+        if (!commitsInfo['clear_entire_old_graph'] && commitsInfo['deleted_sha_changes'].length > 0) {
             self.removeRows(commitsInfo['deleted_sha_changes']);
         }
 
