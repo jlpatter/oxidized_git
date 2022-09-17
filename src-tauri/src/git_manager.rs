@@ -337,6 +337,7 @@ impl GitManager {
         let mut last_added_oid = Oid::zero();
         // change_to_this_sha is to delete and re-add commits that get shifted over due to pushing to a branch lower in the tree.
         let mut change_to_this_sha = String::new();
+        let mut newly_added_count: usize = 0;
         for (i, commit_oid_result) in revwalk.enumerate() {
             if limit_commits && i >= commit_count {
                 break;
@@ -361,6 +362,7 @@ impl GitManager {
                             is_adding = true;
                             last_added_oid = oid;
                             sha_changes.push_created(sha.clone());
+                            newly_added_count += 1;
                         },
                     }
                 // If we're not adding and there's a difference, then there's commit(s) to remove from the graph.
@@ -386,8 +388,8 @@ impl GitManager {
                     }
                 // If we're currently adding, add commit to the graph.
                 } else if i > 0 && is_adding {
-                    // When the revwalk reaches the last added commit.
-                    if sha_changes.borrow_created().len() < self.old_revwalk_shas.len() && self.old_revwalk_shas[sha_changes.borrow_created().len()] == sha {
+                    // When the revwalk reaches the last added or changed commit.
+                    if self.old_revwalk_shas[i - newly_added_count] == sha {
                         is_adding = false;
 
                         // If there's a parent of the last added commit that doesn't match the current commit,
@@ -409,11 +411,10 @@ impl GitManager {
                     } else {
                         last_added_oid = oid;
                         sha_changes.push_created(sha.clone());
-                        let existing_index = self.old_revwalk_shas.iter().position(|old_sha| {
-                            *old_sha == sha
-                        });
-                        if let Some(_) = existing_index {
+                        newly_added_count += 1;
+                        if self.old_revwalk_shas.contains(&sha) {
                             sha_changes.push_deleted(sha.clone());
+                            newly_added_count -= 1;
                         }
                     }
                 // After adding, there may be commits that need their x position updated.

@@ -168,8 +168,6 @@ export class SVGManager {
     }
 
     removeRows(shas) {
-        // TODO: Figure out why it's deleting the entire graph!
-        console.log(shas);
         const self = this;
 
         const indexesToRemove = [];
