@@ -62,9 +62,9 @@ export class SVGManager {
             for (const childLine of elements['child_lines']) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                 if (childLine['row-y'] < i) {
-                    newRows[childLine['row-y']]['lines'].push(line);
+                    newRows[childLine['row-y']]['lines'].push({'element': line, 'target-sha': childLine['target-sha']});
                 } else if (childLine['row-y'] === i) {
-                    row['lines'].push(line);
+                    row['lines'].push({'element': line, 'target-sha': childLine['target-sha']});
                 } else {
                     console.error("ERROR: childLine tried to be added after a row!");
                 }
@@ -159,7 +159,7 @@ export class SVGManager {
 
         for (let i = startIndex; i < self.rows.length; i++) {
             self.rows[i]['pixel_y'] = pixel_y;
-            self.moveYAttributes(self.rows[i]['lines'], amountToMove);
+            self.moveYAttributes(self.rows[i]['lines'].map(function(line) {return line['element'];}), amountToMove);
             self.moveYAttributes(self.rows[i]['branches'], amountToMove);
             self.moveYAttributes([self.rows[i]['circle'], self.rows[i]['summaryTxt'], self.rows[i]['backRect']], amountToMove);
             pixel_y += self.Y_SPACING;
@@ -173,18 +173,32 @@ export class SVGManager {
         const self = this;
 
         shas.forEach((sha) => {
-            let startIndex = self.rows.findIndex(function(row) {
+            const startIndex = self.rows.findIndex(function(row) {
                 return row['sha'] === sha;
             });
 
-            let pixelY = self.rows[startIndex]['pixel_y'];
-            self.rows.splice(startIndex, 1);
-            for (let j = startIndex; j < self.rows.length; j++) {
-                self.rows[j]['pixel_y'] = pixelY;
-                self.moveYAttributes(self.rows[j]['lines'], -self.Y_SPACING);
-                self.moveYAttributes(self.rows[j]['branches'], -self.Y_SPACING);
-                self.moveYAttributes([self.rows[j]['circle'], self.rows[j]['summaryTxt'], self.rows[j]['backRect']], -self.Y_SPACING);
-                pixelY += self.Y_SPACING;
+            if (startIndex === -1) {
+                console.error("Couldn't find row to remove from graph!");
+            } else {
+                let pixelY = self.rows[startIndex]['pixel_y'];
+                self.rows.splice(startIndex, 1);
+
+                // Remove the line coming from the parent commit (which is now at startIndex)
+                // TODO: Need to update x spacing after removing a branching line.
+                const lineIndexToRemove = self.rows[startIndex]['lines'].findIndex(function(line) {
+                    return line['target-sha'] === sha;
+                });
+                if (lineIndexToRemove !== -1) {
+                    self.rows[startIndex]['lines'].splice(lineIndexToRemove, 1);
+                }
+
+                for (let j = startIndex; j < self.rows.length; j++) {
+                    self.rows[j]['pixel_y'] = pixelY;
+                    self.moveYAttributes(self.rows[j]['lines'].map(function(line) {return line['element'];}), -self.Y_SPACING);
+                    self.moveYAttributes(self.rows[j]['branches'], -self.Y_SPACING);
+                    self.moveYAttributes([self.rows[j]['circle'], self.rows[j]['summaryTxt'], self.rows[j]['backRect']], -self.Y_SPACING);
+                    pixelY += self.Y_SPACING;
+                }
             }
         });
 
@@ -238,7 +252,7 @@ export class SVGManager {
 
         let df = document.createDocumentFragment();
         for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
-            for (const element of self.rows[i]['lines']) {
+            for (const element of self.rows[i]['lines'].map(function(line) {return line['element'];})) {
                 df.appendChild(element);
             }
         }

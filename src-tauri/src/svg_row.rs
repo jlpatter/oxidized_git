@@ -325,6 +325,7 @@ impl SVGRow {
                         (String::from("tag"), SVGProperty::SomeString(String::from("line"))),
                         (String::from("attrs"), SVGProperty::SomeHashMap(line_attrs)),
                         (String::from("row-y"), SVGProperty::SomeInt(i + 1)),
+                        (String::from("target-sha"), SVGProperty::SomeString(child_svg_row.sha.clone())),
                     ]));
                 }
             }
@@ -351,6 +352,7 @@ impl SVGRow {
                     (String::from("tag"), SVGProperty::SomeString(String::from("line"))),
                     (String::from("attrs"), SVGProperty::SomeHashMap(line_attrs)),
                     (String::from("row-y"), SVGProperty::SomeInt(row_y)),
+                    (String::from("target-sha"), SVGProperty::SomeString(child_svg_row.sha.clone())),
                 ]));
             } else {
                 let mut d_str = format!("M {child_pixel_x} {before_pixel_y} C ");
@@ -372,6 +374,7 @@ impl SVGRow {
                     (String::from("tag"), SVGProperty::SomeString(String::from("path"))),
                     (String::from("attrs"), SVGProperty::SomeHashMap(path_attrs)),
                     (String::from("row-y"), SVGProperty::SomeInt(row_y)),
+                    (String::from("target-sha"), SVGProperty::SomeString(child_svg_row.sha.clone())),
                 ]));
             }
         }
