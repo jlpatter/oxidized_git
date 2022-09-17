@@ -5,7 +5,7 @@ use anyhow::{bail, Result};
 use git2::{BranchType, Diff, ErrorCode, Oid, RepositoryState};
 use serde::{Serialize, Deserialize, Serializer};
 use crate::git_manager::{GraphOps, GitManager, SHAChange, SHAChanges};
-use crate::svg_row::{RowProperty, SVGRow};
+use crate::svg_row::{RowProperty, SVGProperty, SVGRow};
 
 #[derive(Clone)]
 pub enum SVGCommitInfoValue {
@@ -48,13 +48,15 @@ impl Serialize for RepoInfoValue {
 #[derive(Clone, Serialize)]
 pub struct CommitsInfo {
     deleted_sha_changes: Vec<SHAChange>,
+    branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>,
     svg_row_draw_properties: Vec<HashMap<String, RowProperty>>,
 }
 
 impl CommitsInfo {
-    pub fn new(deleted_sha_changes: Vec<SHAChange>, svg_row_draw_properties: Vec<HashMap<String, RowProperty>>) -> Self {
+    pub fn new(deleted_sha_changes: Vec<SHAChange>, branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>, svg_row_draw_properties: Vec<HashMap<String, RowProperty>>) -> Self {
         Self {
             deleted_sha_changes,
+            branch_draw_properties,
             svg_row_draw_properties,
         }
     }
@@ -123,6 +125,29 @@ impl BranchInfo {
     }
 }
 
+#[derive(Clone)]
+pub struct BranchNameAndType {
+    shorthand: String,
+    branch_type: String,
+}
+
+impl BranchNameAndType {
+    pub fn new(shorthand: String, branch_type: String) -> Self {
+        Self {
+            shorthand,
+            branch_type,
+        }
+    }
+
+    pub fn borrow_shorthand(&self) -> &String {
+        &self.shorthand
+    }
+
+    pub fn borrow_branch_type(&self) -> &String {
+        &self.branch_type
+    }
+}
+
 #[derive(Clone, Serialize)]
 pub struct BranchInfoTreeNode {
     text: String,
@@ -184,11 +209,11 @@ impl BranchesInfo {
     }
 }
 
-fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String, String)>>> {
+fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<BranchNameAndType>>> {
     let repo = git_manager.borrow_repo()?;
 
     // Get HashMap of Oids and their refs based on type (local, remote, or tag)
-    let mut oid_refs: HashMap<String, Vec<(String, String)>> = HashMap::new();
+    let mut oid_refs: HashMap<String, Vec<BranchNameAndType>> = HashMap::new();
 
     // Iterate over branches
     for branch_result in repo.branches(None)? {
@@ -211,10 +236,10 @@ fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String,
                 }
                 match oid_refs.get_mut(&*oid.to_string()) {
                     Some(oid_ref_vec) => {
-                        oid_ref_vec.push((branch_string, branch_type));
+                        oid_ref_vec.push(BranchNameAndType::new(branch_string, branch_type));
                     },
                     None => {
-                        oid_refs.insert(oid.to_string(), vec![(branch_string, branch_type)]);
+                        oid_refs.insert(oid.to_string(), vec![BranchNameAndType::new(branch_string, branch_type)]);
                     },
                 }
             },
@@ -228,10 +253,10 @@ fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String,
             Some(oid) => {
                 match oid_refs.get_mut(&*oid.to_string()) {
                     Some(oid_ref_vec) => {
-                        oid_ref_vec.push((String::from("* HEAD"), String::from("local")));
+                        oid_ref_vec.push(BranchNameAndType::new(String::from("* HEAD"), String::from("local")));
                     },
                     None => {
-                        oid_refs.insert(oid.to_string(), vec![(String::from("* HEAD"), String::from("local"))]);
+                        oid_refs.insert(oid.to_string(), vec![BranchNameAndType::new(String::from("* HEAD"), String::from("local"))]);
                     },
                 }
             },
@@ -248,10 +273,10 @@ fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String,
             let oid = reference.peel_to_commit()?.id();
             match oid_refs.get_mut(&*oid.to_string()) {
                 Some(oid_ref_vec) => {
-                    oid_ref_vec.push((ref_name.to_string(), "tag".to_string()));
+                    oid_ref_vec.push(BranchNameAndType::new(ref_name.to_string(), "tag".to_string()));
                 }
                 None => {
-                    oid_refs.insert(oid.to_string(), vec![(ref_name.to_string(), "tag".to_string())]);
+                    oid_refs.insert(oid.to_string(), vec![BranchNameAndType::new(ref_name.to_string(), "tag".to_string())]);
                 },
             };
         }
@@ -359,113 +384,113 @@ fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> R
 }
 
 fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops: GraphOps) -> Result<Option<CommitsInfo>> {
-    let sha_changes;
-    if commit_ops == GraphOps::RefChange {
-        // TODO: Implement this!
-        println!("Attempted Ref Change which is not implemented yet.");
-        return Ok(None);
-    } else if commit_ops == GraphOps::ConfigChange {
+    let mut svg_row_draw_properties: Vec<HashMap<String, RowProperty>> = vec![];
+    let mut sha_changes = SHAChanges::new();
+    if commit_ops == GraphOps::ConfigChange {
         // TODO: Implement this!
         println!("Attempted Config Change which is not implemented yet.");
         return Ok(None);
-    } else {
+    } else if commit_ops != GraphOps::RefChange {
         sha_changes = match git_manager.git_revwalk(commit_ops)? {
             Some(v) => v,
             None => return Ok(None),
         };
-    }
-    let commit_info_list = get_commit_info_list(git_manager, &sha_changes)?;
-    let mut svg_rows: Vec<Rc<RefCell<SVGRow>>> = vec![];
-    let mut svg_row_hm: HashMap<String, Rc<RefCell<SVGRow>>> = HashMap::new();
-    for commit_info in commit_info_list {
-        let oid = match commit_info.get("oid") {
-            Some(civ_oid) => {
-                if let SVGCommitInfoValue::SomeString(s) = civ_oid {
-                    s
-                } else {
-                    bail!("Oid was not passed as a string.");
+
+        let commit_info_list = get_commit_info_list(git_manager, &sha_changes)?;
+        let mut svg_rows: Vec<Rc<RefCell<SVGRow>>> = vec![];
+        let mut svg_row_hm: HashMap<String, Rc<RefCell<SVGRow>>> = HashMap::new();
+        for commit_info in commit_info_list {
+            let oid = match commit_info.get("oid") {
+                Some(civ_oid) => {
+                    if let SVGCommitInfoValue::SomeString(s) = civ_oid {
+                        s
+                    } else {
+                        bail!("Oid was not passed as a string.");
+                    }
+                },
+                None => bail!("Oid not found in commit_info hash map."),
+            };
+            let summary = match commit_info.get("summary") {
+                Some(civ_summary) => {
+                    if let SVGCommitInfoValue::SomeString(s) = civ_summary {
+                        s
+                    } else {
+                        bail!("Summary was not passed as a string.");
+                    }
                 }
-            },
-            None => bail!("Oid not found in commit_info hash map."),
-        };
-        let summary = match commit_info.get("summary") {
-            Some(civ_summary) => {
-                if let SVGCommitInfoValue::SomeString(s) = civ_summary {
-                    s
-                } else {
-                    bail!("Summary was not passed as a string.");
+                None => bail!("Summary not found in commit_info hash map."),
+            };
+            let parent_oids = match commit_info.get("parent_oids") {
+                Some(civ_parent_oids) => {
+                    if let SVGCommitInfoValue::SomeStringVec(v) = civ_parent_oids {
+                        v
+                    } else {
+                        bail!("Parent Oids was not passed as a vector.");
+                    }
                 }
-            }
-            None => bail!("Summary not found in commit_info hash map."),
-        };
-        let parent_oids = match commit_info.get("parent_oids") {
-            Some(civ_parent_oids) => {
-                if let SVGCommitInfoValue::SomeStringVec(v) = civ_parent_oids {
-                    v
-                } else {
-                    bail!("Parent Oids was not passed as a vector.");
+                None => bail!("Parent Oids not found in commit_info hash map."),
+            };
+            let child_oids = match commit_info.get("child_oids") {
+                Some(civ_child_oids) => {
+                    if let SVGCommitInfoValue::SomeStringVec(v) = civ_child_oids {
+                        v
+                    } else {
+                        bail!("Child Oids was not passed as a vector.");
+                    }
                 }
-            }
-            None => bail!("Parent Oids not found in commit_info hash map."),
-        };
-        let child_oids = match commit_info.get("child_oids") {
-            Some(civ_child_oids) => {
-                if let SVGCommitInfoValue::SomeStringVec(v) = civ_child_oids {
-                    v
-                } else {
-                    bail!("Child Oids was not passed as a vector.");
+                None => bail!("Child Oids not found in commit_info hash map."),
+            };
+            let x = match commit_info.get("x") {
+                Some(civ_x) => {
+                    if let SVGCommitInfoValue::SomeInt(i) = civ_x {
+                        i
+                    } else {
+                        bail!("X was not passed as an isize.");
+                    }
                 }
-            }
-            None => bail!("Child Oids not found in commit_info hash map."),
-        };
-        let x = match commit_info.get("x") {
-            Some(civ_x) => {
-                if let SVGCommitInfoValue::SomeInt(i) = civ_x {
-                    i
-                } else {
-                    bail!("X was not passed as an isize.");
+                None => bail!("X not found in commit_info hash map."),
+            };
+            let y = match commit_info.get("y") {
+                Some(civ_y) => {
+                    if let SVGCommitInfoValue::SomeInt(i) = civ_y {
+                        i
+                    } else {
+                        bail!("Y was not passed as an isize.");
+                    }
                 }
-            }
-            None => bail!("X not found in commit_info hash map."),
-        };
-        let y = match commit_info.get("y") {
-            Some(civ_y) => {
-                if let SVGCommitInfoValue::SomeInt(i) = civ_y {
-                    i
-                } else {
-                    bail!("Y was not passed as an isize.");
-                }
-            }
-            None => bail!("Y not found in commit_info hash map."),
-        };
-        let svg_row_rc: Rc<RefCell<SVGRow>> = Rc::new(RefCell::new(SVGRow::new(
-            oid.clone(),
-            summary.clone(),
-            parent_oids.clone(),
-            child_oids.clone(),
-            x.clone(),
-            y.clone(),
-        )));
-        svg_row_hm.insert(oid.clone(), svg_row_rc.clone());
-        svg_rows.push(svg_row_rc);
+                None => bail!("Y not found in commit_info hash map."),
+            };
+            let svg_row_rc: Rc<RefCell<SVGRow>> = Rc::new(RefCell::new(SVGRow::new(
+                oid.clone(),
+                summary.clone(),
+                parent_oids.clone(),
+                child_oids.clone(),
+                x.clone(),
+                y.clone(),
+            )));
+            svg_row_hm.insert(oid.clone(), svg_row_rc.clone());
+            svg_rows.push(svg_row_rc);
+        }
+
+        for svg_row_rc in &svg_rows {
+            svg_row_rc.borrow_mut().set_parent_and_child_svg_row_values(&svg_row_hm);
+        }
+
+        let main_table = SVGRow::get_occupied_table(&mut svg_rows)?;
+        for svg_row_rc in svg_rows {
+            svg_row_draw_properties.push(svg_row_rc.borrow_mut().get_draw_properties(
+                &main_table,
+            ));
+        }
     }
 
-    for svg_row_rc in &svg_rows {
-        svg_row_rc.borrow_mut().set_parent_and_child_svg_row_values(&svg_row_hm);
-    }
-
-    let main_table = SVGRow::get_occupied_table(&mut svg_rows)?;
-    let mut svg_row_draw_properties: Vec<HashMap<String, RowProperty>> = vec![];
-    for svg_row_rc in svg_rows {
-        svg_row_draw_properties.push(svg_row_rc.borrow_mut().get_draw_properties(
-            &main_table,
-        ));
-    }
-
-    // TODO: Need to call "svg_row_rc.borrow().get_draw_properties(&main_table)" here!
     let oid_refs_hm = get_oid_refs(git_manager)?;
+    let mut branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)> = vec![];
+    for (k, v) in oid_refs_hm {
+        branch_draw_properties.push((k, SVGRow::get_branch_draw_properties(v)));
+    }
 
-    Ok(Some(CommitsInfo::new(sha_changes.borrow_deleted().clone(), svg_row_draw_properties)))
+    Ok(Some(CommitsInfo::new(sha_changes.borrow_deleted().clone(), branch_draw_properties, svg_row_draw_properties)))
 }
 
 fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {

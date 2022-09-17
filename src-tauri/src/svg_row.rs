@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use anyhow::{bail, Result};
 use serde::{Serialize, Serializer};
+use crate::parseable_info::BranchNameAndType;
 
 #[derive(Clone)]
 pub enum SVGPropertyAttrs {
@@ -106,6 +107,10 @@ impl SVGRow {
             x,
             y,
         }
+    }
+
+    pub fn borrow_sha(&self) -> &String {
+        &self.sha
     }
 
     pub fn set_parent_and_child_svg_row_values(&mut self, all_svg_rows: &HashMap<String, Rc<RefCell<SVGRow>>>) {
@@ -235,26 +240,23 @@ impl SVGRow {
         Ok(main_table)
     }
 
-    pub fn get_branch_draw_properties(&self, branches_and_tags: Vec<(String, String)>, main_table: &HashMap<isize, HashMap<isize, bool>>) -> Vec<Vec<HashMap<String, SVGProperty>>> {
+    pub fn get_branch_draw_properties(branches_and_tags: Vec<BranchNameAndType>) -> Vec<Vec<HashMap<String, SVGProperty>>> {
         // Get the branch text
-        let empty_hm = HashMap::new();
-        let pixel_y = self.y * Y_SPACING + Y_OFFSET;
-        let largest_occupied_x = main_table.get(&self.y).unwrap_or(&empty_hm).keys().max().unwrap_or(&0);
         let mut branch_and_tags: Vec<Vec<HashMap<String, SVGProperty>>> = vec![];
-        for (branch_name, branch_type) in branches_and_tags.clone().into_iter() {
+        for branch_name_and_type in branches_and_tags {
             let mut branch_and_tag_properties: Vec<HashMap<String, SVGProperty>> = vec![];
             let text_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
                 (String::from("x"), SVGPropertyAttrs::SomeInt(0)),
-                (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_OFFSET)),
+                (String::from("y"), SVGPropertyAttrs::SomeInt(TEXT_Y_OFFSET)),
                 (String::from("fill"), SVGPropertyAttrs::SomeString(String::from("white"))),
             ]);
             branch_and_tag_properties.push(HashMap::from([
                 (String::from("tag"), SVGProperty::SomeString(String::from("text"))),
                 (String::from("attrs"), SVGProperty::SomeHashMap(text_attrs)),
-                (String::from("textContent"), SVGProperty::SomeString(branch_name.clone())),
-                (String::from("largestXValue"), SVGProperty::SomeInt(*largest_occupied_x)),
+                (String::from("textContent"), SVGProperty::SomeString(branch_name_and_type.borrow_shorthand().clone())),
             ]));
 
+            let branch_type = branch_name_and_type.borrow_branch_type();
             let mut branch_rect_color = "yellow";
             if branch_type == "local" {
                 branch_rect_color = "red";
@@ -269,7 +271,7 @@ impl SVGRow {
             style_str.push_str(";fill-opacity:0.5;");
             let rect_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
                 (String::from("x"), SVGPropertyAttrs::SomeInt(0)),
-                (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + RECT_Y_OFFSET)),
+                (String::from("y"), SVGPropertyAttrs::SomeInt(RECT_Y_OFFSET)),
                 (String::from("rx"), SVGPropertyAttrs::SomeInt(10)),
                 (String::from("ry"), SVGPropertyAttrs::SomeInt(10)),
                 (String::from("width"), SVGPropertyAttrs::SomeInt(0)),

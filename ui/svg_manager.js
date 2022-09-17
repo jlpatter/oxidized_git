@@ -41,6 +41,8 @@ export class SVGManager {
 
         const singleCharWidth = self.getSingleCharWidth();
 
+        // TODO: Need to delete branches somehow. Maybe store elements separately instead of in 2 arrays?
+
         if (commitsInfo['deleted_sha_changes'].length > 0) {
             self.removeRows(commitsInfo['deleted_sha_changes']);
         }
@@ -64,26 +66,7 @@ export class SVGManager {
             const circle = self.makeSVG(elements['circle']['tag'], elements['circle']['attrs']);
             row['elements'].push(circle);
 
-            let currentX = -1;
-            for (const branch_or_tags of elements['branch_and_tags']) {
-                if (currentX === -1) {
-                    currentX = (branch_or_tags[0]['largestXValue'] + 1) * self.X_SPACING + self.X_OFFSET;
-                }
-                branch_or_tags[0]['attrs']['x'] = currentX;
-                branch_or_tags[1]['attrs']['x'] = currentX - 5;
-                const txtElem = self.makeSVG(branch_or_tags[0]['tag'], branch_or_tags[0]['attrs']);
-                const box_width = singleCharWidth * branch_or_tags[0]['textContent'].length + 10;
-                branch_or_tags[1]['attrs']['width'] = box_width;
-                const rectElem = self.makeSVG(branch_or_tags[1]['tag'], branch_or_tags[1]['attrs']);
-                txtElem.textContent = branch_or_tags[0]['textContent'];
-                row['elements'].push(rectElem);
-                row['elements'].push(txtElem);
-                currentX += box_width + self.BRANCH_TEXT_SPACING;
-            }
-
-            if (currentX === -1) {
-                currentX = (elements['summary_text']['largestXValue'] + 1) * self.X_SPACING + self.X_OFFSET;
-            }
+            let currentX = (elements['summary_text']['largestXValue'] + 1) * self.X_SPACING + self.X_OFFSET;
             elements['summary_text']['attrs']['x'] = currentX;
             const summaryTxt = self.makeSVG(elements['summary_text']['tag'], elements['summary_text']['attrs']);
             summaryTxt.textContent = elements['summary_text']['textContent'];
@@ -103,9 +86,48 @@ export class SVGManager {
 
         self.addRows(newRows);
 
+        maxWidth = self.addBranchLabels(commitsInfo['branch_draw_properties'], singleCharWidth, maxWidth);
+
         self.setVisibleCommits();
         self.commitTableSVG.setAttribute('width', maxWidth.toString());
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
+    }
+
+    addBranchLabels(branchDrawProperties, singleCharWidth, maxWidth) {
+        const self = this;
+
+        for (let i = 0; i < branchDrawProperties.length; i++) {
+            const rowIndex = self.rows.findIndex(function(row) {
+                return row['sha'] === branchDrawProperties[i][0];
+            });
+            if (rowIndex !== -1) {
+                const summaryTxtElem = self.rows[rowIndex]['elements'][1];
+                const backRectElem = self.rows[rowIndex]['elements'][2];
+                let currentPixelX = Number(summaryTxtElem.getAttribute('x'));
+                for (let j = 0; j < branchDrawProperties[i][1].length; j++) {
+                    const branch = branchDrawProperties[i][1][j];
+                    branch[0]['attrs']['x'] = currentPixelX;
+                    branch[0]['attrs']['y'] += self.rows[rowIndex]['pixel_y'];
+                    const txtElem = self.makeSVG(branch[0]['tag'], branch[0]['attrs']);
+                    const box_width = singleCharWidth * branch[0]['textContent'].length + 10;
+
+                    branch[1]['attrs']['x'] = currentPixelX - 5;
+                    branch[1]['attrs']['y'] += self.rows[rowIndex]['pixel_y'];
+                    branch[1]['attrs']['width'] = box_width;
+                    const rectElem = self.makeSVG(branch[1]['tag'], branch[1]['attrs']);
+                    txtElem.textContent = branch[0]['textContent'];
+
+                    self.rows[rowIndex]['elements'].unshift(txtElem);
+                    self.rows[rowIndex]['elements'].unshift(rectElem);
+
+                    currentPixelX += box_width + self.BRANCH_TEXT_SPACING;
+                    summaryTxtElem.setAttribute('x', currentPixelX.toString());
+                }
+                backRectElem.setAttribute('width', (currentPixelX + summaryTxtElem.textContent.length * singleCharWidth).toString());
+                maxWidth = Math.max(maxWidth, currentPixelX + summaryTxtElem.textContent.length * singleCharWidth);
+            }
+        }
+        return maxWidth;
     }
 
     addRows(newRows) {
