@@ -8,15 +8,15 @@
   },
   "dependencies": {
     "@tauri-apps/api": "~1.0.2",
-    "bootstrap": "~5.2.0",
+    "bootstrap": "~5.2.1",
     "@fortawesome/fontawesome-free": "~6.2.0",
     "highlight.js": "~11.6.0",
-    "jquery": "~3.6.0",
+    "jquery": "~3.6.1",
     "resizable": "~1.2.1",
     "events": "~3.3.0"
   },
   "devDependencies": {
-    "@types/node": "~18.7.14",
-    "vite": "~3.0.9"
+    "@types/node": "~18.7.16",
+    "vite": "~3.1.0"
   }
 }
