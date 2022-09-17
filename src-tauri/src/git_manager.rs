@@ -337,7 +337,7 @@ impl GitManager {
         let mut last_added_oid = Oid::zero();
         // change_to_this_sha is to delete and re-add commits that get shifted over due to pushing to a branch lower in the tree.
         let mut change_to_this_sha = String::new();
-        let mut newly_added_count: usize = 0;
+        let mut top_commit_topography_count: usize = 0;
         for (i, commit_oid_result) in revwalk.enumerate() {
             if limit_commits && i >= commit_count {
                 break;
@@ -362,17 +362,17 @@ impl GitManager {
                             is_adding = true;
                             last_added_oid = oid;
                             sha_changes.push_created(sha.clone());
-                            newly_added_count += 1;
+                            top_commit_topography_count += 1;
                         },
                     }
                 // If we're not adding and there's a difference, then there's commit(s) to remove from the graph.
-                } else if i > 0 && !is_adding && sha != self.old_revwalk_shas[i] {
+                } else if i > 0 && !is_adding && change_to_this_sha.as_str() == "" && sha != self.old_revwalk_shas[i - top_commit_topography_count] {
                     let first_non_deleted_commit = self.old_revwalk_shas.iter().position(|old_sha| {
                         *old_sha == sha
                     });
                     match first_non_deleted_commit {
                         Some(j) => {
-                            for k in i..j {
+                            for k in (i - top_commit_topography_count)..j {
                                 sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
                             }
                             break;
@@ -380,7 +380,7 @@ impl GitManager {
                         None => {
                             println!("I didn't think this code path was possible but here we are...");
                             println!("NOTE: This codepath implies somebody deleted the initial commit at the bottom of the graph!!!");
-                            for k in i..self.old_revwalk_shas.len() {
+                            for k in (i - top_commit_topography_count)..self.old_revwalk_shas.len() {
                                 sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
                             }
                             break;
@@ -389,7 +389,7 @@ impl GitManager {
                 // If we're currently adding, add commit to the graph.
                 } else if i > 0 && is_adding {
                     // When the revwalk reaches the last added or changed commit.
-                    if self.old_revwalk_shas[i - newly_added_count] == sha {
+                    if self.old_revwalk_shas[i - top_commit_topography_count] == sha {
                         is_adding = false;
 
                         // If there's a parent of the last added commit that doesn't match the current commit,
@@ -401,6 +401,8 @@ impl GitManager {
                         match parent {
                             Some(p) => {
                                 change_to_this_sha = p.id().to_string();
+                                sha_changes.push_deleted(sha.clone());
+                                sha_changes.push_created(sha.clone());
                             },
                             None => {
                                 if commit_ops == GraphOps::AddedOnly {
@@ -411,14 +413,13 @@ impl GitManager {
                     } else {
                         last_added_oid = oid;
                         sha_changes.push_created(sha.clone());
-                        newly_added_count += 1;
+                        top_commit_topography_count += 1;
                         if self.old_revwalk_shas.contains(&sha) {
                             sha_changes.push_deleted(sha.clone());
-                            newly_added_count -= 1;
                         }
                     }
                 // After adding, there may be commits that need their x position updated.
-                } else if change_to_this_sha != "" {
+                } else if change_to_this_sha.as_str() != "" {
                     sha_changes.push_deleted(sha.clone());
                     sha_changes.push_created(sha.clone());
                     if sha == change_to_this_sha {
