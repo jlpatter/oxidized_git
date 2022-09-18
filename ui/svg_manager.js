@@ -9,6 +9,7 @@ export class SVGManager {
     Y_OFFSET = 20;  // If changing, be sure to update on backend-end too
     X_SPACING = 15;  // If changing, be sure to update on backend-end too
     X_OFFSET = 20;  // If changing, be sure to update on backend-end too
+    LINE_STROKE_WIDTH = 2;  // If changing, be sure to update on backend-end too
     BRANCH_TEXT_SPACING = 5;
     SCROLL_RENDERING_MARGIN = 100;
     /**
@@ -58,7 +59,7 @@ export class SVGManager {
         for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
             const commit = commitsInfo['svg_row_draw_properties'][i];
             const elements = commit['elements'];
-            let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'lines': [], 'branches': []};
+            let row = {'sha': commit['sha'], 'childShas': commit['child-shas'], 'pixel_y': commit['pixel_y'], 'lines': [], 'branches': []};
             for (const childLine of elements['child_lines']) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                 if (childLine['row-y'] < i) {
@@ -165,8 +166,94 @@ export class SVGManager {
             pixel_y += self.Y_SPACING;
         }
 
+        if (startIndex < self.rows.length) {
+            self.addChildLines(self.rows[startIndex]);
+        }
+
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
         self.setVisibleCommits();
+    }
+
+    addChildLines(row) {
+        const self = this;
+        row['childShas'].forEach((childSha) => {
+            let childRow;
+            let childRowY;
+            for (let i = 0; i < self.rows.length; i++) {
+                if (self.rows[i]['sha'] === childSha) {
+                    childRow = self.rows[i];
+                    childRowY = i;
+                }
+            }
+
+            const childPixelX = Number(childRow['circle'].getAttribute('cx'));
+            const childPixelY = Number(childRow['circle'].getAttribute('cy'));
+            const childRowX = (childPixelY - self.Y_OFFSET) / self.Y_SPACING;
+            const beforeY = childRowY - 1;
+            const beforePixelY = beforeY * self.Y_SPACING + self.Y_OFFSET;
+
+            if (beforePixelY !== childPixelY) {
+                for (let i = childRowY; i < beforeY; i++) {
+                    const topPixelY = i * self.Y_SPACING + self.Y_OFFSET;
+                    const bottomPixelY = (i + 1) * self.Y_SPACING + self.Y_OFFSET;
+                    const styleString = 'stroke:' + self.get_color_string(childRowX) + ';stroke-width:' + self.LINE_STROKE_WIDTH.toString() + ';';
+                    const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': topPixelY, 'x2': childPixelX, 'y2': bottomPixelY, 'style': styleString});
+                    const line = {'element': lineElement, 'target-sha': childSha};
+
+                    self.rows[i + 1]['lines'].push(line);
+                }
+            }
+
+            const rowPixelX = Number(row['circle'].getAttribute('cx'));
+            const rowPixelY = Number(row['circle'].getAttribute('cy'));
+            const rowX = (rowPixelX - self.Y_OFFSET) / self.Y_SPACING;
+            let styleString = 'stroke:';
+            if (childRowX >= rowX) {
+                // Sets the color for "branching" lines and straight lines
+                styleString += self.get_color_string(childRowX);
+            } else {
+                // Sets the color for "merging" lines
+                styleString += self.get_color_string(rowX);
+            }
+            styleString += ';fill:transparent;stroke-width:' + self.LINE_STROKE_WIDTH.toString() + ';';
+            if (childPixelX === rowPixelX) {
+                const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': beforePixelY, 'x2': rowPixelX, 'y2': rowPixelY, 'style': styleString});
+                const line = {'element': lineElement, 'target-sha': childSha};
+
+                row['lines'].push(line);
+            } else {
+                let dString = 'M ' + childPixelX + ' ' + beforePixelY + ' C ';
+                if (childPixelX < rowPixelX) {
+                    const startControlPointX = childPixelX + self.X_SPACING * 3 / 4;
+                    const endControlPointY = rowPixelY - self.Y_SPACING * 3 / 4;
+                    dString += startControlPointX + ' ' + beforePixelY + ', ' + rowPixelX + ' ' + endControlPointY + ', ';
+                } else {
+                    let startControlPointY = beforePixelY + self.Y_SPACING * 3 / 4;
+                    let endControlPointX = rowPixelX + self.X_SPACING * 3 / 4;
+                    dString += childPixelX + ' ' + startControlPointY + ', ' + endControlPointX + ' ' + rowPixelY + ', ';
+                }
+                dString += rowPixelX + ' ' + rowPixelY;
+
+                const pathElement = self.makeSVG('path', {'d': dString, 'style': styleString});
+                const path = {'element': pathElement, 'target-sha': childSha};
+
+                row['lines'].push(path);
+            }
+        });
+    }
+
+    // If changing, be sure to update on backend-end too
+    get_color_string(x) {
+        let color_num = x % 4;
+        if (color_num === 0) {
+            return "#00CC19";
+        } else if (color_num === 1) {
+            return "#0198A6";
+        } else if (color_num === 2) {
+            return "#FF7800";
+        } else {
+            return "#FF0D00";
+        }
     }
 
     removeRows(shas) {

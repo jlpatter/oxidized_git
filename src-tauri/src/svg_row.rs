@@ -58,6 +58,7 @@ impl Serialize for DrawProperty {
 pub enum RowProperty {
     SomeInt(isize),
     SomeString(String),
+    SomeStringVec(Vec<String>),
     SomeHashMap(HashMap<String, DrawProperty>),
 }
 
@@ -66,6 +67,7 @@ impl Serialize for RowProperty {
         match &self {
             RowProperty::SomeInt(i) => i.serialize(serializer),
             RowProperty::SomeString(s) => s.serialize(serializer),
+            RowProperty::SomeStringVec(v) => v.serialize(serializer),
             RowProperty::SomeHashMap(hm) => hm.serialize(serializer),
         }
     }
@@ -77,7 +79,7 @@ const X_SPACING: isize = 15;  // If changing, be sure to update on front-end too
 const X_OFFSET: isize = 20;  // If changing, be sure to update on front-end too
 const TEXT_Y_OFFSET: isize = 5;
 const CIRCLE_RADIUS: isize = 5;
-const LINE_STROKE_WIDTH: isize = 2;
+const LINE_STROKE_WIDTH: isize = 2;  // If changing, be sure to update on front-end too
 const RECT_HEIGHT: isize = 18;
 const RECT_Y_OFFSET: isize = -(RECT_HEIGHT / 2);
 
@@ -137,6 +139,7 @@ impl SVGRow {
         self.has_parent_child_svg_rows_set = true;
     }
 
+    // If changing, be sure to update on front-end too
     fn get_color_string(x: isize) -> String {
         let color_num = x % 4;
         if color_num == 0 {
@@ -292,6 +295,7 @@ impl SVGRow {
         let mut draw_properties: HashMap<String, DrawProperty> = HashMap::new();
 
         row_properties.insert(String::from("sha"), RowProperty::SomeString(self.sha.clone()));
+        row_properties.insert(String::from("child-shas"), RowProperty::SomeStringVec(self.child_oids.clone()));
 
         let pixel_x = self.x * X_SPACING + X_OFFSET;
         let pixel_y = self.y * Y_SPACING + Y_OFFSET;
@@ -299,6 +303,7 @@ impl SVGRow {
         let color = SVGRow::get_color_string(self.x);
         let mut child_lines: Vec<HashMap<String, SVGProperty>> = vec![];
         // Draw the lines from the current node's children to itself.
+        // NOTE: If updating child line logic, be sure to update on front-end too!
         for child_svg_row_rc in &self.child_svg_rows {
             let child_svg_row = child_svg_row_rc.borrow();
             let child_pixel_x = child_svg_row.x * X_SPACING + X_OFFSET;
