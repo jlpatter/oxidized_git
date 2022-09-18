@@ -186,7 +186,7 @@ export class SVGManager {
                 }
             }
 
-            const childPixelX = Number(childRow['circle'].getAttribute('cx'));
+            const childPixelX = Number(childRow['summaryTxt'].getAttribute('x'));
             const childPixelY = Number(childRow['circle'].getAttribute('cy'));
             const childRowX = (childPixelY - self.Y_OFFSET) / self.Y_SPACING;
             const beforeY = childRowY - 1;
@@ -200,11 +200,15 @@ export class SVGManager {
                     const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': topPixelY, 'x2': childPixelX, 'y2': bottomPixelY, 'style': styleString});
                     const line = {'element': lineElement, 'target-sha': childSha};
 
+                    self.moveXAttributes(self.rows[i + 1]['lines'], self.X_SPACING, childPixelX);
+                    self.moveXAttributes(self.rows[i + 1]['branches'], self.X_SPACING, childPixelX);
+                    // TODO: backRect only needs to move if circle has moved!
+                    self.moveXAttributes([self.rows[i + 1]['circle'], self.rows[i + 1]['summaryTxt'], self.rows[i + 1]['backRect']], self.X_SPACING, childPixelX);
                     self.rows[i + 1]['lines'].push(line);
                 }
             }
 
-            const rowPixelX = Number(row['circle'].getAttribute('cx'));
+            const rowPixelX = Number(row['summaryTxt'].getAttribute('x'));
             const rowPixelY = Number(row['circle'].getAttribute('cy'));
             const rowX = (rowPixelX - self.Y_OFFSET) / self.Y_SPACING;
             let styleString = 'stroke:';
@@ -220,6 +224,7 @@ export class SVGManager {
                 const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': beforePixelY, 'x2': rowPixelX, 'y2': rowPixelY, 'style': styleString});
                 const line = {'element': lineElement, 'target-sha': childSha};
 
+                // TODO: Any lines that already exist need to become branching lines!
                 row['lines'].push(line);
             } else {
                 let dString = 'M ' + childPixelX + ' ' + beforePixelY + ' C ';
@@ -237,6 +242,10 @@ export class SVGManager {
                 const pathElement = self.makeSVG('path', {'d': dString, 'style': styleString});
                 const path = {'element': pathElement, 'target-sha': childSha};
 
+                // TODO: Any lines that already exist need to become branching lines!
+                self.moveXAttributes(row['branches'], self.X_SPACING, childPixelX);
+                // TODO: backRect only needs to move if circle has moved!
+                self.moveXAttributes([row['circle'], row['summaryTxt'], row['backRect']], self.X_SPACING, childPixelX);
                 row['lines'].push(path);
             }
         });
@@ -294,6 +303,42 @@ export class SVGManager {
         self.setVisibleCommits();
     }
 
+    moveXAttributes(elements, amountToMove, newElementPixelX) {
+        for (let j = 0; j < elements.length; j++) {
+            if (elements[j].hasAttribute('x1')) {
+                const new_x1 = Number(elements[j].getAttribute('x1')) + amountToMove;
+                elements[j].setAttribute('x1', new_x1.toString());
+            }
+            if (elements[j].hasAttribute('x2')) {
+                const new_x2 = Number(elements[j].getAttribute('x2')) + amountToMove;
+                elements[j].setAttribute('x2', new_x2.toString());
+            }
+            if (elements[j].hasAttribute('d')) {
+                // This assumes 'd' is structured like the following: "M x1 y1 C x2 y2, x3 y3, x4 y4"
+                const oldD = elements[j].getAttribute('d').split(', ');
+                const firstElemSplit = oldD.shift().split(' C ');
+                const firstPair = firstElemSplit[0].slice(2).split(' ');
+                const secondPair = firstElemSplit[1].split(' ');
+                const thirdPair = oldD[0].split(' ');
+                const fourthPair = oldD[1].split(' ');
+                // TODO: Update this!
+                const newD = '';
+                elements[j].setAttribute('d', newD);
+            }
+            if (elements[j].hasAttribute('cx')) {
+                const old_cx = Number(elements[j].getAttribute('cx'));
+                if (old_cx >= newElementPixelX) {
+                    const new_cx = old_cx + amountToMove;
+                    elements[j].setAttribute('cx', new_cx.toString());
+                }
+            }
+            if (elements[j].hasAttribute('x')) {
+                const new_x = Number(elements[j].getAttribute('x')) + amountToMove;
+                elements[j].setAttribute('x', new_x.toString());
+            }
+        }
+    }
+
     moveYAttributes(elements, amountToMove) {
         for (let j = 0; j < elements.length; j++) {
             if (elements[j].hasAttribute('y1')) {
@@ -301,8 +346,8 @@ export class SVGManager {
                 elements[j].setAttribute('y1', new_y1.toString());
             }
             if (elements[j].hasAttribute('y2')) {
-                const new_y1 = Number(elements[j].getAttribute('y2')) + amountToMove;
-                elements[j].setAttribute('y2', new_y1.toString());
+                const new_y2 = Number(elements[j].getAttribute('y2')) + amountToMove;
+                elements[j].setAttribute('y2', new_y2.toString());
             }
             if (elements[j].hasAttribute('d')) {
                 // This assumes 'd' is structured like the following: "M x1 y1 C x2 y2, x3 y3, x4 y4"
@@ -325,12 +370,12 @@ export class SVGManager {
                 elements[j].setAttribute('d', newD);
             }
             if (elements[j].hasAttribute('cy')) {
-                const new_y1 = Number(elements[j].getAttribute('cy')) + amountToMove;
-                elements[j].setAttribute('cy', new_y1.toString());
+                const new_cy = Number(elements[j].getAttribute('cy')) + amountToMove;
+                elements[j].setAttribute('cy', new_cy.toString());
             }
             if (elements[j].hasAttribute('y')) {
-                const new_y1 = Number(elements[j].getAttribute('y')) + amountToMove;
-                elements[j].setAttribute('y', new_y1.toString());
+                const new_y = Number(elements[j].getAttribute('y')) + amountToMove;
+                elements[j].setAttribute('y', new_y.toString());
             }
         }
     }
