@@ -183,13 +183,14 @@ export class SVGManager {
                 let pixelY = self.rows[startIndex]['pixel_y'];
                 self.rows.splice(startIndex, 1);
 
-                // Remove the line coming from the parent commit (which is now at startIndex)
-                // TODO: Need to update x spacing after removing a branching line.
-                const lineIndexToRemove = self.rows[startIndex]['lines'].findIndex(function(line) {
-                    return line['target-sha'] === sha;
-                });
-                if (lineIndexToRemove !== -1) {
-                    self.rows[startIndex]['lines'].splice(lineIndexToRemove, 1);
+                // Remove the line coming from the parent commit(s)
+                for (let i = startIndex; i < self.rows.length; i++) {
+                    const lineIndexToRemove = self.rows[i]['lines'].findIndex(function(line) {
+                        return line['target-sha'] === sha;
+                    });
+                    if (lineIndexToRemove !== -1) {
+                        self.rows[i]['lines'].splice(lineIndexToRemove, 1);
+                    }
                 }
 
                 for (let j = startIndex; j < self.rows.length; j++) {
