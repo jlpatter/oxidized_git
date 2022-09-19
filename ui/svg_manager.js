@@ -200,6 +200,7 @@ export class SVGManager {
                     const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': topPixelY, 'x2': childPixelX, 'y2': bottomPixelY, 'style': styleString});
                     const line = {'element': lineElement, 'target-sha': childSha};
 
+                    // Note: Lines just need to be moved, not updated.
                     self.moveXAttributes(self.rows[i + 1]['lines'], self.X_SPACING, childPixelX);
                     self.moveXAttributes(self.rows[i + 1]['branches'], self.X_SPACING, childPixelX);
                     const oldCX = self.rows[i + 1]['circle'].getAttribute('cx');
@@ -231,7 +232,7 @@ export class SVGManager {
                 const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': beforePixelY, 'x2': rowPixelX, 'y2': rowPixelY, 'style': styleString});
                 const line = {'element': lineElement, 'target-sha': childSha};
 
-                // TODO: Any lines that already exist need to become branching lines!
+                self.updateLines(row['lines'], childPixelX);
                 row['lines'].push(line);
             } else {
                 let dString = 'M ' + childPixelX + ' ' + beforePixelY + ' C ';
@@ -249,17 +250,24 @@ export class SVGManager {
                 const pathElement = self.makeSVG('path', {'d': dString, 'style': styleString});
                 const path = {'element': pathElement, 'target-sha': childSha};
 
-                // TODO: Any lines that already exist need to become branching lines!
-                self.moveXAttributes(row['branches'], self.X_SPACING, childPixelX);
+                let rightPixelX;
+                if (rowPixelX > childPixelX) {
+                    rightPixelX = rowPixelX;
+                } else {
+                    rightPixelX = childPixelX;
+                }
+
+                self.moveXAttributes(row['branches'], self.X_SPACING, rightPixelX);
                 const oldCX = row['circle'].getAttribute('cx');
-                self.moveXAttributes([row['circle'], row['summaryTxt']], self.X_SPACING, childPixelX);
+                self.moveXAttributes([row['circle'], row['summaryTxt']], self.X_SPACING, rightPixelX);
 
                 if (oldCX !== row['circle'].getAttribute('cx')) {
-                    self.moveXAttributes([row['backRect']], self.X_SPACING, childPixelX);
+                    self.moveXAttributes([row['backRect']], self.X_SPACING, rightPixelX);
                     const newWidth = Number(row['summaryTxt'].getAttribute('x')) + row['summaryTxt'].textContent.length * singleCharWidth;
                     row['backRect'].setAttribute('width', newWidth.toString());
                 }
 
+                self.updateLines(row['lines'], rightPixelX);
                 row['lines'].push(path);
             }
         });
@@ -315,6 +323,82 @@ export class SVGManager {
 
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
         self.setVisibleCommits();
+    }
+
+    updateLines(lines, newLinePixelX) {
+        const self = this;
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i]['element'].tagName === "PATH") {
+                // This assumes 'd' is structured like the following: "M x1 y1 C x2 y2, x3 y3, x4 y4"
+                const oldD = lines[i]['element'].getAttribute('d').split(', ');
+                const firstElemSplit = oldD.shift().split(' C ');
+                const firstPair = firstElemSplit[0].slice(2).split(' ');
+                const fourthPair = oldD[1].split(' ');
+
+                const childPixelX = newLinePixelX;
+                const rowPixelX = Number(fourthPair[0]);
+                const beforePixelY = Number(firstPair[1]);
+                const rowPixelY = Number(fourthPair[1]);
+
+                let newD = 'M ' + childPixelX + ' ' + firstPair[1] + ' C ';
+                if (childPixelX < rowPixelX) {
+                    const startControlPointX = childPixelX + self.X_SPACING * 3 / 4;
+                    const endControlPointY = rowPixelY - self.Y_SPACING * 3 / 4;
+                    newD += startControlPointX + ' ' + beforePixelY + ', ' + rowPixelX + ' ' + endControlPointY + ', ';
+                } else {
+                    let startControlPointY = beforePixelY + self.Y_SPACING * 3 / 4;
+                    let endControlPointX = rowPixelX + self.X_SPACING * 3 / 4;
+                    newD += childPixelX + ' ' + startControlPointY + ', ' + endControlPointX + ' ' + rowPixelY + ', ';
+                }
+                newD += rowPixelX + ' ' + rowPixelY;
+
+                const childRowX = (childPixelX - self.X_OFFSET) / self.X_SPACING;
+                const rowX = (rowPixelX - self.X_OFFSET) / self.X_SPACING;
+                let styleString = 'stroke:';
+                if (childRowX >= rowX) {
+                    // Sets the color for "branching" lines and straight lines
+                    styleString += self.get_color_string(childRowX);
+                } else {
+                    // Sets the color for "merging" lines
+                    styleString += self.get_color_string(rowX);
+                }
+                styleString += ';fill:transparent;stroke-width:' + self.LINE_STROKE_WIDTH.toString() + ';';
+
+                lines[i]['element'].setAttribute('d', newD);
+                lines[i]['element'].setAttribute('style', styleString);
+            } else if (lines[i]['element'].tagName === "LINE") {
+                const childPixelX = newLinePixelX;
+                const rowPixelX = Number(lines[i]['element'].getAttribute('x2'));
+                const beforePixelY = Number(lines[i]['element'].getAttribute('y1'));
+                const rowPixelY = Number(lines[i]['element'].getAttribute('y2'));
+
+                let dString = 'M ' + childPixelX + ' ' + beforePixelY + ' C ';
+                if (childPixelX < rowPixelX) {
+                    const startControlPointX = childPixelX + self.X_SPACING * 3 / 4;
+                    const endControlPointY = rowPixelY - self.Y_SPACING * 3 / 4;
+                    dString += startControlPointX + ' ' + beforePixelY + ', ' + rowPixelX + ' ' + endControlPointY + ', ';
+                } else {
+                    let startControlPointY = beforePixelY + self.Y_SPACING * 3 / 4;
+                    let endControlPointX = rowPixelX + self.X_SPACING * 3 / 4;
+                    dString += childPixelX + ' ' + startControlPointY + ', ' + endControlPointX + ' ' + rowPixelY + ', ';
+                }
+                dString += rowPixelX + ' ' + rowPixelY;
+
+                const childRowX = (childPixelX - self.X_OFFSET) / self.X_SPACING;
+                const rowX = (rowPixelX - self.X_OFFSET) / self.X_SPACING;
+                let styleString = 'stroke:';
+                if (childRowX >= rowX) {
+                    // Sets the color for "branching" lines and straight lines
+                    styleString += self.get_color_string(childRowX);
+                } else {
+                    // Sets the color for "merging" lines
+                    styleString += self.get_color_string(rowX);
+                }
+                styleString += ';fill:transparent;stroke-width:' + self.LINE_STROKE_WIDTH.toString() + ';';
+
+                lines[i]['element'] = self.makeSVG('path', {'d': dString, 'style': styleString});
+            }
+        }
     }
 
     moveXAttributes(elements, amountToMove, newElementPixelX) {
