@@ -91,7 +91,7 @@ export class SVGManager {
         }
 
         if (newRows.length > 0) {
-            self.addRows(newRows);
+            self.addRows(newRows, singleCharWidth);
         }
 
         maxWidth = self.addBranchLabels(commitsInfo['branch_draw_properties'], singleCharWidth, maxWidth);
@@ -150,7 +150,7 @@ export class SVGManager {
         }
     }
 
-    addRows(newRows) {
+    addRows(newRows, singleCharWidth) {
         const self = this,
             startIndex = newRows.length,
             amountToMove = self.Y_SPACING * newRows.length;
@@ -167,14 +167,14 @@ export class SVGManager {
         }
 
         if (startIndex < self.rows.length) {
-            self.addChildLines(self.rows[startIndex]);
+            self.addChildLines(self.rows[startIndex], singleCharWidth);
         }
 
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
         self.setVisibleCommits();
     }
 
-    addChildLines(row) {
+    addChildLines(row, singleCharWidth) {
         const self = this;
         row['childShas'].forEach((childSha) => {
             let childRow;
@@ -202,8 +202,15 @@ export class SVGManager {
 
                     self.moveXAttributes(self.rows[i + 1]['lines'], self.X_SPACING, childPixelX);
                     self.moveXAttributes(self.rows[i + 1]['branches'], self.X_SPACING, childPixelX);
-                    // TODO: backRect only needs to move if circle has moved!
-                    self.moveXAttributes([self.rows[i + 1]['circle'], self.rows[i + 1]['summaryTxt'], self.rows[i + 1]['backRect']], self.X_SPACING, childPixelX);
+                    const oldCX = self.rows[i + 1]['circle'].getAttribute('cx');
+                    self.moveXAttributes([self.rows[i + 1]['circle'], self.rows[i + 1]['summaryTxt']], self.X_SPACING, childPixelX);
+
+                    if (oldCX !== self.rows[i + 1]['circle'].getAttribute('cx')) {
+                        self.moveXAttributes([self.rows[i + 1]['backRect']], self.X_SPACING, childPixelX);
+                        const newWidth = Number(self.rows[i + 1]['summaryTxt'].getAttribute('x')) + self.rows[i + 1]['summaryTxt'].textContent.length * singleCharWidth;
+                        self.rows[i + 1]['backRect'].setAttribute('width', newWidth.toString());
+                    }
+
                     self.rows[i + 1]['lines'].push(line);
                 }
             }
@@ -244,8 +251,15 @@ export class SVGManager {
 
                 // TODO: Any lines that already exist need to become branching lines!
                 self.moveXAttributes(row['branches'], self.X_SPACING, childPixelX);
-                // TODO: backRect only needs to move if circle has moved!
-                self.moveXAttributes([row['circle'], row['summaryTxt'], row['backRect']], self.X_SPACING, childPixelX);
+                const oldCX = row['circle'].getAttribute('cx');
+                self.moveXAttributes([row['circle'], row['summaryTxt']], self.X_SPACING, childPixelX);
+
+                if (oldCX !== row['circle'].getAttribute('cx')) {
+                    self.moveXAttributes([row['backRect']], self.X_SPACING, childPixelX);
+                    const newWidth = Number(row['summaryTxt'].getAttribute('x')) + row['summaryTxt'].textContent.length * singleCharWidth;
+                    row['backRect'].setAttribute('width', newWidth.toString());
+                }
+
                 row['lines'].push(path);
             }
         });
