@@ -321,8 +321,16 @@ export class SVGManager {
                 const secondPair = firstElemSplit[1].split(' ');
                 const thirdPair = oldD[0].split(' ');
                 const fourthPair = oldD[1].split(' ');
-                // TODO: Update this!
-                const newD = '';
+                const newD = 'M ' +
+                    (Number(firstPair[0]) + amountToMove).toString() + ' ' +
+                    firstPair[1] +
+                    ' C ' +
+                    (Number(secondPair[0]) + amountToMove).toString() + ' ' +
+                    secondPair[1] + ', ' +
+                    (Number(thirdPair[0]) + amountToMove).toString() + ' ' +
+                    thirdPair[1] + ', ' +
+                    (Number(fourthPair[0]) + amountToMove).toString() + ' ' +
+                    fourthPair[1];
                 elements[j].setAttribute('d', newD);
             }
             if (elements[j].hasAttribute('cx')) {
