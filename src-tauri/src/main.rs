@@ -576,7 +576,7 @@ fn main() {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let result = git_manager.git_continue_rebase();
                 match result {
-                    Ok(()) => emit_update_all(&mut git_manager, GraphOps::AddedOnly, &main_window_c_c),
+                    Ok(()) => emit_update_all(&mut git_manager, GraphOps::Both, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
             });
