@@ -51,7 +51,7 @@ export class SVGManager {
         }
 
         if (!commitsInfo['clear_entire_old_graph'] && commitsInfo['deleted_shas'].length > 0) {
-            self.removeRows(commitsInfo['deleted_shas'], singleCharWidth);
+            self.removeRows(commitsInfo['deleted_shas']);
         }
 
         const newRows = [];
@@ -281,7 +281,7 @@ export class SVGManager {
         return self.get_color_string((pixelX - self.X_OFFSET) / self.X_SPACING);
     }
 
-    removeRows(shas, singleCharWidth) {
+    removeRows(shas) {
         const self = this;
 
         shas.forEach((sha) => {
