@@ -168,12 +168,8 @@ export class SVGManager {
 
         for (let i = startIndex; i < self.rows.length; i++) {
             for (let j = 0; j < newRows.length; j++) {
-                const childWasJustAdded = self.rows[i]['childShas'].findIndex(function(childSha) {
-                    return childSha === self.rows[j]['sha'];
-                }) !== -1;
-                if (childWasJustAdded) {
-                    self.addChildLines(self.rows[i], i, singleCharWidth);
-                    break;
+                if (self.rows[i]['childShas'].indexOf(self.rows[j]['sha']) !== -1) {
+                    self.addChildLine(self.rows[i], i, self.rows[j], j, singleCharWidth);
                 }
             }
         }
@@ -182,100 +178,88 @@ export class SVGManager {
         self.setVisibleCommits();
     }
 
-    addChildLines(row, rowIndex, singleCharWidth) {
+    addChildLine(row, rowIndex, childRow, childRowIndex, singleCharWidth) {
         const self = this;
-        row['childShas'].forEach((childSha) => {
-            let childRow;
-            let childRowY;
-            for (let i = 0; i < self.rows.length; i++) {
-                if (self.rows[i]['sha'] === childSha) {
-                    childRow = self.rows[i];
-                    childRowY = i;
-                    break;
+        const childPixelX = Number(childRow['circle'].getAttribute('cx'));
+        const childPixelY = Number(childRow['circle'].getAttribute('cy'));
+        const childRowX = (childPixelX - self.Y_OFFSET) / self.Y_SPACING;
+        const beforeY = rowIndex - 1;
+        const beforePixelY = beforeY * self.Y_SPACING + self.Y_OFFSET;
+
+        if (beforePixelY !== childPixelY) {
+            for (let i = childRowIndex; i < beforeY; i++) {
+                const topPixelY = i * self.Y_SPACING + self.Y_OFFSET;
+                const bottomPixelY = (i + 1) * self.Y_SPACING + self.Y_OFFSET;
+                const styleString = 'stroke:' + self.get_color_string(childRowX) + ';stroke-width:' + self.LINE_STROKE_WIDTH.toString() + ';';
+                const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': topPixelY, 'x2': childPixelX, 'y2': bottomPixelY, 'style': styleString});
+                const line = {'element': lineElement, 'target-sha': childRow['sha']};
+
+                // Note: Lines just need to be moved, not updated.
+                self.moveXAttributes(self.rows[i + 1]['lines'].map(function(line) { return line['element']; }), self.X_SPACING);
+                self.moveXAttributes(self.rows[i + 1]['branches'], self.X_SPACING);
+                self.moveXAttributes([self.rows[i + 1]['summaryTxt']], self.X_SPACING);
+                if (Number(self.rows[i + 1]['circle'].getAttribute('cx')) >= childPixelX) {
+                    self.moveXAttributes([self.rows[i + 1]['circle'], self.rows[i + 1]['backRect']], self.X_SPACING);
                 }
+                const newWidth = Number(self.rows[i + 1]['summaryTxt'].getAttribute('x')) + self.rows[i + 1]['summaryTxt'].textContent.length * singleCharWidth;
+                self.rows[i + 1]['backRect'].setAttribute('width', newWidth.toString());
+
+                self.rows[i + 1]['lines'].push(line);
             }
+        }
 
-            const childPixelX = Number(childRow['circle'].getAttribute('cx'));
-            const childPixelY = Number(childRow['circle'].getAttribute('cy'));
-            const childRowX = (childPixelX - self.Y_OFFSET) / self.Y_SPACING;
-            const beforeY = rowIndex - 1;
-            const beforePixelY = beforeY * self.Y_SPACING + self.Y_OFFSET;
+        const rowPixelX = Number(row['circle'].getAttribute('cx'));
+        const rowPixelY = Number(row['circle'].getAttribute('cy'));
+        const rowX = (rowPixelX - self.Y_OFFSET) / self.Y_SPACING;
+        let styleString = 'stroke:';
+        if (childRowX >= rowX) {
+            // Sets the color for "branching" lines and straight lines
+            styleString += self.get_color_string(childRowX);
+        } else {
+            // Sets the color for "merging" lines
+            styleString += self.get_color_string(rowX);
+        }
+        styleString += ';fill:transparent;stroke-width:' + self.LINE_STROKE_WIDTH.toString() + ';';
+        if (childPixelX === rowPixelX) {
+            const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': beforePixelY, 'x2': rowPixelX, 'y2': rowPixelY, 'style': styleString});
+            const line = {'element': lineElement, 'target-sha': childRow['sha']};
 
-            if (beforePixelY !== childPixelY) {
-                for (let i = childRowY; i < beforeY; i++) {
-                    const topPixelY = i * self.Y_SPACING + self.Y_OFFSET;
-                    const bottomPixelY = (i + 1) * self.Y_SPACING + self.Y_OFFSET;
-                    const styleString = 'stroke:' + self.get_color_string(childRowX) + ';stroke-width:' + self.LINE_STROKE_WIDTH.toString() + ';';
-                    const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': topPixelY, 'x2': childPixelX, 'y2': bottomPixelY, 'style': styleString});
-                    const line = {'element': lineElement, 'target-sha': childSha};
-
-                    // Note: Lines just need to be moved, not updated.
-                    self.moveXAttributes(self.rows[i + 1]['lines'].map(function(line) { return line['element']; }), self.X_SPACING);
-                    self.moveXAttributes(self.rows[i + 1]['branches'], self.X_SPACING);
-                    self.moveXAttributes([self.rows[i + 1]['summaryTxt']], self.X_SPACING);
-                    if (Number(self.rows[i + 1]['circle'].getAttribute('cx')) >= childPixelX) {
-                        self.moveXAttributes([self.rows[i + 1]['circle'], self.rows[i + 1]['backRect']], self.X_SPACING);
-                    }
-                    const newWidth = Number(self.rows[i + 1]['summaryTxt'].getAttribute('x')) + self.rows[i + 1]['summaryTxt'].textContent.length * singleCharWidth;
-                    self.rows[i + 1]['backRect'].setAttribute('width', newWidth.toString());
-
-                    self.rows[i + 1]['lines'].push(line);
-                }
-            }
-
-            const rowPixelX = Number(row['circle'].getAttribute('cx'));
-            const rowPixelY = Number(row['circle'].getAttribute('cy'));
-            const rowX = (rowPixelX - self.Y_OFFSET) / self.Y_SPACING;
-            let styleString = 'stroke:';
-            if (childRowX >= rowX) {
-                // Sets the color for "branching" lines and straight lines
-                styleString += self.get_color_string(childRowX);
+            self.updateLines(row['lines'], childPixelX);
+            row['lines'].push(line);
+        } else {
+            let dString = 'M ' + childPixelX + ' ' + beforePixelY + ' C ';
+            if (childPixelX < rowPixelX) {
+                const startControlPointX = childPixelX + self.X_SPACING * 3 / 4;
+                const endControlPointY = rowPixelY - self.Y_SPACING * 3 / 4;
+                dString += startControlPointX + ' ' + beforePixelY + ', ' + rowPixelX + ' ' + endControlPointY + ', ';
             } else {
-                // Sets the color for "merging" lines
-                styleString += self.get_color_string(rowX);
+                let startControlPointY = beforePixelY + self.Y_SPACING * 3 / 4;
+                let endControlPointX = rowPixelX + self.X_SPACING * 3 / 4;
+                dString += childPixelX + ' ' + startControlPointY + ', ' + endControlPointX + ' ' + rowPixelY + ', ';
             }
-            styleString += ';fill:transparent;stroke-width:' + self.LINE_STROKE_WIDTH.toString() + ';';
-            if (childPixelX === rowPixelX) {
-                const lineElement = self.makeSVG('line', {'x1': childPixelX, 'y1': beforePixelY, 'x2': rowPixelX, 'y2': rowPixelY, 'style': styleString});
-                const line = {'element': lineElement, 'target-sha': childSha};
+            dString += rowPixelX + ' ' + rowPixelY;
 
-                self.updateLines(row['lines'], childPixelX);
-                row['lines'].push(line);
+            const pathElement = self.makeSVG('path', {'d': dString, 'style': styleString});
+            const path = {'element': pathElement, 'target-sha': childRow['sha']};
+
+            let rightPixelX;
+            if (rowPixelX > childPixelX) {
+                rightPixelX = rowPixelX;
             } else {
-                let dString = 'M ' + childPixelX + ' ' + beforePixelY + ' C ';
-                if (childPixelX < rowPixelX) {
-                    const startControlPointX = childPixelX + self.X_SPACING * 3 / 4;
-                    const endControlPointY = rowPixelY - self.Y_SPACING * 3 / 4;
-                    dString += startControlPointX + ' ' + beforePixelY + ', ' + rowPixelX + ' ' + endControlPointY + ', ';
-                } else {
-                    let startControlPointY = beforePixelY + self.Y_SPACING * 3 / 4;
-                    let endControlPointX = rowPixelX + self.X_SPACING * 3 / 4;
-                    dString += childPixelX + ' ' + startControlPointY + ', ' + endControlPointX + ' ' + rowPixelY + ', ';
-                }
-                dString += rowPixelX + ' ' + rowPixelY;
-
-                const pathElement = self.makeSVG('path', {'d': dString, 'style': styleString});
-                const path = {'element': pathElement, 'target-sha': childSha};
-
-                let rightPixelX;
-                if (rowPixelX > childPixelX) {
-                    rightPixelX = rowPixelX;
-                } else {
-                    rightPixelX = childPixelX;
-                }
-
-                self.moveXAttributes(row['branches'], self.X_SPACING);
-                self.moveXAttributes([row['summaryTxt']], self.X_SPACING);
-                if (Number(row['circle'].getAttribute('cx')) >= rightPixelX) {
-                    self.moveXAttributes([row['circle'], row['backRect']], self.X_SPACING);
-                }
-                const newWidth = Number(row['summaryTxt'].getAttribute('x')) + row['summaryTxt'].textContent.length * singleCharWidth;
-                row['backRect'].setAttribute('width', newWidth.toString());
-
-                self.updateLines(row['lines'], rightPixelX);
-                row['lines'].push(path);
+                rightPixelX = childPixelX;
             }
-        });
+
+            self.moveXAttributes(row['branches'], self.X_SPACING);
+            self.moveXAttributes([row['summaryTxt']], self.X_SPACING);
+            if (Number(row['circle'].getAttribute('cx')) >= rightPixelX) {
+                self.moveXAttributes([row['circle'], row['backRect']], self.X_SPACING);
+            }
+            const newWidth = Number(row['summaryTxt'].getAttribute('x')) + row['summaryTxt'].textContent.length * singleCharWidth;
+            row['backRect'].setAttribute('width', newWidth.toString());
+
+            self.updateLines(row['lines'], rightPixelX);
+            row['lines'].push(path);
+        }
     }
 
     // If changing, be sure to update on backend-end too
