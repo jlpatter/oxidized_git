@@ -296,6 +296,7 @@ impl SVGRow {
 
         row_properties.insert(String::from("sha"), RowProperty::SomeString(self.sha.clone()));
         row_properties.insert(String::from("child-shas"), RowProperty::SomeStringVec(self.child_oids.clone()));
+        row_properties.insert(String::from("parent-shas"), RowProperty::SomeStringVec(self.parent_oids.clone()));
 
         let pixel_x = self.x * X_SPACING + X_OFFSET;
         let pixel_y = self.y * Y_SPACING + Y_OFFSET;

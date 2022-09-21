@@ -334,6 +334,7 @@ impl GitManager {
         let commit_count = preferences.get_commit_count();
 
         let mut is_adding = false;
+        let mut has_deleted = false;
         let mut last_added_oid = Oid::zero();
         // change_to_this_sha is to delete and re-add commits that get shifted over due to pushing to a branch lower in the tree.
         let mut change_to_this_sha = String::new();
@@ -356,7 +357,24 @@ impl GitManager {
                             for k in i..j {
                                 sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
                             }
-                            break;
+                            has_deleted = true;
+
+                            // If there's a parent of the last deleted commit that doesn't match the next commit,
+                            // Then there are commits that need their x position updated.
+                            let parent = repo.find_commit(Oid::from_str(self.old_revwalk_shas[j - 1].as_str())?)?.parents().find(|c| {
+                                c.id().to_string() != sha
+                            });
+
+                            match parent {
+                                Some(p) => {
+                                    change_to_this_sha = p.id().to_string();
+                                    sha_changes.push_deleted(sha.clone());
+                                    sha_changes.push_created(sha.clone());
+                                },
+                                None => {
+                                    break;
+                                },
+                            }
                         },
                         None => {
                             is_adding = true;
@@ -375,7 +393,24 @@ impl GitManager {
                             for k in (i - top_commit_topography_count)..j {
                                 sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
                             }
-                            break;
+                            has_deleted = true;
+
+                            // If there's a parent of the last deleted commit that doesn't match the next commit,
+                            // Then there are commits that need their x position updated.
+                            let parent = repo.find_commit(Oid::from_str(self.old_revwalk_shas[j - 1].as_str())?)?.parents().find(|c| {
+                                c.id().to_string() != sha
+                            });
+
+                            match parent {
+                                Some(p) => {
+                                    change_to_this_sha = p.id().to_string();
+                                    sha_changes.push_deleted(sha.clone());
+                                    sha_changes.push_created(sha.clone());
+                                },
+                                None => {
+                                    break;
+                                },
+                            }
                         },
                         None => {
                             println!("I didn't think this code path was possible but here we are...");
@@ -418,13 +453,13 @@ impl GitManager {
                             sha_changes.push_deleted(sha.clone());
                         }
                     }
-                // After adding, there may be commits that need their x position updated.
+                // After adding or deleting, there may be commits that need their x position updated.
                 } else if change_to_this_sha.as_str() != "" {
                     sha_changes.push_deleted(sha.clone());
                     sha_changes.push_created(sha.clone());
                     if sha == change_to_this_sha {
                         change_to_this_sha = String::new();
-                        if commit_ops == GraphOps::AddedOnly {
+                        if commit_ops == GraphOps::AddedOnly || has_deleted {
                             break;
                         }
                     }

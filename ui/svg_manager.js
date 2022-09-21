@@ -51,7 +51,7 @@ export class SVGManager {
         }
 
         if (!commitsInfo['clear_entire_old_graph'] && commitsInfo['deleted_shas'].length > 0) {
-            self.removeRows(commitsInfo['deleted_shas']);
+            self.removeRows(commitsInfo['deleted_shas'], singleCharWidth);
         }
 
         const newRows = [];
@@ -59,7 +59,7 @@ export class SVGManager {
         for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
             const commit = commitsInfo['svg_row_draw_properties'][i];
             const elements = commit['elements'];
-            let row = {'sha': commit['sha'], 'childShas': commit['child-shas'], 'pixel_y': commit['pixel_y'], 'lines': [], 'branches': []};
+            let row = {'sha': commit['sha'], 'childShas': commit['child-shas'], 'parentShas': commit['parent-shas'], 'pixel_y': commit['pixel_y'], 'lines': [], 'branches': []};
             for (const childLine of elements['child_lines']) {
                 const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                 if (childLine['row-y'] < i) {
@@ -210,16 +210,14 @@ export class SVGManager {
                     const line = {'element': lineElement, 'target-sha': childSha};
 
                     // Note: Lines just need to be moved, not updated.
-                    self.moveXAttributes(self.rows[i + 1]['lines'].map(function(line) { return line['element']; }), self.X_SPACING, childPixelX);
-                    self.moveXAttributes(self.rows[i + 1]['branches'], self.X_SPACING, childPixelX);
-                    const oldCX = self.rows[i + 1]['circle'].getAttribute('cx');
-                    self.moveXAttributes([self.rows[i + 1]['circle'], self.rows[i + 1]['summaryTxt']], self.X_SPACING, childPixelX);
-
-                    if (oldCX !== self.rows[i + 1]['circle'].getAttribute('cx')) {
-                        self.moveXAttributes([self.rows[i + 1]['backRect']], self.X_SPACING, childPixelX);
-                        const newWidth = Number(self.rows[i + 1]['summaryTxt'].getAttribute('x')) + self.rows[i + 1]['summaryTxt'].textContent.length * singleCharWidth;
-                        self.rows[i + 1]['backRect'].setAttribute('width', newWidth.toString());
+                    self.moveXAttributes(self.rows[i + 1]['lines'].map(function(line) { return line['element']; }), self.X_SPACING);
+                    self.moveXAttributes(self.rows[i + 1]['branches'], self.X_SPACING);
+                    self.moveXAttributes([self.rows[i + 1]['summaryTxt']], self.X_SPACING);
+                    if (Number(self.rows[i + 1]['circle'].getAttribute('cx')) >= childPixelX) {
+                        self.moveXAttributes([self.rows[i + 1]['circle'], self.rows[i + 1]['backRect']], self.X_SPACING);
                     }
+                    const newWidth = Number(self.rows[i + 1]['summaryTxt'].getAttribute('x')) + self.rows[i + 1]['summaryTxt'].textContent.length * singleCharWidth;
+                    self.rows[i + 1]['backRect'].setAttribute('width', newWidth.toString());
 
                     self.rows[i + 1]['lines'].push(line);
                 }
@@ -266,15 +264,13 @@ export class SVGManager {
                     rightPixelX = childPixelX;
                 }
 
-                self.moveXAttributes(row['branches'], self.X_SPACING, rightPixelX);
-                const oldCX = row['circle'].getAttribute('cx');
-                self.moveXAttributes([row['circle'], row['summaryTxt']], self.X_SPACING, rightPixelX);
-
-                if (oldCX !== row['circle'].getAttribute('cx')) {
-                    self.moveXAttributes([row['backRect']], self.X_SPACING, rightPixelX);
-                    const newWidth = Number(row['summaryTxt'].getAttribute('x')) + row['summaryTxt'].textContent.length * singleCharWidth;
-                    row['backRect'].setAttribute('width', newWidth.toString());
+                self.moveXAttributes(row['branches'], self.X_SPACING);
+                self.moveXAttributes([row['summaryTxt']], self.X_SPACING);
+                if (Number(row['circle'].getAttribute('cx')) >= rightPixelX) {
+                    self.moveXAttributes([row['circle'], row['backRect']], self.X_SPACING);
                 }
+                const newWidth = Number(row['summaryTxt'].getAttribute('x')) + row['summaryTxt'].textContent.length * singleCharWidth;
+                row['backRect'].setAttribute('width', newWidth.toString());
 
                 self.updateLines(row['lines'], rightPixelX);
                 row['lines'].push(path);
@@ -296,7 +292,12 @@ export class SVGManager {
         }
     }
 
-    removeRows(shas) {
+    get_color_string_pixel(pixelX) {
+        const self = this;
+        return self.get_color_string((pixelX - self.X_OFFSET) / self.X_SPACING);
+    }
+
+    removeRows(shas, singleCharWidth) {
         const self = this;
 
         shas.forEach((sha) => {
@@ -308,15 +309,25 @@ export class SVGManager {
                 console.error("Couldn't find row to remove from graph!");
             } else {
                 let pixelY = self.rows[startIndex]['pixel_y'];
+
+                let parentIndexes = self.rows[startIndex]['parentShas'].map(function(parentSha) {
+                    return self.rows.findIndex(function(row) {
+                        return row['sha'] === parentSha;
+                    });
+                });
+
                 self.rows.splice(startIndex, 1);
+                for (let i = 0; i < parentIndexes.length; i++) {
+                    parentIndexes[i]--;
+                }
 
                 // Remove the line coming from the parent commit(s)
-                for (let i = startIndex; i < self.rows.length; i++) {
-                    const lineIndexToRemove = self.rows[i]['lines'].findIndex(function(line) {
+                for (let i = 0; i < parentIndexes.length; i++) {
+                    const lineIndexToRemove = self.rows[parentIndexes[i]]['lines'].findIndex(function(line) {
                         return line['target-sha'] === sha;
                     });
                     if (lineIndexToRemove !== -1) {
-                        self.rows[i]['lines'].splice(lineIndexToRemove, 1);
+                        self.rows[parentIndexes[i]]['lines'].splice(lineIndexToRemove, 1);
                     }
                 }
 
@@ -410,15 +421,18 @@ export class SVGManager {
         }
     }
 
-    moveXAttributes(elements, amountToMove, newElementPixelX) {
+    moveXAttributes(elements, amountToMove) {
+        const self = this;
         for (let j = 0; j < elements.length; j++) {
             if (elements[j].hasAttribute('x1')) {
                 const new_x1 = Number(elements[j].getAttribute('x1')) + amountToMove;
                 elements[j].setAttribute('x1', new_x1.toString());
+                elements[j].setAttribute('style', 'stroke:' + self.get_color_string_pixel(new_x1) + ';stroke-width:' + self.LINE_STROKE_WIDTH + ';');
             }
             if (elements[j].hasAttribute('x2')) {
                 const new_x2 = Number(elements[j].getAttribute('x2')) + amountToMove;
                 elements[j].setAttribute('x2', new_x2.toString());
+                elements[j].setAttribute('style', 'stroke:' + self.get_color_string_pixel(new_x2) + ';stroke-width:' + self.LINE_STROKE_WIDTH + ';');
             }
             if (elements[j].hasAttribute('d')) {
                 // This assumes 'd' is structured like the following: "M x1 y1 C x2 y2, x3 y3, x4 y4"
@@ -439,13 +453,17 @@ export class SVGManager {
                     (Number(fourthPair[0]) + amountToMove).toString() + ' ' +
                     fourthPair[1];
                 elements[j].setAttribute('d', newD);
+                if (Number(firstPair[0]) >= Number(fourthPair[0])) {
+                    elements[j].setAttribute('style', 'stroke:' + self.get_color_string_pixel(Number(firstPair[0])) + ';fill:transparent;stroke-width:' + self.LINE_STROKE_WIDTH + ';');
+                } else {
+                    elements[j].setAttribute('style', 'stroke:' + self.get_color_string_pixel(Number(fourthPair[0])) + ';fill:transparent;stroke-width:' + self.LINE_STROKE_WIDTH + ';');
+                }
             }
             if (elements[j].hasAttribute('cx')) {
-                const old_cx = Number(elements[j].getAttribute('cx'));
-                if (old_cx >= newElementPixelX) {
-                    const new_cx = old_cx + amountToMove;
-                    elements[j].setAttribute('cx', new_cx.toString());
-                }
+                const new_cx = Number(elements[j].getAttribute('cx')) + amountToMove;
+                elements[j].setAttribute('cx', new_cx.toString());
+                elements[j].setAttribute('stroke', self.get_color_string_pixel(new_cx));
+                elements[j].setAttribute('fill', self.get_color_string_pixel(new_cx));
             }
             if (elements[j].hasAttribute('x')) {
                 const new_x = Number(elements[j].getAttribute('x')) + amountToMove;
