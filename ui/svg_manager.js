@@ -166,15 +166,23 @@ export class SVGManager {
             pixel_y += self.Y_SPACING;
         }
 
-        if (startIndex < self.rows.length) {
-            self.addChildLines(self.rows[startIndex], singleCharWidth);
+        for (let i = startIndex; i < self.rows.length; i++) {
+            for (let j = 0; j < newRows.length; j++) {
+                const childWasJustAdded = self.rows[i]['childShas'].findIndex(function(childSha) {
+                    return childSha === self.rows[j]['sha'];
+                }) !== -1;
+                if (childWasJustAdded) {
+                    self.addChildLines(self.rows[i], i, singleCharWidth);
+                    break;
+                }
+            }
         }
 
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
         self.setVisibleCommits();
     }
 
-    addChildLines(row, singleCharWidth) {
+    addChildLines(row, rowIndex, singleCharWidth) {
         const self = this;
         row['childShas'].forEach((childSha) => {
             let childRow;
@@ -183,13 +191,14 @@ export class SVGManager {
                 if (self.rows[i]['sha'] === childSha) {
                     childRow = self.rows[i];
                     childRowY = i;
+                    break;
                 }
             }
 
-            const childPixelX = Number(childRow['summaryTxt'].getAttribute('x'));
+            const childPixelX = Number(childRow['circle'].getAttribute('cx'));
             const childPixelY = Number(childRow['circle'].getAttribute('cy'));
-            const childRowX = (childPixelY - self.Y_OFFSET) / self.Y_SPACING;
-            const beforeY = childRowY - 1;
+            const childRowX = (childPixelX - self.Y_OFFSET) / self.Y_SPACING;
+            const beforeY = rowIndex - 1;
             const beforePixelY = beforeY * self.Y_SPACING + self.Y_OFFSET;
 
             if (beforePixelY !== childPixelY) {
@@ -201,7 +210,7 @@ export class SVGManager {
                     const line = {'element': lineElement, 'target-sha': childSha};
 
                     // Note: Lines just need to be moved, not updated.
-                    self.moveXAttributes(self.rows[i + 1]['lines'], self.X_SPACING, childPixelX);
+                    self.moveXAttributes(self.rows[i + 1]['lines'].map(function(line) { return line['element']; }), self.X_SPACING, childPixelX);
                     self.moveXAttributes(self.rows[i + 1]['branches'], self.X_SPACING, childPixelX);
                     const oldCX = self.rows[i + 1]['circle'].getAttribute('cx');
                     self.moveXAttributes([self.rows[i + 1]['circle'], self.rows[i + 1]['summaryTxt']], self.X_SPACING, childPixelX);
@@ -216,7 +225,7 @@ export class SVGManager {
                 }
             }
 
-            const rowPixelX = Number(row['summaryTxt'].getAttribute('x'));
+            const rowPixelX = Number(row['circle'].getAttribute('cx'));
             const rowPixelY = Number(row['circle'].getAttribute('cy'));
             const rowX = (rowPixelX - self.Y_OFFSET) / self.Y_SPACING;
             let styleString = 'stroke:';
