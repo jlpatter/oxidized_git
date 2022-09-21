@@ -298,7 +298,7 @@ export class SVGManager {
                     return self.rows.findIndex(function(row) {
                         return row['sha'] === parentSha;
                     });
-                });
+                }).filter(function(parentIndex) { return parentIndex !== -1; });
 
                 self.rows.splice(startIndex, 1);
                 for (let i = 0; i < parentIndexes.length; i++) {
