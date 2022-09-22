@@ -10,6 +10,8 @@ export class SVGManager {
     X_SPACING = 15;
     X_OFFSET = 20;
     LINE_STROKE_WIDTH = 2;
+    CIRCLE_RADIUS = 5;
+    RECT_HEIGHT = 18;  // If updating, be sure to update on the back-end as well!
     BRANCH_TEXT_SPACING = 5;
     SCROLL_RENDERING_MARGIN = 100;
     /**
@@ -19,6 +21,7 @@ export class SVGManager {
         this.commitColumn = document.getElementById('commitColumn');
         this.commitTableSVG = document.getElementById('commitTableSVG');
         this.rows = [];
+        this.occupied_table = {};  // This would be structure like {some_y: {some_x: true, ...}, ...} where the position (some_x, some_y) was occupied.
         this.commitsTop = -99;
         this.commitsBottom = -99;
         this.setScrollEvent();
@@ -58,26 +61,37 @@ export class SVGManager {
         let maxWidth = Number(self.commitTableSVG.getAttribute('width'));
         for (let i = 0; i < commitsInfo['created_commit_info_list'].length; i++) {
             const commit = commitsInfo['created_commit_info_list'][i];
-            let row = {'sha': commit['sha'], 'childShas': commit['child_shas'], 'parentShas': commit['parent_shas'], 'circle': null, 'summaryTxt': null, 'backRect': null, 'lines': [], 'branches': []};
-
-            // TODO: Insert logic for adding row elements here! (without proper x positions yet)
-            // TODO: Delete all(?) lines and re-add them
+            const summaryTxtElement = self.makeSVG('text', {});
+            summaryTxtElement.textContent = commit['summary'];
+            const row = {
+                'sha': commit['sha'],
+                'childShas': commit['child_shas'],
+                'parentShas': commit['parent_shas'],
+                'circle': self.makeSVG('circle', {'r': self.CIRCLE_RADIUS}),
+                'summaryTxt': summaryTxtElement,
+                'backRect': self.makeSVG('rect', {'class': 'svg-hoverable-row', 'height': self.RECT_HEIGHT, 'style': 'fill:white;fill-opacity:0.1;'}),
+                'lines': [],
+                'branches': [],
+            };
 
             newRows.push(row);
-            // const width = Number(summaryElement.getAttribute('x')) + summaryElement.textContent.length * singleCharWidth;
-            // maxWidth = Math.max(maxWidth, width);
         }
+        self.rows = newRows.concat(self.rows);
 
         // TODO: Add logic for updating y positions based on index in the rows array.
         // TODO: Add logic for updating x positions based on a 'hashmap' of the occupied spaces.
-
-        self.rows = newRows.concat(self.rows);
+        // TODO: Also set maxWidth based on summary position and width.
+        self.updateOccupiedTable();
 
         maxWidth = self.addBranchLabels(commitsInfo['branch_draw_properties'], singleCharWidth, maxWidth);
 
         self.setVisibleCommits();
         self.commitTableSVG.setAttribute('width', maxWidth.toString());
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
+    }
+
+    updateOccupiedTable() {
+
     }
 
     addBranchLabels(branchDrawProperties, singleCharWidth, maxWidth) {
@@ -171,6 +185,8 @@ export class SVGManager {
                     });
                     if (lineIndexToRemove !== -1) {
                         self.rows[parentIndexes[i]]['lines'].splice(lineIndexToRemove, 1);
+                    } else {
+                        console.error('Line not found from parent going to deleted child!');
                     }
                 }
             }

@@ -36,7 +36,7 @@ impl Serialize for SVGProperty {
 }
 
 const TEXT_Y_OFFSET: isize = 5;
-const RECT_HEIGHT: isize = 18;
+const RECT_HEIGHT: isize = 18;  // If changing, be sure to update on the front-end as well!
 const RECT_Y_OFFSET: isize = -(RECT_HEIGHT / 2);
 
 // TODO: Move this to the front-end maybe?
