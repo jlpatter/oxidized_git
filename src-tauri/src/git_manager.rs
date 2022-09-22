@@ -324,6 +324,8 @@ impl GitManager {
 
         let repo = self.borrow_repo()?;
         let mut revwalk = repo.revwalk()?;
+
+        // Sort topologically but each topology is sorted by date.
         for oid in oid_vec {
             revwalk.push(oid)?;
         }
@@ -334,10 +336,6 @@ impl GitManager {
         let commit_count = preferences.get_commit_count();
 
         let mut is_adding = false;
-        let mut has_deleted = false;
-        let mut last_added_oid = Oid::zero();
-        // change_to_this_sha is to delete and re-add commits that get shifted over due to pushing to a branch lower in the tree.
-        let mut change_to_this_sha = String::new();
         let mut top_commit_topography_count: usize = 0;
         for (i, commit_oid_result) in revwalk.enumerate() {
             if limit_commits && i >= commit_count {
@@ -357,34 +355,16 @@ impl GitManager {
                             for k in i..j {
                                 sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
                             }
-                            has_deleted = true;
-
-                            // If there's a parent of the last deleted commit that doesn't match the next commit,
-                            // Then there are commits that need their x position updated.
-                            let parent = repo.find_commit(Oid::from_str(self.old_revwalk_shas[j - 1].as_str())?)?.parents().find(|c| {
-                                c.id().to_string() != sha
-                            });
-
-                            match parent {
-                                Some(p) => {
-                                    change_to_this_sha = p.id().to_string();
-                                    sha_changes.push_deleted(sha.clone());
-                                    sha_changes.push_created(sha.clone());
-                                },
-                                None => {
-                                    break;
-                                },
-                            }
+                            break;
                         },
                         None => {
                             is_adding = true;
-                            last_added_oid = oid;
                             sha_changes.push_created(sha.clone());
                             top_commit_topography_count += 1;
                         },
                     }
-                // If we're not adding and there's a difference, then there's commit(s) to remove from the graph.
-                } else if i > 0 && !is_adding && change_to_this_sha.as_str() == "" && sha != self.old_revwalk_shas[i - top_commit_topography_count] {
+                } else if i > 0 && !is_adding && sha != self.old_revwalk_shas[i - top_commit_topography_count] {
+                    // If we're not adding and there's a difference, then there's commit(s) to remove from the graph.
                     let first_non_deleted_commit = self.old_revwalk_shas.iter().position(|old_sha| {
                         *old_sha == sha
                     });
@@ -393,24 +373,7 @@ impl GitManager {
                             for k in (i - top_commit_topography_count)..j {
                                 sha_changes.push_deleted(self.old_revwalk_shas[k].clone());
                             }
-                            has_deleted = true;
-
-                            // If there's a parent of the last deleted commit that doesn't match the next commit,
-                            // Then there are commits that need their x position updated.
-                            let parent = repo.find_commit(Oid::from_str(self.old_revwalk_shas[j - 1].as_str())?)?.parents().find(|c| {
-                                c.id().to_string() != sha
-                            });
-
-                            match parent {
-                                Some(p) => {
-                                    change_to_this_sha = p.id().to_string();
-                                    sha_changes.push_deleted(sha.clone());
-                                    sha_changes.push_created(sha.clone());
-                                },
-                                None => {
-                                    break;
-                                },
-                            }
+                            break;
                         },
                         None => {
                             println!("I didn't think this code path was possible but here we are...");
@@ -421,46 +384,19 @@ impl GitManager {
                             break;
                         },
                     }
-                // If we're currently adding, add commit to the graph.
                 } else if i > 0 && is_adding {
-                    // When the revwalk reaches the last added or changed commit.
+                    // If we're currently adding, add commit to the graph.
                     if self.old_revwalk_shas[i - top_commit_topography_count] == sha {
+                        // When the revwalk reaches the last added commit.
                         is_adding = false;
-
-                        // If there's a parent of the last added commit that doesn't match the current commit,
-                        // Then there are commits that need their x position updated.
-                        let parent = repo.find_commit(last_added_oid)?.parents().find(|c| {
-                            c.id().to_string() != sha
-                        });
-
-                        match parent {
-                            Some(p) => {
-                                change_to_this_sha = p.id().to_string();
-                                sha_changes.push_deleted(sha.clone());
-                                sha_changes.push_created(sha.clone());
-                            },
-                            None => {
-                                if commit_ops == GraphOps::AddedOnly {
-                                    break;
-                                }
-                            },
+                        if commit_ops == GraphOps::AddedOnly {
+                            break;
                         }
                     } else {
-                        last_added_oid = oid;
                         sha_changes.push_created(sha.clone());
                         top_commit_topography_count += 1;
                         if self.old_revwalk_shas.contains(&sha) {
                             sha_changes.push_deleted(sha.clone());
-                        }
-                    }
-                // After adding or deleting, there may be commits that need their x position updated.
-                } else if change_to_this_sha.as_str() != "" {
-                    sha_changes.push_deleted(sha.clone());
-                    sha_changes.push_created(sha.clone());
-                    if sha == change_to_this_sha {
-                        change_to_this_sha = String::new();
-                        if commit_ops == GraphOps::AddedOnly || has_deleted {
-                            break;
                         }
                     }
                 }

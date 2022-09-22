@@ -1,28 +1,9 @@
-use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
-use std::rc::Rc;
 use anyhow::{bail, Result};
 use git2::{BranchType, Diff, ErrorCode, Oid, RepositoryState};
 use serde::{Serialize, Deserialize, Serializer};
 use crate::git_manager::{GraphOps, GitManager, SHAChanges};
-use crate::svg_row::{RowProperty, SVGProperty, SVGRow};
-
-#[derive(Clone)]
-pub enum SVGCommitInfoValue {
-    SomeString(String),
-    SomeStringVec(Vec<String>),
-    SomeInt(isize),
-}
-
-impl Serialize for SVGCommitInfoValue {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
-        match &self {
-            SVGCommitInfoValue::SomeString(st) => st.serialize(serializer),
-            SVGCommitInfoValue::SomeStringVec(v) => v.serialize(serializer),
-            SVGCommitInfoValue::SomeInt(i) => i.serialize(serializer),
-        }
-    }
-}
+use crate::svg_row::{get_branch_draw_properties, SVGProperty};
 
 #[derive(Clone)]
 pub enum RepoInfoValue {
@@ -50,17 +31,44 @@ pub struct CommitsInfo {
     deleted_shas: Vec<String>,
     clear_entire_old_graph: bool,
     branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>,
-    svg_row_draw_properties: Vec<HashMap<String, RowProperty>>,
+    created_commit_info_list: Vec<ParseableCommitInfo>,
 }
 
 impl CommitsInfo {
-    pub fn new(deleted_shas: Vec<String>, clear_entire_old_graph: bool, branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>, svg_row_draw_properties: Vec<HashMap<String, RowProperty>>) -> Self {
+    pub fn new(deleted_shas: Vec<String>, clear_entire_old_graph: bool, branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)>, created_commit_info_list: Vec<ParseableCommitInfo>) -> Self {
         Self {
             deleted_shas,
             clear_entire_old_graph,
             branch_draw_properties,
-            svg_row_draw_properties,
+            created_commit_info_list,
         }
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct ParseableCommitInfo {
+    sha: String,
+    x: isize,
+    y: isize,
+    summary: String,
+    parent_shas: Vec<String>,
+    child_shas: Vec<String>,
+}
+
+impl ParseableCommitInfo {
+    pub fn new(sha: String, x: isize, y: isize, summary: String, parent_shas: Vec<String>, child_shas: Vec<String>) -> Self {
+        Self {
+            sha,
+            x,
+            y,
+            summary,
+            parent_shas,
+            child_shas,
+        }
+    }
+
+    pub fn borrow_sha(&self) -> &String {
+        &self.sha
     }
 }
 
@@ -325,58 +333,40 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
     Ok(general_info)
 }
 
-fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> Result<Vec<HashMap<String, SVGCommitInfoValue>>> {
+fn get_created_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> Result<Vec<ParseableCommitInfo>> {
     let repo = git_manager.borrow_repo()?;
 
-    let mut commit_list: Vec<HashMap<String, SVGCommitInfoValue>> = vec![];
+    let mut commit_list: Vec<ParseableCommitInfo> = vec![];
 
-    let mut children_oids: HashMap<String, Vec<String>> = HashMap::new();
+    let mut children_sha_hm: HashMap<String, Vec<String>> = HashMap::new();
     for (i, sha_change) in sha_changes.borrow_created().iter().enumerate() {
         let oid = Oid::from_str(sha_change)?;
-        let mut commit_info: HashMap<String, SVGCommitInfoValue> = HashMap::new();
-        commit_info.insert("oid".into(), SVGCommitInfoValue::SomeString(sha_change.clone()));
-        commit_info.insert("x".into(), SVGCommitInfoValue::SomeInt(0));
-        commit_info.insert("y".into(), SVGCommitInfoValue::SomeInt(i as isize));
-
         let commit = repo.find_commit(oid)?;
 
         // Get commit summary
         let commit_summary = GitManager::get_utf8_string(commit.summary(), "Commit Summary")?;
-        commit_info.insert("summary".into(), SVGCommitInfoValue::SomeString(commit_summary.into()));
 
-        // Get parent Oids
-        let mut parent_oids: Vec<String> = vec![];
+        // Get parent SHAs
+        let mut parent_shas: Vec<String> = vec![];
         for parent in commit.parents() {
-            parent_oids.push(parent.id().to_string());
-            match children_oids.get_mut(&*parent.id().to_string()) {
+            parent_shas.push(parent.id().to_string());
+            match children_sha_hm.get_mut(&*parent.id().to_string()) {
                 Some(children_oid_vec) => children_oid_vec.push(oid.to_string()),
                 None => {
-                    children_oids.insert(parent.id().to_string(), vec![oid.to_string()]);
+                    children_sha_hm.insert(parent.id().to_string(), vec![oid.to_string()]);
                 },
             };
         }
-
-        commit_info.insert("parent_oids".into(), SVGCommitInfoValue::SomeStringVec(parent_oids));
-        commit_info.insert("child_oids".into(), SVGCommitInfoValue::SomeStringVec(vec![]));
+        let commit_info = ParseableCommitInfo::new(sha_change.clone(), 0, i as isize, String::from(commit_summary), parent_shas, vec![]);
         commit_list.push(commit_info);
     }
 
     // Gather the child commits after running through the commit graph once in order
     // to actually have populated entries.
-    for commit_hm in commit_list.iter_mut() {
-        let oid_string = match commit_hm.get("oid") {
-            Some(oid) => {
-                if let SVGCommitInfoValue::SomeString(oid_string) = oid {
-                    oid_string
-                } else {
-                    bail!("Oid wasn't stored as a string!");
-                }
-            },
-            None => bail!("Commit found with no oid, shouldn't be possible..."),
-        };
-        match children_oids.get(oid_string) {
+    for parseable_commit in commit_list.iter_mut() {
+        match children_sha_hm.get(parseable_commit.borrow_sha()) {
             Some(v) => {
-                commit_hm.insert("child_oids".into(), SVGCommitInfoValue::SomeStringVec(v.clone()));
+                parseable_commit.child_shas = v.clone();
             },
             None => (),
         };
@@ -385,107 +375,21 @@ fn get_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChanges) -> R
     Ok(commit_list)
 }
 
-fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, commit_ops: GraphOps) -> Result<CommitsInfo> {
-    let mut svg_row_draw_properties: Vec<HashMap<String, RowProperty>> = vec![];
+fn get_commit_info_lists(git_manager: &mut GitManager, commit_ops: GraphOps) -> Result<CommitsInfo> {
     let mut sha_changes = SHAChanges::new();
+    let mut created_commit_info_list = vec![];
     if commit_ops != GraphOps::RefChange {
         sha_changes = git_manager.git_revwalk(commit_ops)?;
-
-        let commit_info_list = get_commit_info_list(git_manager, &sha_changes)?;
-        let mut svg_rows: Vec<Rc<RefCell<SVGRow>>> = vec![];
-        let mut svg_row_hm: HashMap<String, Rc<RefCell<SVGRow>>> = HashMap::new();
-        for commit_info in commit_info_list {
-            let oid = match commit_info.get("oid") {
-                Some(civ_oid) => {
-                    if let SVGCommitInfoValue::SomeString(s) = civ_oid {
-                        s
-                    } else {
-                        bail!("Oid was not passed as a string.");
-                    }
-                },
-                None => bail!("Oid not found in commit_info hash map."),
-            };
-            let summary = match commit_info.get("summary") {
-                Some(civ_summary) => {
-                    if let SVGCommitInfoValue::SomeString(s) = civ_summary {
-                        s
-                    } else {
-                        bail!("Summary was not passed as a string.");
-                    }
-                }
-                None => bail!("Summary not found in commit_info hash map."),
-            };
-            let parent_oids = match commit_info.get("parent_oids") {
-                Some(civ_parent_oids) => {
-                    if let SVGCommitInfoValue::SomeStringVec(v) = civ_parent_oids {
-                        v
-                    } else {
-                        bail!("Parent Oids was not passed as a vector.");
-                    }
-                }
-                None => bail!("Parent Oids not found in commit_info hash map."),
-            };
-            let child_oids = match commit_info.get("child_oids") {
-                Some(civ_child_oids) => {
-                    if let SVGCommitInfoValue::SomeStringVec(v) = civ_child_oids {
-                        v
-                    } else {
-                        bail!("Child Oids was not passed as a vector.");
-                    }
-                }
-                None => bail!("Child Oids not found in commit_info hash map."),
-            };
-            let x = match commit_info.get("x") {
-                Some(civ_x) => {
-                    if let SVGCommitInfoValue::SomeInt(i) = civ_x {
-                        i
-                    } else {
-                        bail!("X was not passed as an isize.");
-                    }
-                }
-                None => bail!("X not found in commit_info hash map."),
-            };
-            let y = match commit_info.get("y") {
-                Some(civ_y) => {
-                    if let SVGCommitInfoValue::SomeInt(i) = civ_y {
-                        i
-                    } else {
-                        bail!("Y was not passed as an isize.");
-                    }
-                }
-                None => bail!("Y not found in commit_info hash map."),
-            };
-            let svg_row_rc: Rc<RefCell<SVGRow>> = Rc::new(RefCell::new(SVGRow::new(
-                oid.clone(),
-                summary.clone(),
-                parent_oids.clone(),
-                child_oids.clone(),
-                x.clone(),
-                y.clone(),
-            )));
-            svg_row_hm.insert(oid.clone(), svg_row_rc.clone());
-            svg_rows.push(svg_row_rc);
-        }
-
-        for svg_row_rc in &svg_rows {
-            svg_row_rc.borrow_mut().set_parent_and_child_svg_row_values(&svg_row_hm);
-        }
-
-        let main_table = SVGRow::get_occupied_table(&mut svg_rows)?;
-        for svg_row_rc in svg_rows {
-            svg_row_draw_properties.push(svg_row_rc.borrow_mut().get_draw_properties(
-                &main_table,
-            ));
-        }
+        created_commit_info_list = get_created_commit_info_list(git_manager, &sha_changes)?;
     }
 
     let oid_refs_hm = get_oid_refs(git_manager)?;
     let mut branch_draw_properties: Vec<(String, Vec<Vec<HashMap<String, SVGProperty>>>)> = vec![];
     for (k, v) in oid_refs_hm {
-        branch_draw_properties.push((k, SVGRow::get_branch_draw_properties(v)));
+        branch_draw_properties.push((k, get_branch_draw_properties(v)));
     }
 
-    Ok(CommitsInfo::new(sha_changes.borrow_deleted().clone(), sha_changes.borrow_clear_entire_old_graph().clone(), branch_draw_properties, svg_row_draw_properties))
+    Ok(CommitsInfo::new(sha_changes.borrow_deleted().clone(), sha_changes.borrow_clear_entire_old_graph().clone(), branch_draw_properties, created_commit_info_list))
 }
 
 fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
@@ -629,7 +533,7 @@ pub fn get_parseable_repo_info(git_manager: &mut GitManager, commit_ops: GraphOp
     }
     let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
     repo_info.insert(String::from("general_info"), RepoInfoValue::SomeGeneralInfo(get_general_info(git_manager)?));
-    repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(get_commit_svg_draw_properties_list(git_manager, commit_ops)?));
+    repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(get_commit_info_lists(git_manager, commit_ops)?));
     repo_info.insert(String::from("branch_info_list"), RepoInfoValue::SomeBranchInfo(get_branch_info_list(git_manager)?));
     repo_info.insert(String::from("remote_info_list"), RepoInfoValue::SomeRemoteInfo(get_remote_info_list(git_manager)?));
     if let Some(fcil) = get_files_changed_info_list(git_manager)? {
