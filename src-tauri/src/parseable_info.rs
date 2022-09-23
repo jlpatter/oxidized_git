@@ -48,19 +48,15 @@ impl CommitsInfo {
 #[derive(Clone, Serialize)]
 pub struct ParseableCommitInfo {
     sha: String,
-    x: isize,
-    y: isize,
     summary: String,
     parent_shas: Vec<String>,
     child_shas: Vec<String>,
 }
 
 impl ParseableCommitInfo {
-    pub fn new(sha: String, x: isize, y: isize, summary: String, parent_shas: Vec<String>, child_shas: Vec<String>) -> Self {
+    pub fn new(sha: String, summary: String, parent_shas: Vec<String>, child_shas: Vec<String>) -> Self {
         Self {
             sha,
-            x,
-            y,
             summary,
             parent_shas,
             child_shas,
@@ -339,7 +335,7 @@ fn get_created_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChang
     let mut commit_list: Vec<ParseableCommitInfo> = vec![];
 
     let mut children_sha_hm: HashMap<String, Vec<String>> = HashMap::new();
-    for (i, sha_change) in sha_changes.borrow_created().iter().enumerate() {
+    for sha_change in sha_changes.borrow_created().iter() {
         let oid = Oid::from_str(sha_change)?;
         let commit = repo.find_commit(oid)?;
 
@@ -357,7 +353,7 @@ fn get_created_commit_info_list(git_manager: &GitManager, sha_changes: &SHAChang
                 },
             };
         }
-        let commit_info = ParseableCommitInfo::new(sha_change.clone(), 0, i as isize, String::from(commit_summary), parent_shas, vec![]);
+        let commit_info = ParseableCommitInfo::new(sha_change.clone(), String::from(commit_summary), parent_shas, vec![]);
         commit_list.push(commit_info);
     }
 

@@ -35,9 +35,9 @@ impl Serialize for SVGProperty {
     }
 }
 
-const TEXT_Y_OFFSET: isize = 5;
+const TEXT_Y_OFFSET: isize = 5;  // If changing, be sure to update on the front-end as well!
 const RECT_HEIGHT: isize = 18;  // If changing, be sure to update on the front-end as well!
-const RECT_Y_OFFSET: isize = -(RECT_HEIGHT / 2);
+const RECT_Y_OFFSET: isize = -(RECT_HEIGHT / 2);  // If changing, be sure to update on the front-end as well!
 
 // TODO: Move this to the front-end maybe?
 pub fn get_branch_draw_properties(branches_and_tags: Vec<BranchNameAndType>) -> Vec<Vec<HashMap<String, SVGProperty>>> {
