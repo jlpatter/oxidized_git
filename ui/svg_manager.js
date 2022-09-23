@@ -58,6 +58,7 @@ export class SVGManager {
         for (let i = 0; i < self.rows.length; i++) {
             self.rows[i]['lines'] = [];
             self.rows[i]['branches'] = [];
+            self.rows[i]['x'] = 0;
         }
 
         const newRows = [];
@@ -245,7 +246,7 @@ export class SVGManager {
             if (rowIndex !== -1) {
                 const summaryTxtElem = self.rows[rowIndex]['summaryTxt'];
                 const backRectElem = self.rows[rowIndex]['backRect'];
-                const pixel_y = Number(self.rows[rowIndex]['circle'].getAttribute('cx'));
+                const pixel_y = Number(self.rows[rowIndex]['circle'].getAttribute('cy'));
                 let currentPixelX = Number(summaryTxtElem.getAttribute('x'));
                 for (let j = 0; j < branchDrawProperties[i][1].length; j++) {
                     const branch = branchDrawProperties[i][1][j];
