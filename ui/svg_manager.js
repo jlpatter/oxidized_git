@@ -107,14 +107,12 @@ export class SVGManager {
         for (let y = 0; y < self.rows.length; y++) {
             // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
             if (y < occupiedTable.length) {
-                while (self.rows[y]['x'] in occupiedTable[y]) {
+                while (occupiedTable[y].indexOf(self.rows[y]['x']) !== -1) {
                     self.rows[y]['x']++;
                 }
-                occupiedTable[y][self.rows[y]['x']] = true;
+                occupiedTable[y].push(self.rows[y]['x']);
             } else if (y === occupiedTable.length) {
-                let temp = {};
-                temp[self.rows[y]['x']] = true;
-                occupiedTable.push(temp);
+                occupiedTable.push([self.rows[y]['x']]);
             } else {
                 console.error('y was bigger than the next position in the occupied table.');
             }
@@ -124,11 +122,9 @@ export class SVGManager {
             parentIndexes.forEach((parentY) => {
                 for (let lineY = y + 1; lineY < parentY; lineY++) {
                     if (lineY < occupiedTable.length) {
-                        occupiedTable[lineY][self.rows[y]['x']] = true;
+                        occupiedTable[lineY].push(self.rows[y]['x']);
                     } else if (lineY === occupiedTable.length) {
-                        let temp = {};
-                        temp[self.rows[y]['x']] = true;
-                        occupiedTable.push(temp);
+                        occupiedTable.push([self.rows[y]['x']]);
                     } else {
                         console.error('y was bigger than the next position in the occupied table.');
                     }
@@ -139,9 +135,9 @@ export class SVGManager {
             const childIndexes = self.getIndexesFromSHAs(self.rows[y]['childShas']);
             childIndexes.forEach((childY) => {
                 if (self.rows[y]['x'] < self.rows[childY]['x']) {
-                    occupiedTable[y][self.rows[childY]['x']] = true;
+                    occupiedTable[y].push(self.rows[childY]['x']);
                 } else if (self.rows[y]['x'] > self.rows[childY]['x']) {
-                    occupiedTable[childY][self.rows[y]['x']] = true;
+                    occupiedTable[childY].push(self.rows[y]['x']);
                 }
             });
         }
@@ -212,7 +208,7 @@ export class SVGManager {
             self.rows[y]['circle'].setAttribute('fill', color);
 
             // Set summaryTxt attributes
-            const largestOccupiedX = Math.max(...Object.keys(occupiedTable[y]).map(function(xString) { return Number(xString); }), 0);
+            const largestOccupiedX = Math.max(...occupiedTable[y], 0);
             const summaryTxtPixelX = (largestOccupiedX + 1) * self.X_SPACING + self.X_OFFSET;
             self.rows[y]['summaryTxt'].setAttribute('x', summaryTxtPixelX.toString());
             self.rows[y]['summaryTxt'].setAttribute('y', (pixelY + self.TEXT_Y_OFFSET).toString());
