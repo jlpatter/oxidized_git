@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{create_dir_all, File};
 use std::io::Read;
 use std::path::PathBuf;
 use anyhow::{bail, Result};
@@ -36,6 +36,13 @@ pub fn save_default_preferences() -> Result<()> {
     let config_path = pd.config_dir();
     config_path.to_path_buf().push(PathBuf::from("config.json"));
     if !config_path.exists() {
+        let prefix = match config_path.parent() {
+            Some(p) => p,
+            None => bail!("Config path prefix not defined. This should never happen if the library is working."),
+        };
+        if !prefix.exists() {
+            create_dir_all(prefix)?;
+        }
         let config = Config::new_default();
         serde_json::to_writer(&File::create(config_path)?, &config)?;
     }
