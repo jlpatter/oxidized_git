@@ -356,8 +356,11 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
     Ok(commit_list)
 }
 
-fn get_commit_svg_draw_properties_list(git_manager: &GitManager) -> Result<Vec<HashMap<String, RowProperty>>> {
-    let commit_info_list = get_commit_info_list(git_manager, git_manager.git_revwalk()?)?;
+fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, force_refresh: bool) -> Result<Vec<HashMap<String, RowProperty>>> {
+    let mut commit_info_list = vec![];
+    if let Some(v) = git_manager.git_revwalk(force_refresh)? {
+        commit_info_list = get_commit_info_list(git_manager, v)?;
+    }
     let mut svg_rows: Vec<Rc<RefCell<SVGRow>>> = vec![];
     let mut svg_row_hm: HashMap<String, Rc<RefCell<SVGRow>>> = HashMap::new();
     for commit_info in commit_info_list {
@@ -597,13 +600,13 @@ pub fn get_files_changed_info_list(git_manager: &GitManager) -> Result<Option<Fi
     Ok(Some(FilesChangedInfo::new(files_changed, get_parseable_diff_delta(unstaged_diff)?, get_parseable_diff_delta(staged_diff)?)))
 }
 
-pub fn get_parseable_repo_info(git_manager: &GitManager) -> Result<Option<HashMap<String, RepoInfoValue>>> {
+pub fn get_parseable_repo_info(git_manager: &mut GitManager, force_refresh: bool) -> Result<Option<HashMap<String, RepoInfoValue>>> {
     if !git_manager.has_open_repo() {
         return Ok(None);
     }
     let mut repo_info: HashMap<String, RepoInfoValue> = HashMap::new();
     repo_info.insert(String::from("general_info"), RepoInfoValue::SomeGeneralInfo(get_general_info(git_manager)?));
-    repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(get_commit_svg_draw_properties_list(git_manager)?));
+    repo_info.insert(String::from("commit_info_list"), RepoInfoValue::SomeCommitInfo(get_commit_svg_draw_properties_list(git_manager, force_refresh)?));
     repo_info.insert(String::from("branch_info_list"), RepoInfoValue::SomeBranchInfo(get_branch_info_list(git_manager)?));
     repo_info.insert(String::from("remote_info_list"), RepoInfoValue::SomeRemoteInfo(get_remote_info_list(git_manager)?));
     if let Some(fcil) = get_files_changed_info_list(git_manager)? {

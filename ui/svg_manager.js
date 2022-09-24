@@ -24,16 +24,9 @@ export class SVGManager {
     }
 
     /**
-     * Refreshes the commit table with new entry results.
-     */
-    updateCommitTable(repoInfo) {
-        this.refreshCommitTable(repoInfo);
-    }
-
-    /**
      * Refreshes the commit table. Can be called on its own for a passive refresh.
      */
-    refreshCommitTable(repoInfo) {
+    updateGraph(repoInfo) {
         const self = this;
 
         const $textSizeTestContainer = $('<svg width="500" height="500"></svg>');

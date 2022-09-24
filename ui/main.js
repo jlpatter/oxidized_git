@@ -371,7 +371,9 @@ class Main {
     updateAll(repo_info) {
         const self = this;
         self.updateGeneralInfo(repo_info["general_info"]);
-        self.svgManager.updateCommitTable(repo_info["commit_info_list"]);
+        if (repo_info['commit_info_list'].length > 0) {
+            self.svgManager.updateGraph(repo_info["commit_info_list"]);
+        }
         self.updateFilesChangedInfo(repo_info['files_changed_info_list']);
         self.updateBranchInfo(repo_info["branch_info_list"]);
         self.updateRemoteInfo(repo_info["remote_info_list"]);

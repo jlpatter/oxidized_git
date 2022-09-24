@@ -122,6 +122,7 @@ fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Resul
 pub struct GitManager {
     repo: Option<Repository>,
     sha_from_commit_from_op: Option<String>,
+    old_graph_starting_shas: Vec<String>,
 }
 
 impl GitManager {
@@ -129,6 +130,7 @@ impl GitManager {
         Self {
             repo: None,
             sha_from_commit_from_op: None,
+            old_graph_starting_shas: vec![],
         }
     }
 
@@ -208,29 +210,69 @@ impl GitManager {
         }
     }
 
-    pub fn git_revwalk(&self) -> Result<Vec<Oid>> {
-        let repo = self.borrow_repo()?;
-        let mut revwalk = repo.revwalk()?;
-        let mut oid_vec: Vec<Oid> = vec![];
-        for branch_result in repo.branches(None)? {
-            let (branch, _) = branch_result?;
-            match branch.get().target() {
-                Some(oid) => oid_vec.push(oid),
-                None => (),
-            };
-        };
+    fn old_shas_eq_sorted_new_oids(&self, new_oids: &Vec<Oid>) -> bool {
+        // NOTE: This function assumes the new_oids are sorted by date!
+        if self.old_graph_starting_shas.len() == new_oids.len() {
+            for i in 0..self.old_graph_starting_shas.len() {
+                if self.old_graph_starting_shas[i] != new_oids[i].to_string() {
+                    return false;
+                }
+            }
+            return true;
+        }
+        false
+    }
 
-        if repo.head_detached()? {
-            match repo.head()?.target() {
-                Some(oid) => oid_vec.push(oid),
-                None => (),
+    pub fn git_revwalk(&mut self, force_refresh: bool) -> Result<Option<Vec<Oid>>> {
+        let mut oid_vec: Vec<Oid> = vec![];
+        // This closure allows self to be borrowed mutably later for setting the new graph starting shas.
+        {
+            let repo = self.borrow_repo()?;
+            for branch_result in repo.branches(None)? {
+                let (branch, _) = branch_result?;
+                match branch.get().target() {
+                    Some(oid) => {
+                        if !oid_vec.contains(&oid) {
+                            oid_vec.push(oid);
+                        }
+                    },
+                    None => (),
+                };
             };
+
+            if repo.head_detached()? {
+                match repo.head()?.target() {
+                    Some(oid) => {
+                        if !oid_vec.contains(&oid) {
+                            oid_vec.push(oid);
+                        }
+                    },
+                    None => (),
+                };
+            }
+
+            // Sort Oids by date first
+            oid_vec.sort_by(|a, b| {
+                repo.find_commit(*b).unwrap().time().seconds().partial_cmp(&repo.find_commit(*a).unwrap().time().seconds()).unwrap()
+            });
         }
 
-        // Sort Oids by date first
-        oid_vec.sort_by(|a, b| {
-            repo.find_commit(*b).unwrap().time().seconds().partial_cmp(&repo.find_commit(*a).unwrap().time().seconds()).unwrap()
-        });
+        if force_refresh {
+            self.old_graph_starting_shas = vec![];
+        }
+
+        if self.old_shas_eq_sorted_new_oids(&oid_vec) {
+            return Ok(None);
+        }
+
+        // If you've reached here, the old and new starting oids are different. Update the old and perform the revwalk.
+        self.old_graph_starting_shas = oid_vec.iter().map(|new_oid| {
+            new_oid.to_string()
+        }).collect();
+
+        let repo = self.borrow_repo()?;
+        let mut revwalk = repo.revwalk()?;
+
         for oid in oid_vec {
             revwalk.push(oid)?;
         }
@@ -247,11 +289,7 @@ impl GitManager {
             }
             oid_list.push(commit_oid_result?);
         }
-        Ok(oid_list)
-    }
-
-    pub fn get_ref_from_name(&self, ref_full_name: &str) -> Result<Reference> {
-        Ok(self.borrow_repo()?.find_reference(ref_full_name)?)
+        Ok(Some(oid_list))
     }
 
     pub fn get_commit_info(&self, sha: &str) -> Result<CommitInfo> {
@@ -649,7 +687,7 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_checkout(&self, local_ref: &Reference) -> Result<()> {
+    fn git_checkout(&self, local_ref: &Reference) -> Result<()> {
         let repo = self.borrow_repo()?;
 
         let local_full_name = GitManager::get_utf8_string(local_ref.name(), "Branch Name")?;
@@ -661,6 +699,11 @@ impl GitManager {
 
         repo.checkout_tree(tree.as_object(), None)?;
         repo.set_head(local_full_name)?;
+        Ok(())
+    }
+
+    pub fn git_checkout_from_json(&self, json_str: &str) -> Result<()> {
+        self.git_checkout(&self.borrow_repo()?.find_reference(json_str)?)?;
         Ok(())
     }
 
