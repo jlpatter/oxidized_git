@@ -147,8 +147,8 @@ impl SVGRow {
         }
     }
 
-    pub fn get_occupied_table(svg_rows: &mut Vec<Rc<RefCell<SVGRow>>>) -> Result<HashMap<isize, HashMap<isize, bool>>> {
-        let mut main_table: HashMap<isize, HashMap<isize, bool>> = HashMap::new();
+    pub fn get_occupied_table(svg_rows: &mut Vec<Rc<RefCell<SVGRow>>>) -> Result<Vec<Vec<isize>>> {
+        let mut main_table: Vec<Vec<isize>> = vec![];
 
         for svg_row_rc in svg_rows {
             let mut svg_row = svg_row_rc.borrow_mut();
@@ -158,49 +158,24 @@ impl SVGRow {
             }
 
             // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
-            match main_table.get_mut(&svg_row.y) {
-                Some(hm) => {
-                    match hm.get(&svg_row.x) {
-                        Some(is_occupied) => {
-                            if *is_occupied == true {
-                                let mut found_empty = false;
-                                while !found_empty {
-                                    svg_row.x += 1;
-                                    if !hm.contains_key(&svg_row.x) {
-                                        found_empty = true;
-                                        hm.insert(svg_row.x, true);
-                                    }
-                                }
-                            }
-                        },
-                        None => {
-                            hm.insert(svg_row.x, true);
-                        },
-                    };
-                },
-                None => {
-                    let mut temp_hm: HashMap<isize, bool> = HashMap::new();
-                    temp_hm.insert(svg_row.x, true);
-                    main_table.insert(svg_row.y, temp_hm);
-                },
-            };
+            if svg_row.y < main_table.len() as isize {
+                while main_table[svg_row.y as usize].contains(&svg_row.x) {
+                    svg_row.x += 1;
+                }
+                main_table[svg_row.y as usize].push(svg_row.x);
+            } else {
+                main_table.push(vec![svg_row.x]);
+            }
 
             // Set the space of the line from the current node to its parents as occupied.
             for parent_svg_row_rc in &svg_row.parent_svg_rows {
                 let parent_svg_row = parent_svg_row_rc.borrow();
                 for i in (svg_row.y + 1)..parent_svg_row.y {
-                    match main_table.get_mut(&i) {
-                        Some(hm) => {
-                            if !hm.contains_key(&svg_row.x) {
-                                hm.insert(svg_row.x, true);
-                            }
-                        },
-                        None => {
-                            let mut temp_hm: HashMap<isize, bool> = HashMap::new();
-                            temp_hm.insert(svg_row.x, true);
-                            main_table.insert(i, temp_hm);
-                        },
-                    };
+                    if i < main_table.len() as isize {
+                        main_table[i as usize].push(svg_row.x);
+                    } else {
+                        main_table.push(vec![svg_row.x]);
+                    }
                 }
             }
 
@@ -208,28 +183,9 @@ impl SVGRow {
             for child_svg_row_rc in &svg_row.child_svg_rows {
                 let child_svg_row = child_svg_row_rc.borrow();
                 if svg_row.x < child_svg_row.x {
-                    match main_table.get_mut(&svg_row.y) {
-                        Some(hm) => {
-                            if !hm.contains_key(&child_svg_row.x) {
-                                hm.insert(child_svg_row.x, true);
-                            }
-                        },
-                        None => bail!("A 'y' position in the graph with a node wasn't marked as occupied. This error should never happen in theory."),
-                    };
-                }
-                else if svg_row.x > child_svg_row.x {
-                    match main_table.get_mut(&child_svg_row.y) {
-                        Some(hm) => {
-                            if !hm.contains_key(&svg_row.x) {
-                                hm.insert(svg_row.x, true);
-                            }
-                        },
-                        None => {
-                            let mut temp_hm: HashMap<isize, bool> = HashMap::new();
-                            temp_hm.insert(svg_row.x, true);
-                            main_table.insert(child_svg_row.y, temp_hm);
-                        },
-                    }
+                    main_table[svg_row.y as usize].push(child_svg_row.x);
+                } else if svg_row.x > child_svg_row.x {
+                    main_table[child_svg_row.y as usize].push(svg_row.x);
                 }
             }
         }
@@ -237,7 +193,7 @@ impl SVGRow {
         Ok(main_table)
     }
 
-    pub fn get_draw_properties(&mut self, main_table: &HashMap<isize, HashMap<isize, bool>>) -> HashMap<String, RowProperty> {
+    pub fn get_draw_properties(&mut self, main_table: &Vec<Vec<isize>>) -> HashMap<String, RowProperty> {
         let mut row_properties: HashMap<String, RowProperty> = HashMap::new();
         let mut draw_properties: HashMap<String, DrawProperty> = HashMap::new();
 
@@ -344,8 +300,7 @@ impl SVGRow {
         ])));
 
         // Get the branch text
-        let empty_hm = HashMap::new();
-        let largest_occupied_x = main_table.get(&self.y).unwrap_or(&empty_hm).keys().max().unwrap_or(&0);
+        let largest_occupied_x = main_table[self.y as usize].iter().max().unwrap_or(&0);
         let mut branch_and_tags: Vec<Vec<HashMap<String, SVGProperty>>> = vec![];
         for (branch_name, branch_type) in self.branches_and_tags.clone().into_iter() {
             let mut branch_and_tag_properties: Vec<HashMap<String, SVGProperty>> = vec![];
