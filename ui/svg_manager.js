@@ -36,7 +36,7 @@ export class SVGManager {
         $textSizeTestContainer.remove();
 
         for (let i = 0; i < self.rows.length; i++) {
-            self.rows[i]['branches'] = [];
+            self.removeBranchLabels(self.rows[i]);
         }
 
         let maxWidth = Number(self.commitTableSVG.getAttribute('width'));
@@ -120,6 +120,14 @@ export class SVGManager {
             }
         }
         return maxWidth;
+    }
+
+    removeBranchLabels(row) {
+        if (row['branches'].length > 0) {
+            const startX = Number(row['branches'][1].getAttribute('x'));
+            row['branches'] = [];
+            row['summaryTxt'].setAttribute('x', startX.toString());
+        }
     }
 
     renderVisibleCommits() {
