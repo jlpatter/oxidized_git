@@ -43,11 +43,11 @@ export class SVGManager {
         if (commitsInfo['svg_row_draw_properties'].length > 0) {
             self.rows = [];
 
-            let maxWidth = 0;
-            for (let i = 0; i < commitsInfo.length; i++) {
-                const commit = commitsInfo[i];
+            maxWidth = 0;
+            for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
+                const commit = commitsInfo['svg_row_draw_properties'][i];
                 const elements = commit['elements'];
-                let row = {'pixel_y': commit['pixel_y'], 'lines': [], 'branches': [], 'circle': null, 'summaryTxt': null, 'backRect': null};
+                let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'lines': [], 'branches': [], 'circle': null, 'summaryTxt': null, 'backRect': null};
                 for (const childLine of elements['child_lines']) {
                     const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                     if (childLine['row-y'] < i) {

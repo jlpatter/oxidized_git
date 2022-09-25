@@ -446,10 +446,7 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
         let branch_shorthand = String::from(GitManager::get_utf8_string(reference.shorthand(), "Branch Name")?);
 
         // If this is the remote head, don't add it to the branches info
-        let is_remote_head = remote_heads.iter().any(|head_name| {
-            branch_shorthand == *head_name
-        });
-        if is_remote_head {
+        if remote_heads.contains(&branch_shorthand) {
             continue;
         }
 
