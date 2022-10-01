@@ -7,8 +7,6 @@ import {emit} from "@tauri-apps/api/event";
 export class SVGManager {
     Y_SPACING = 24;  // If changing, be sure to update on backend-end too
     Y_OFFSET = 20;  // If changing, be sure to update on backend-end too
-    X_SPACING = 15;  // If changing, be sure to update on backend-end too
-    X_OFFSET = 20;  // If changing, be sure to update on backend-end too
     BRANCH_TEXT_SPACING = 5;
     SCROLL_RENDERING_MARGIN = 100;
     /**
@@ -24,16 +22,9 @@ export class SVGManager {
     }
 
     /**
-     * Refreshes the commit table with new entry results.
-     */
-    updateCommitTable(repoInfo) {
-        this.refreshCommitTable(repoInfo);
-    }
-
-    /**
      * Refreshes the commit table. Can be called on its own for a passive refresh.
      */
-    refreshCommitTable(repoInfo) {
+    updateGraph(commitsInfo) {
         const self = this;
 
         const $textSizeTestContainer = $('<svg width="500" height="500"></svg>');
@@ -44,67 +35,99 @@ export class SVGManager {
         const singleCharWidth = textSizeTest.getBBox().width;
         $textSizeTestContainer.remove();
 
-        self.commitTableSVG.setAttribute('height', ((repoInfo.length + 1) * self.Y_SPACING).toString());
-
-        self.rows = [];
-
-        let maxWidth = 0;
-        for (let i = 0; i < repoInfo.length; i++) {
-            const commit = repoInfo[i];
-            const elements = commit['elements'];
-            let row = {'pixel_y': commit['pixel_y'], 'elements': []};
-            for (const childLine of elements['child_lines']) {
-                const line = self.makeSVG(childLine['tag'], childLine['attrs']);
-                if (childLine['row-y'] < i) {
-                    self.rows[childLine['row-y']]['elements'].unshift(line);
-                } else if (childLine['row-y'] === i) {
-                    row['elements'].push(line);
-                } else {
-                    console.error("ERROR: A child line is trying to be drawn after the current node!");
-                }
-            }
-            const circle = self.makeSVG(elements['circle']['tag'], elements['circle']['attrs']);
-            row['elements'].push(circle);
-
-            let currentX = -1;
-            for (const branch_or_tags of elements['branch_and_tags']) {
-                if (currentX === -1) {
-                    currentX = (branch_or_tags[0]['largestXValue'] + 1) * self.X_SPACING + self.X_OFFSET;
-                }
-                branch_or_tags[0]['attrs']['x'] = currentX;
-                branch_or_tags[1]['attrs']['x'] = currentX - 5;
-                const txtElem = self.makeSVG(branch_or_tags[0]['tag'], branch_or_tags[0]['attrs']);
-                const box_width = singleCharWidth * branch_or_tags[0]['textContent'].length + 10;
-                branch_or_tags[1]['attrs']['width'] = box_width;
-                const rectElem = self.makeSVG(branch_or_tags[1]['tag'], branch_or_tags[1]['attrs']);
-                txtElem.textContent = branch_or_tags[0]['textContent'];
-                row['elements'].push(rectElem);
-                row['elements'].push(txtElem);
-                currentX += box_width + self.BRANCH_TEXT_SPACING;
-            }
-
-            if (currentX === -1) {
-                currentX = (elements['summary_text']['largestXValue'] + 1) * self.X_SPACING + self.X_OFFSET;
-            }
-            elements['summary_text']['attrs']['x'] = currentX;
-            const summaryTxt = self.makeSVG(elements['summary_text']['tag'], elements['summary_text']['attrs']);
-            summaryTxt.textContent = elements['summary_text']['textContent'];
-            row['elements'].push(summaryTxt);
-
-            let width = currentX + elements['summary_text']['textContent'].length * singleCharWidth;
-            elements['back_rect']['attrs']['width'] = width;
-            const backRect = self.makeSVG(elements['back_rect']['tag'], elements['back_rect']['attrs']);
-            backRect.onclick = self.getClickFunction(commit['sha']);
-            backRect.ondblclick = self.getDblClickFunction(commit['sha']);
-            backRect.oncontextmenu = self.getContextFunction(commit['sha']);
-            row['elements'].push(backRect);
-
-            self.rows.push(row);
-            maxWidth = Math.max(maxWidth, width);
+        for (let i = 0; i < self.rows.length; i++) {
+            self.removeBranchLabels(self.rows[i]);
         }
+
+        let maxWidth = Number(self.commitTableSVG.getAttribute('width'));
+        if (commitsInfo['svg_row_draw_properties'].length > 0) {
+            self.rows = [];
+
+            maxWidth = 0;
+            for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
+                const commit = commitsInfo['svg_row_draw_properties'][i];
+                const elements = commit['elements'];
+                let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'lines': [], 'branches': [], 'circle': null, 'summaryTxt': null, 'backRect': null};
+                for (const childLine of elements['child_lines']) {
+                    const line = self.makeSVG(childLine['tag'], childLine['attrs']);
+                    if (childLine['row-y'] < i) {
+                        self.rows[childLine['row-y']]['lines'].push(line);
+                    } else if (childLine['row-y'] === i) {
+                        row['lines'].push(line);
+                    } else {
+                        console.error("ERROR: A child line is trying to be added after the current node!");
+                    }
+                }
+                row['circle'] = self.makeSVG(elements['circle']['tag'], elements['circle']['attrs']);
+
+                const summaryTxt = self.makeSVG(elements['summary_text']['tag'], elements['summary_text']['attrs']);
+                summaryTxt.textContent = elements['summary_text']['textContent'];
+                row['summaryTxt'] = summaryTxt;
+
+                let width = elements['circle']['attrs']['cx'] + elements['summary_text']['textContent'].length * singleCharWidth;
+                elements['back_rect']['attrs']['width'] = width;
+                const backRect = self.makeSVG(elements['back_rect']['tag'], elements['back_rect']['attrs']);
+                backRect.onclick = self.getClickFunction(commit['sha']);
+                backRect.ondblclick = self.getDblClickFunction(commit['sha']);
+                backRect.oncontextmenu = self.getContextFunction(commit['sha']);
+                row['backRect'] = backRect;
+
+                self.rows.push(row);
+                maxWidth = Math.max(maxWidth, width);
+            }
+        }
+
+        maxWidth = self.addBranchLabels(commitsInfo['branch_draw_properties'], singleCharWidth, maxWidth);
 
         self.setVisibleCommits();
         self.commitTableSVG.setAttribute('width', maxWidth.toString());
+        self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
+    }
+
+    addBranchLabels(branchDrawProperties, singleCharWidth, maxWidth) {
+        const self = this;
+
+        for (let i = 0; i < branchDrawProperties.length; i++) {
+            const rowIndex = self.rows.findIndex(function (row) {
+                return row['sha'] === branchDrawProperties[i][0];
+            });
+            if (rowIndex !== -1) {
+                const summaryTxtElem = self.rows[rowIndex]['summaryTxt'];
+                const backRectElem = self.rows[rowIndex]['backRect'];
+                const pixel_y = Number(self.rows[rowIndex]['circle'].getAttribute('cy'));
+                let currentPixelX = Number(summaryTxtElem.getAttribute('x'));
+                for (let j = 0; j < branchDrawProperties[i][1].length; j++) {
+                    const branch = branchDrawProperties[i][1][j];
+                    branch[0]['attrs']['x'] = currentPixelX;
+                    branch[0]['attrs']['y'] += pixel_y;
+                    const txtElem = self.makeSVG(branch[0]['tag'], branch[0]['attrs']);
+                    const box_width = singleCharWidth * branch[0]['textContent'].length + 10;
+
+                    branch[1]['attrs']['x'] = currentPixelX - 5;
+                    branch[1]['attrs']['y'] += pixel_y;
+                    branch[1]['attrs']['width'] = box_width;
+                    const rectElem = self.makeSVG(branch[1]['tag'], branch[1]['attrs']);
+                    txtElem.textContent = branch[0]['textContent'];
+
+                    self.rows[rowIndex]['branches'].push(rectElem);
+                    self.rows[rowIndex]['branches'].push(txtElem);
+
+                    currentPixelX += box_width + self.BRANCH_TEXT_SPACING;
+                    summaryTxtElem.setAttribute('x', currentPixelX.toString());
+                }
+                backRectElem.setAttribute('width', (currentPixelX + summaryTxtElem.textContent.length * singleCharWidth).toString());
+                maxWidth = Math.max(maxWidth, currentPixelX + summaryTxtElem.textContent.length * singleCharWidth);
+            }
+        }
+        return maxWidth;
+    }
+
+    removeBranchLabels(row) {
+        if (row['branches'].length > 0) {
+            const startX = Number(row['branches'][1].getAttribute('x'));
+            row['branches'] = [];
+            row['summaryTxt'].setAttribute('x', startX.toString());
+        }
     }
 
     renderVisibleCommits() {
@@ -112,9 +135,18 @@ export class SVGManager {
 
         let df = document.createDocumentFragment();
         for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
-            for (const element of self.rows[i]['elements']) {
-                df.appendChild(element);
-            }
+            self.rows[i]['lines'].forEach((line) => {
+                df.appendChild(line);
+            });
+        }
+
+        for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
+            df.appendChild(self.rows[i]['circle']);
+            df.appendChild(self.rows[i]['summaryTxt']);
+            self.rows[i]['branches'].forEach((branch) => {
+                df.appendChild(branch);
+            });
+            df.appendChild(self.rows[i]['backRect']);
         }
 
         self.commitTableSVG.innerHTML = '';
