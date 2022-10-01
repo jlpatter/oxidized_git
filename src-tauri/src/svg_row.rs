@@ -170,6 +170,7 @@ impl SVGRow {
             for parent_svg_row_rc in &svg_row.parent_svg_rows {
                 let parent_svg_row = parent_svg_row_rc.borrow();
                 for i in (svg_row.y + 1)..parent_svg_row.y {
+                    let x_val = (*svg_row.x.borrow()).clone();
                     // If there are values greater than or equal to the current x, need to move them to the right.
                     if i < main_table.len() as isize {
                         for table_x in main_table[i as usize].iter() {
@@ -177,9 +178,6 @@ impl SVGRow {
                                 *table_x.borrow_mut() += 1;
                             }
                         }
-                    }
-                    let x_val = (*svg_row.x.borrow()).clone();
-                    if i < main_table.len() as isize {
                         main_table[i as usize].push(Rc::new(RefCell::new(x_val)));
                     } else {
                         main_table.push(vec![Rc::new(RefCell::new(x_val))]);
