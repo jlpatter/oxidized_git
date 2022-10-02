@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
+use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
 use git2::build::CheckoutBuilder;
 use rfd::FileDialog;
 use serde::Serialize;
@@ -837,14 +837,23 @@ impl GitManager {
     pub fn get_staged_changes(&self) -> Result<Diff> {
         let repo = self.borrow_repo()?;
 
-        let head_ref = repo.head()?;
-        let commit = match head_ref.target() {
-            Some(oid) => Some(repo.find_commit(oid)?),
-            None => None,
-        };
-        let tree = match commit {
-            Some(c) => Some(c.tree()?),
-            None => None,
+        let mut tree = None;
+        match repo.head() {
+            Ok(head_ref) => {
+                let commit = match head_ref.target() {
+                    Some(oid) => Some(repo.find_commit(oid)?),
+                    None => None,
+                };
+                tree = match commit {
+                    Some(c) => Some(c.tree()?),
+                    None => None,
+                };
+            },
+            Err(e) => {
+                if e.code() != ErrorCode::UnbornBranch {
+                    return Err(e.into());
+                }
+            },
         };
 
         let mut diff = repo.diff_tree_to_index(tree.as_ref(), None, None)?;
@@ -968,18 +977,31 @@ impl GitManager {
         }
 
         let mut parents = vec![];
-        let commit;
-        if let Some(oid) = repo.head()?.target() {
-            commit = repo.find_commit(oid)?;
-            parents.push(&commit);
-        }
+        match repo.head() {
+            Ok(head_ref) => {
+                if let Some(oid) = head_ref.target() {
+                    let commit = repo.find_commit(oid)?;
+                    parents.push(commit);
+                }
+            },
+            Err(e) => {
+                if e.code() != ErrorCode::UnbornBranch {
+                    return Err(e.into());
+                }
+            },
+        };
+
+        // This is a hack for getting a slice of borrowed commits later.
+        let parent_refs: Vec<&Commit> = parents.iter().map(|c| {
+            c
+        }).collect();
 
         let mut index = repo.index()?;
         let tree_oid = index.write_tree()?;
         index.write()?;
         let tree = repo.find_tree(tree_oid)?;
 
-        repo.commit(Some("HEAD"), &signature, &signature, &*full_message, &tree, parents.as_slice())?;
+        repo.commit(Some("HEAD"), &signature, &signature, &*full_message, &tree, parent_refs.as_slice())?;
         Ok(())
     }
 

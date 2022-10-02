@@ -312,12 +312,22 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
     let repo = git_manager.borrow_repo()?;
 
     let mut general_info: HashMap<String, String> = HashMap::new();
-    let head_ref = repo.head()?;
-    match repo.find_branch(GitManager::get_utf8_string(head_ref.shorthand(), "Branch Name")?, BranchType::Local) {
-        Ok(head_branch) => {
-            match head_branch.upstream() {
-                Ok(_) => {
-                    general_info.insert(String::from("head_has_upstream"), true.to_string());
+    match repo.head() {
+        Ok(head_ref) => {
+            match repo.find_branch(GitManager::get_utf8_string(head_ref.shorthand(), "Branch Name")?, BranchType::Local) {
+                Ok(head_branch) => {
+                    match head_branch.upstream() {
+                        Ok(_) => {
+                            general_info.insert(String::from("head_has_upstream"), true.to_string());
+                        },
+                        Err(e) => {
+                            if e.code() == ErrorCode::NotFound {
+                                general_info.insert(String::from("head_has_upstream"), false.to_string());
+                            } else {
+                                return Err(e.into());
+                            }
+                        },
+                    }
                 },
                 Err(e) => {
                     if e.code() == ErrorCode::NotFound {
@@ -326,10 +336,10 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
                         return Err(e.into());
                     }
                 },
-            }
+            };
         },
         Err(e) => {
-            if e.code() == ErrorCode::NotFound {
+            if e.code() == ErrorCode::UnbornBranch {
                 general_info.insert(String::from("head_has_upstream"), false.to_string());
             } else {
                 return Err(e.into());
