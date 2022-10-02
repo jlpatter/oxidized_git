@@ -43,7 +43,7 @@
                         <li><span class="parent-tree"><i class="fa-solid fa-caret-down rotated-caret"></i> Local Branches</span>
                             <ul id="localBranches" class="nested sub-tree-view active-tree"></ul>
                         </li>
-                        <li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> Remote Branches</span>
+                        <li><span id="remoteBranchesHeader" class="parent-tree"><i class="fa-solid fa-caret-down"></i> Remote Branches</span>
                             <ul id="remoteBranches" class="nested sub-tree-view"></ul>
                         </li>
                         <li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> Tags</span>
@@ -197,6 +197,25 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade text-black" id="addRemoteModal" tabindex="-1" aria-labelledby="addRemoteModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addRemoteModalLabel">Add Remote</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="addRemoteNameTxt">Remote Name</label><input id="addRemoteNameTxt" type="text" class="form-control">
+                        <label for="addRemoteURLTxt">Remote URL</label><input id="addRemoteURLTxt" type="text" class="form-control">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="addRemoteBtn" type="button" class="btn btn-primary btn-sm">Add Remote</button>
                     </div>
                 </div>
             </div>

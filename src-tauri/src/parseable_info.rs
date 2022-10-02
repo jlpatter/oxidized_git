@@ -188,7 +188,7 @@ impl BranchInfoTreeNode {
         }
     }
 
-    pub fn insert_split_shorthand(&mut self, split_shorthand: VecDeque<String>, branch_info: BranchInfo) {
+    pub fn insert_split_shorthand(&mut self, split_shorthand: VecDeque<String>, branch_info: Option<BranchInfo>) {
         // self should be the root node in this case.
         assert_eq!(self.text, String::from(""));
         let mut current_tree_node = self;
@@ -204,7 +204,7 @@ impl BranchInfoTreeNode {
                 },
                 None => {
                     if i == split_shorthand.len() - 1 {
-                        current_tree_node.children.push(BranchInfoTreeNode::new(s, Some(branch_info.clone())));
+                        current_tree_node.children.push(BranchInfoTreeNode::new(s, branch_info.clone()));
                     } else {
                         current_tree_node.children.push(BranchInfoTreeNode::new(s, None));
                     }
@@ -517,12 +517,20 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
         }
         let branch_info = BranchInfo::new(branch_shorthand, full_branch_name, is_head, branch_type.clone(), ahead, behind);
         if branch_type == String::from("local") {
-            local_branch_info_tree.insert_split_shorthand(split_shorthand, branch_info);
+            local_branch_info_tree.insert_split_shorthand(split_shorthand, Some(branch_info));
         } else if branch_type == String::from("remote") {
-            remote_branch_info_tree.insert_split_shorthand(split_shorthand, branch_info);
+            remote_branch_info_tree.insert_split_shorthand(split_shorthand, Some(branch_info));
         } else if branch_type == String::from("tag") {
-            tag_branch_info_tree.insert_split_shorthand(split_shorthand, branch_info);
+            tag_branch_info_tree.insert_split_shorthand(split_shorthand, Some(branch_info));
         }
+    }
+
+    // Add remote names in case a remote is present but has no branches.
+    for remote in remotes.iter() {
+        let remote_name = String::from(GitManager::get_utf8_string(remote, "Remote Name")?);
+        let mut split_shorthand = VecDeque::new();
+        split_shorthand.push_back(remote_name);
+        remote_branch_info_tree.insert_split_shorthand(split_shorthand, None);
     }
 
     Ok(BranchesInfo::new(local_branch_info_tree, remote_branch_info_tree, tag_branch_info_tree))
