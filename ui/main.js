@@ -127,6 +127,20 @@ class Main {
             self.truncateFilePathText();
         });
 
+        $('#remoteBranchesHeader').contextmenu((e) => {
+            e.preventDefault();
+            self.showRemoteBranchesHeaderContextMenu(e);
+        });
+
+        $('#addRemoteBtn').click(() => {
+            const $addRemoteNameTxt = $('#addRemoteNameTxt'),
+                $addRemoteURLTxt = $('#addRemoteURLTxt');
+            emit("add-remote", {remote_name: $addRemoteNameTxt.val(), remote_url: $addRemoteURLTxt.val()}).then();
+            $addRemoteNameTxt.val('');
+            $addRemoteURLTxt.val('');
+            $('#addRemoteModal').modal('hide');
+        });
+
         $('#limitCommitsCheckBox').change(() => {
             if ($('#limitCommitsCheckBox').is(':checked')) {
                 $('#commitCountNumber').prop('disabled', false);
@@ -605,6 +619,24 @@ class Main {
                 $remoteSelect.append($option);
             });
         }
+    }
+
+    showRemoteBranchesHeaderContextMenu(event) {
+        const $contextMenu = $('#contextMenu');
+        $contextMenu.empty();
+        $contextMenu.css('left', event.pageX + 'px');
+        $contextMenu.css('top', event.pageY + 'px');
+
+        const $addRemoteContextMenuBtn = $('<button type="button" class="btn btn-outline-success btn-sm rounded-0 cm-item"><i class="fa-solid fa-plus"></i> Add Remote</button>');
+        $addRemoteContextMenuBtn.click(() => {
+            if ($('#remoteBranches:contains("origin")').length === 0) {
+                $('#addRemoteNameTxt').val("origin");
+            }
+            $('#addRemoteModal').modal('show');
+        });
+        $contextMenu.append($addRemoteContextMenuBtn);
+
+        $contextMenu.show();
     }
 
     showFileChangeContextMenu(event, path, changeType, status) {

@@ -687,6 +687,24 @@ impl GitManager {
         Ok(())
     }
 
+    pub fn git_add_remote(&self, json_str: &str) -> Result<()> {
+        let repo = self.borrow_repo()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+        let remote_name = match json_hm.get("remote_name") {
+            Some(s) => s,
+            None => bail!("remote_name not included in payload from the front-end"),
+        };
+        let remote_url = match json_hm.get("remote_url") {
+            Some(s) => s,
+            None => bail!("remote_url not included in payload from the front-end"),
+        };
+
+        repo.remote(remote_name.as_str(), remote_url.as_str())?;
+
+        Ok(())
+    }
+
     fn git_checkout(&self, local_ref: &Reference) -> Result<()> {
         let repo = self.borrow_repo()?;
 
