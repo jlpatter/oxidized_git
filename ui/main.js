@@ -1,5 +1,7 @@
 import "./import_jquery";
 import {emit, listen} from "@tauri-apps/api/event";
+import {open} from '@tauri-apps/api/dialog';
+import {homeDir} from '@tauri-apps/api/path';
 import {SVGManager} from "./svg_manager";
 import hljs from "highlight.js";
 import Resizable from "resizable";
@@ -87,6 +89,10 @@ class Main {
             self.updateFilesChangedInfo(ev.payload);
         }).then();
 
+        listen("get-clone", ev => {
+            $('#cloneModal').modal('show');
+        }).then();
+
         listen("get-credentials", ev => {
             $('#credentialsModal').modal('show');
         }).then();
@@ -156,6 +162,27 @@ class Main {
                 commit_count: parseInt($('#commitCountNumber').val()),
             }).then();
             $('#preferencesModal').modal('hide');
+        });
+
+        $('#clonePathBtn').click(async function() {
+            const selected = await open({
+                directory: true,
+                multiple: false,
+                defaultPath: await homeDir(),
+            });
+            if (selected !== null) {
+                $('#clonePathTxt').val(selected);
+            }
+        });
+
+        $('#cloneBtn').click(() => {
+            self.addProcessCount();
+            const $cloneURLTxt = $('#cloneURLTxt'),
+                $clonePathTxt = $('#clonePathTxt');
+            emit("clone", {clone_url: $cloneURLTxt.val(), clone_path: $clonePathTxt.val()}).then();
+            $cloneURLTxt.val("");
+            $clonePathTxt.val("");
+            $('#cloneModal').modal('hide');
         });
 
         $('#saveCredentialsBtn').click(() => {

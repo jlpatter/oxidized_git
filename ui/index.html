@@ -211,8 +211,8 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <label for="addRemoteNameTxt">Remote Name</label><input id="addRemoteNameTxt" type="text" class="form-control">
-                        <label for="addRemoteURLTxt">Remote URL</label><input id="addRemoteURLTxt" type="text" class="form-control">
+                        <label for="addRemoteNameTxt">Remote Name: </label><input id="addRemoteNameTxt" type="text" class="form-control">
+                        <label for="addRemoteURLTxt">Remote URL: </label><input id="addRemoteURLTxt" type="text" class="form-control">
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -237,6 +237,28 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                         <button id="savePreferencesBtn" type="button" class="btn btn-success btn-sm">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade text-black" id="cloneModal" tabindex="-1" aria-labelledby="cloneModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="cloneModalLabel">Clone Options</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="cloneURLTxt">URL: </label><input type="text" class="form-control" id="cloneURLTxt">
+                        <div class="input-group">
+                            <label for="clonePathTxt">Parent Path: </label><input type="text" class="form-control" id="clonePathTxt">
+                            <button id="clonePathBtn" type="button" class="btn btn-light"><i class="fa-solid fa-folder-open"></i></button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="cloneBtn" type="button" class="btn btn-primary btn-sm">Clone</button>
                     </div>
                 </div>
             </div>

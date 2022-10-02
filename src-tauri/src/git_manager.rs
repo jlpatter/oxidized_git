@@ -1,10 +1,11 @@
 use std::collections::{HashMap, VecDeque};
+use std::fs::create_dir_all;
 use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
 use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
-use git2::build::CheckoutBuilder;
+use git2::build::{CheckoutBuilder, RepoBuilder};
 use rfd::FileDialog;
 use serde::Serialize;
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
@@ -156,7 +157,7 @@ impl GitManager {
         }
     }
 
-    fn get_directory(&self) -> Option<PathBuf> {
+    pub fn get_directory() -> Option<PathBuf> {
         let bd_opt = BaseDirs::new();
         match bd_opt {
             Some(bd) => FileDialog::new().set_directory(bd.home_dir()).pick_folder(),
@@ -165,7 +166,7 @@ impl GitManager {
     }
 
     pub fn init_repo(&mut self) -> Result<bool> {
-        match self.get_directory() {
+        match GitManager::get_directory() {
             Some(path_buffer) => {
                 self.repo = Some(Repository::init(path_buffer.as_path())?);
                 Ok(true)
@@ -175,13 +176,49 @@ impl GitManager {
     }
 
     pub fn open_repo(&mut self) -> Result<bool> {
-        match self.get_directory() {
+        match GitManager::get_directory() {
             Some(path_buffer) => {
                 self.repo = Some(Repository::open(path_buffer.as_path())?);
                 Ok(true)
             },
             None => Ok(false),
         }
+    }
+
+    pub fn clone_repo(&mut self, json_str: &str) -> Result<()> {
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+        let clone_url = match json_hm.get("clone_url") {
+            Some(s) => s,
+            None => bail!("clone_url not included in payload from the front-end"),
+        };
+        let clone_path = match json_hm.get("clone_path") {
+            Some(s) => s,
+            None => bail!("clone_path not included in payload from the front-end"),
+        };
+
+        let callbacks = GitManager::get_remote_callbacks();
+        let mut fetch_options = FetchOptions::new();
+        fetch_options.download_tags(AutotagOption::All);
+        fetch_options.remote_callbacks(callbacks);
+
+        let mut repo_builder = RepoBuilder::new();
+        repo_builder.fetch_options(fetch_options);
+
+        let project_name = match clone_url.split("/").last() {
+            Some(s) => {
+                &s[..(s.len() - 4)]
+            },
+            None => bail!("Clone url was empty?"),
+        };
+
+        let mut path_buf = PathBuf::from(clone_path);
+        path_buf.push(project_name);
+
+        create_dir_all(path_buf.as_path())?;
+
+        self.repo = Some(repo_builder.clone(clone_url, path_buf.as_path())?);
+
+        Ok(())
     }
 
     fn cleanup_state(&mut self) -> Result<()> {
@@ -1121,7 +1158,7 @@ impl GitManager {
         }
 
         let mut push_options = PushOptions::new();
-        push_options.remote_callbacks(self.get_remote_callbacks());
+        push_options.remote_callbacks(GitManager::get_remote_callbacks());
 
         let mut sb = String::from(":refs/heads/");
         let first_slash_index = match branch_shorthand.find("/") {
@@ -1157,7 +1194,7 @@ impl GitManager {
             let mut fetch_options = FetchOptions::new();
             fetch_options.download_tags(AutotagOption::All);
             fetch_options.prune(FetchPrune::On);
-            fetch_options.remote_callbacks(self.get_remote_callbacks());
+            fetch_options.remote_callbacks(GitManager::get_remote_callbacks());
             remote.fetch(empty_refspecs, Some(&mut fetch_options), None)?;
         }
         Ok(())
@@ -1262,7 +1299,7 @@ impl GitManager {
         };
 
         let mut push_options = PushOptions::new();
-        push_options.remote_callbacks(self.get_remote_callbacks());
+        push_options.remote_callbacks(GitManager::get_remote_callbacks());
 
         let mut sb = String::from(local_full_name);
         if is_force {
@@ -1310,7 +1347,7 @@ impl GitManager {
     }
 
     #[allow(unused_unsafe)]
-    fn get_remote_callbacks(&self) -> RemoteCallbacks {
+    fn get_remote_callbacks() -> RemoteCallbacks<'static> {
         let mut callbacks = RemoteCallbacks::new();
         callbacks.credentials(|_url, _username_from_url, _allowed_types| {
             let username;

@@ -58,6 +58,7 @@ fn main() {
                 Submenu::new("File", Menu::with_items([
                     CustomMenuItem::new("init", "Init New Repo").into(),
                     CustomMenuItem::new("open", "Open Repo").into(),
+                    CustomMenuItem::new("clone", "Clone Repo").into(),
                 ])).into(),
                 Submenu::new("Security", Menu::with_items([
                     CustomMenuItem::new("credentials", "Set Credentials").into(),
@@ -68,6 +69,7 @@ fn main() {
                 Submenu::new("File", Menu::with_items([
                     CustomMenuItem::new("init", "Init New Repo").into(),
                     CustomMenuItem::new("open", "Open Repo").into(),
+                    CustomMenuItem::new("clone", "Clone Repo").into(),
                     NativeItem(MenuItem::Separator),
                     CustomMenuItem::new("preferences", "Preferences").into(),
                 ])).into(),
@@ -174,6 +176,9 @@ fn main() {
                         },
                         Err(e) => handle_error(e, &main_window_c),
                     };
+                },
+                "clone" => {
+                    main_window_c.emit_all("get-clone", "").unwrap();
                 },
                 "credentials" => {
                     main_window_c.emit_all("get-credentials", "").unwrap();
@@ -391,6 +396,25 @@ fn main() {
                 },
                 None => main_window_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
             };
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("clone", move |event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                match event.payload() {
+                    Some(s) => {
+                        let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let result = git_manager.clone_repo(s);
+                        match result {
+                            Ok(()) => emit_update_all(&mut git_manager, true, &main_window_c_c),
+                            Err(e) => handle_error(e, &main_window_c_c),
+                        };
+                    },
+                    None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+                };
+            });
         });
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();
