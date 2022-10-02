@@ -157,10 +157,11 @@ pub struct BranchInfo {
     branch_type: String,
     ahead: usize,
     behind: usize,
+    has_upstream: bool,
 }
 
 impl BranchInfo {
-    pub fn new(branch_shorthand: String, full_branch_name: String, is_head: bool, branch_type: String, ahead: usize, behind: usize) -> Self {
+    pub fn new(branch_shorthand: String, full_branch_name: String, is_head: bool, branch_type: String, ahead: usize, behind: usize, has_upstream: bool) -> Self {
         Self {
             branch_shorthand,
             full_branch_name,
@@ -168,6 +169,7 @@ impl BranchInfo {
             branch_type,
             ahead,
             behind,
+            has_upstream,
         }
     }
 }
@@ -485,10 +487,12 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
         // Get ahead/behind counts
         let mut ahead = 0;
         let mut behind = 0;
+        let mut has_upstream = false;
         if reference.is_branch() {
             let local_branch = repo.find_branch(branch_shorthand.as_str(), BranchType::Local)?;
             match local_branch.upstream() {
                 Ok(remote_branch) => {
+                    has_upstream = true;
                     match local_branch.get().target() {
                         Some(local_oid) => {
                             match remote_branch.get().target() {
@@ -515,7 +519,7 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
         for s in branch_shorthand.split("/") {
             split_shorthand.push_back(String::from(s));
         }
-        let branch_info = BranchInfo::new(branch_shorthand, full_branch_name, is_head, branch_type.clone(), ahead, behind);
+        let branch_info = BranchInfo::new(branch_shorthand, full_branch_name, is_head, branch_type.clone(), ahead, behind, has_upstream);
         if branch_type == String::from("local") {
             local_branch_info_tree.insert_split_shorthand(split_shorthand, Some(branch_info));
         } else if branch_type == String::from("remote") {
