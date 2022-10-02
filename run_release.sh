@@ -1,1 +1,2 @@
-./src-tauri/target/release/bundle/appimage/oxidized-git_0.1.0_amd64.AppImage
+# shellcheck disable=SC2091
+$(find ./src-tauri/target/release/bundle/appimage -name '*.AppImage')
