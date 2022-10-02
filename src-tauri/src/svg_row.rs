@@ -90,7 +90,7 @@ pub struct SVGRow {
     has_parent_child_svg_rows_set: bool,
     parent_svg_rows: Vec<Rc<RefCell<SVGRow>>>,
     child_svg_rows: Vec<Rc<RefCell<SVGRow>>>,
-    x: Rc<RefCell<isize>>,
+    x: isize,
     y: isize,
 }
 
@@ -104,7 +104,7 @@ impl SVGRow {
             has_parent_child_svg_rows_set: false,
             parent_svg_rows: vec![],
             child_svg_rows: vec![],
-            x: Rc::new(RefCell::new(commit_info.borrow_x().clone())),
+            x: commit_info.borrow_x().clone(),
             y: commit_info.borrow_y().clone(),
         }
     }
@@ -146,11 +146,11 @@ impl SVGRow {
         }
     }
 
-    pub fn get_occupied_table(svg_rows: &mut Vec<Rc<RefCell<SVGRow>>>) -> Result<Vec<Vec<Rc<RefCell<isize>>>>> {
-        let mut main_table: Vec<Vec<Rc<RefCell<isize>>>> = vec![];
+    pub fn get_occupied_table(svg_rows: &mut Vec<Rc<RefCell<SVGRow>>>) -> Result<Vec<Vec<isize>>> {
+        let mut main_table: Vec<Vec<isize>> = vec![];
 
         for svg_row_rc in svg_rows.iter_mut() {
-            let svg_row = svg_row_rc.borrow();
+            let mut svg_row = svg_row_rc.borrow_mut();
 
             if !svg_row.has_parent_child_svg_rows_set {
                 bail!("SVGRow object didn't have parents or children set. Make sure 'set_parent_and_child_svg_row_values' is run before 'get_occupied_table'!");
@@ -159,35 +159,33 @@ impl SVGRow {
             // Set the current node position as occupied (or find a position that's unoccupied and occupy it).
             if svg_row.y < main_table.len() as isize {
                 while main_table[svg_row.y as usize].contains(&svg_row.x) {
-                    *svg_row.x.borrow_mut() += 1;
+                    svg_row.x += 1;
                 }
-                main_table[svg_row.y as usize].push(svg_row.x.clone());
+                main_table[svg_row.y as usize].push(svg_row.x);
             } else {
-                main_table.push(vec![svg_row.x.clone()]);
+                main_table.push(vec![svg_row.x]);
             }
 
             // Set the space of the line from the current node to its parents as occupied.
             for parent_svg_row_rc in &svg_row.parent_svg_rows {
-                let parent_svg_row = parent_svg_row_rc.borrow();
+                let mut parent_svg_row = parent_svg_row_rc.borrow_mut();
                 let mut moved_x_val = 0;
                 for i in (svg_row.y + 1)..parent_svg_row.y {
-                    let mut x_val = (*svg_row.x.borrow()).clone();
+                    let mut x_val = svg_row.x;
                     if i < main_table.len() as isize {
-                        while main_table[i as usize].iter().any(|x_rc| {
-                            x_val == *x_rc.borrow()
-                        }) {
+                        while main_table[i as usize].contains(&x_val) {
                             x_val += 1;
                             // Note: this has to stay in the loop so it's only set when x changes!
                             // and not just to svg_row.x
                             moved_x_val = x_val;
                         }
-                        main_table[i as usize].push(Rc::new(RefCell::new(x_val)));
+                        main_table[i as usize].push(x_val);
                     } else {
-                        main_table.push(vec![Rc::new(RefCell::new(x_val))]);
+                        main_table.push(vec![x_val]);
                     }
                 }
                 // This is used particularly for merging lines
-                *parent_svg_row.x.borrow_mut() = moved_x_val;
+                parent_svg_row.x = moved_x_val;
             }
         }
 
@@ -198,11 +196,11 @@ impl SVGRow {
             for parent_svg_row_rc in &svg_row.parent_svg_rows {
                 let parent_svg_row = parent_svg_row_rc.borrow();
                 if svg_row.x < parent_svg_row.x {
-                    let x_val = (*parent_svg_row.x.borrow()).clone();
-                    main_table[svg_row.y as usize].push(Rc::new(RefCell::new(x_val)));
+                    let x_val = parent_svg_row.x;
+                    main_table[svg_row.y as usize].push(x_val);
                 } else if svg_row.x > parent_svg_row.x {
-                    let x_val = (*svg_row.x.borrow()).clone();
-                    main_table[parent_svg_row.y as usize].push(Rc::new(RefCell::new(x_val)));
+                    let x_val = svg_row.x;
+                    main_table[parent_svg_row.y as usize].push(x_val);
                 }
             }
         }
@@ -210,21 +208,21 @@ impl SVGRow {
         Ok(main_table)
     }
 
-    pub fn get_draw_properties(&mut self, main_table: &Vec<Vec<Rc<RefCell<isize>>>>) -> HashMap<String, RowProperty> {
+    pub fn get_draw_properties(&mut self, main_table: &Vec<Vec<isize>>) -> HashMap<String, RowProperty> {
         let mut row_properties: HashMap<String, RowProperty> = HashMap::new();
         let mut draw_properties: HashMap<String, DrawProperty> = HashMap::new();
 
         row_properties.insert(String::from("sha"), RowProperty::SomeString(self.sha.clone()));
 
-        let pixel_x = *self.x.borrow() * X_SPACING + X_OFFSET;
+        let pixel_x = self.x * X_SPACING + X_OFFSET;
         let pixel_y = self.y * Y_SPACING + Y_OFFSET;
         row_properties.insert(String::from("pixel_y"), RowProperty::SomeInt(pixel_y));
-        let color = SVGRow::get_color_string(*self.x.borrow());
+        let color = SVGRow::get_color_string(self.x);
         let mut child_lines: Vec<HashMap<String, SVGProperty>> = vec![];
         // Draw the lines from the current node's children to itself.
         for child_svg_row_rc in &self.child_svg_rows {
             let child_svg_row = child_svg_row_rc.borrow();
-            let child_pixel_x = *child_svg_row.x.borrow() * X_SPACING + X_OFFSET;
+            let child_pixel_x = child_svg_row.x * X_SPACING + X_OFFSET;
             let child_pixel_y = child_svg_row.y * Y_SPACING + Y_OFFSET;
             let before_y = self.y - 1;
             let before_pixel_y = before_y * Y_SPACING + Y_OFFSET;
@@ -267,10 +265,10 @@ impl SVGRow {
             let row_y = self.y;
             if child_svg_row.x >= self.x {
                 // Sets the color for "branching" lines and straight lines
-                style_str.push_str(&*SVGRow::get_color_string(*child_svg_row.x.borrow()));
+                style_str.push_str(&*SVGRow::get_color_string(child_svg_row.x));
             } else {
                 // Sets the color for "merging" lines
-                style_str.push_str(&*SVGRow::get_color_string(*self.x.borrow()));
+                style_str.push_str(&*SVGRow::get_color_string(self.x));
             }
             style_str.push_str(";fill:transparent;stroke-width:");
             style_str.push_str(&*LINE_STROKE_WIDTH.to_string());
@@ -326,12 +324,11 @@ impl SVGRow {
             (String::from("attrs"), SVGProperty::SomeHashMap(circle_attrs)),
         ])));
 
-        let zero_rc = Rc::new(RefCell::new(0));
-        let largest_occupied_x = main_table[self.y as usize].iter().max().unwrap_or(&zero_rc);
+        let largest_occupied_x = main_table[self.y as usize].iter().max().unwrap_or(&0);
 
         // Get summary text
         let text_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
-            (String::from("x"), SVGPropertyAttrs::SomeInt((*largest_occupied_x.borrow() + 1) * X_SPACING + X_OFFSET)),
+            (String::from("x"), SVGPropertyAttrs::SomeInt((largest_occupied_x + 1) * X_SPACING + X_OFFSET)),
             (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_OFFSET)),
             (String::from("fill"), SVGPropertyAttrs::SomeString(String::from("white"))),
         ]);
