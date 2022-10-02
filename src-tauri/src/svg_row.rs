@@ -146,10 +146,10 @@ impl SVGRow {
         }
     }
 
-    pub fn get_occupied_table(svg_rows: &mut Vec<Rc<RefCell<SVGRow>>>) -> Result<Vec<Vec<isize>>> {
+    pub fn get_occupied_table(svg_rows: &Vec<Rc<RefCell<SVGRow>>>) -> Result<Vec<Vec<isize>>> {
         let mut main_table: Vec<Vec<isize>> = vec![];
 
-        for svg_row_rc in svg_rows {
+        for svg_row_rc in svg_rows.iter() {
             let mut svg_row = svg_row_rc.borrow_mut();
 
             if !svg_row.has_parent_child_svg_rows_set {
@@ -168,23 +168,39 @@ impl SVGRow {
 
             // Set the space of the line from the current node to its parents as occupied.
             for parent_svg_row_rc in &svg_row.parent_svg_rows {
-                let parent_svg_row = parent_svg_row_rc.borrow();
+                let mut parent_svg_row = parent_svg_row_rc.borrow_mut();
+                let mut moved_x_val = 0;
                 for i in (svg_row.y + 1)..parent_svg_row.y {
+                    let mut x_val = svg_row.x;
                     if i < main_table.len() as isize {
-                        main_table[i as usize].push(svg_row.x);
+                        while main_table[i as usize].contains(&x_val) {
+                            x_val += 1;
+                            // Note: this has to stay in the loop so it's only set when x changes!
+                            // and not just to svg_row.x
+                            moved_x_val = x_val;
+                        }
+                        main_table[i as usize].push(x_val);
                     } else {
-                        main_table.push(vec![svg_row.x]);
+                        main_table.push(vec![x_val]);
                     }
                 }
+                // This is used particularly for merging lines
+                parent_svg_row.x = moved_x_val;
             }
+        }
 
-            // Set curved lines to occupy their space (note this has to be done with children since their x value is already set unlike the parents)
-            for child_svg_row_rc in &svg_row.child_svg_rows {
-                let child_svg_row = child_svg_row_rc.borrow();
-                if svg_row.x < child_svg_row.x {
-                    main_table[svg_row.y as usize].push(child_svg_row.x);
-                } else if svg_row.x > child_svg_row.x {
-                    main_table[child_svg_row.y as usize].push(svg_row.x);
+        // Loop through after everything's set in order to properly occupy spaces by curved lines just for summary text positions.
+        for svg_row_rc in svg_rows {
+            let svg_row = svg_row_rc.borrow();
+
+            for parent_svg_row_rc in &svg_row.parent_svg_rows {
+                let parent_svg_row = parent_svg_row_rc.borrow();
+                if svg_row.x < parent_svg_row.x {
+                    let x_val = parent_svg_row.x;
+                    main_table[svg_row.y as usize].push(x_val);
+                } else if svg_row.x > parent_svg_row.x {
+                    let x_val = svg_row.x;
+                    main_table[parent_svg_row.y as usize].push(x_val);
                 }
             }
         }
@@ -211,18 +227,30 @@ impl SVGRow {
             let before_y = self.y - 1;
             let before_pixel_y = before_y * Y_SPACING + Y_OFFSET;
             if before_pixel_y != child_pixel_y {
-                for i in child_svg_row.y..before_y {
+                let start_index;
+                let end_index;
+                let line_pixel_x;
+                if self.x > child_svg_row.x {
+                    line_pixel_x = pixel_x;
+                    start_index = child_svg_row.y + 1;
+                    end_index = before_y;
+                } else {
+                    line_pixel_x = child_pixel_x;
+                    start_index = child_svg_row.y;
+                    end_index = before_y - 1;
+                }
+                for i in start_index..=end_index {
                     let top_pixel_y = i * Y_SPACING + Y_OFFSET;
                     let bottom_pixel_y = (i + 1) * Y_SPACING + Y_OFFSET;
 
                     let mut style_str = String::from("stroke:");
-                    style_str.push_str(&*SVGRow::get_color_string(child_svg_row.x));
+                    style_str.push_str(&*SVGRow::get_color_string((line_pixel_x - X_OFFSET) / X_SPACING));
                     style_str.push_str(";stroke-width:");
                     style_str.push_str(&*LINE_STROKE_WIDTH.to_string());
                     let line_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
-                        (String::from("x1"), SVGPropertyAttrs::SomeInt(child_pixel_x)),
+                        (String::from("x1"), SVGPropertyAttrs::SomeInt(line_pixel_x)),
                         (String::from("y1"), SVGPropertyAttrs::SomeInt(top_pixel_y)),
-                        (String::from("x2"), SVGPropertyAttrs::SomeInt(child_pixel_x)),
+                        (String::from("x2"), SVGPropertyAttrs::SomeInt(line_pixel_x)),
                         (String::from("y2"), SVGPropertyAttrs::SomeInt(bottom_pixel_y)),
                         (String::from("style"), SVGPropertyAttrs::SomeString(style_str)),
                     ]);
@@ -258,17 +286,17 @@ impl SVGRow {
                     (String::from("row-y"), SVGProperty::SomeInt(row_y)),
                 ]));
             } else {
-                let mut d_str = format!("M {child_pixel_x} {before_pixel_y} C ");
+                let d_str;
                 if child_pixel_x < pixel_x {
+                    let after_child_pixel_y = (child_svg_row.y + 1) * Y_SPACING + Y_OFFSET;
                     let start_control_point_x = child_pixel_x + X_SPACING * 3 / 4;
-                    let end_control_point_y = pixel_y - Y_SPACING * 3 / 4;
-                    d_str.push_str(&*format!("{start_control_point_x} {before_pixel_y}, {pixel_x} {end_control_point_y}, "));
+                    let end_control_point_y = after_child_pixel_y - Y_SPACING * 3 / 4;
+                    d_str = format!("M {child_pixel_x} {child_pixel_y} C {start_control_point_x} {child_pixel_y}, {pixel_x} {end_control_point_y}, {pixel_x} {after_child_pixel_y}");
                 } else {
                     let start_control_point_y = before_pixel_y + Y_SPACING * 3 / 4;
                     let end_control_point_x = pixel_x + X_SPACING * 3 / 4;
-                    d_str.push_str(&*format!("{child_pixel_x} {start_control_point_y}, {end_control_point_x} {pixel_y}, "));
+                    d_str = format!("M {child_pixel_x} {before_pixel_y} C {child_pixel_x} {start_control_point_y}, {end_control_point_x} {pixel_y}, {pixel_x} {pixel_y}");
                 }
-                d_str.push_str(&*format!("{pixel_x} {pixel_y}"));
                 let path_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
                     (String::from("d"), SVGPropertyAttrs::SomeString(d_str)),
                     (String::from("style"), SVGPropertyAttrs::SomeString(style_str)),
@@ -300,7 +328,7 @@ impl SVGRow {
 
         // Get summary text
         let text_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
-            (String::from("x"), SVGPropertyAttrs::SomeInt((*largest_occupied_x + 1) * X_SPACING + X_OFFSET)),
+            (String::from("x"), SVGPropertyAttrs::SomeInt((largest_occupied_x + 1) * X_SPACING + X_OFFSET)),
             (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_OFFSET)),
             (String::from("fill"), SVGPropertyAttrs::SomeString(String::from("white"))),
         ]);
