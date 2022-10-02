@@ -169,20 +169,25 @@ impl SVGRow {
             // Set the space of the line from the current node to its parents as occupied.
             for parent_svg_row_rc in &svg_row.parent_svg_rows {
                 let parent_svg_row = parent_svg_row_rc.borrow();
+                let mut moved_x_val = 0;
                 for i in (svg_row.y + 1)..parent_svg_row.y {
-                    let x_val = (*svg_row.x.borrow()).clone();
-                    // If there are values greater than or equal to the current x, need to move them to the right.
+                    let mut x_val = (*svg_row.x.borrow()).clone();
                     if i < main_table.len() as isize {
-                        for table_x in main_table[i as usize].iter() {
-                            if table_x >= &svg_row.x {
-                                *table_x.borrow_mut() += 1;
-                            }
+                        while main_table[i as usize].iter().any(|x_rc| {
+                            x_val == *x_rc.borrow()
+                        }) {
+                            x_val += 1;
+                            // Note: this has to stay in the loop so it's only set when x changes!
+                            // and not just to svg_row.x
+                            moved_x_val = x_val;
                         }
                         main_table[i as usize].push(Rc::new(RefCell::new(x_val)));
                     } else {
                         main_table.push(vec![Rc::new(RefCell::new(x_val))]);
                     }
                 }
+                // This is used particularly for merging lines
+                *parent_svg_row.x.borrow_mut() = moved_x_val;
             }
         }
 
