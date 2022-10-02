@@ -540,37 +540,42 @@ class Main {
                 $newListItem.append($nestedList);
                 $ul.append($newListItem);
             } else {
-                const $innerListItem = $('<li class="hoverable-row unselectable inner-branch-item"></li>');
+                const $innerListItem = $('<li></li>');
+                if (child['branch_info'] !== null) {
+                    $innerListItem.addClass('hoverable-row unselectable inner-branch-item');
+                }
                 let childText = '';
-                if (child['branch_info']['is_head'] === true) {
+                if (child['branch_info'] !== null && child['branch_info']['is_head'] === true) {
                     childText += '* ';
                 }
                 childText += child['text'];
                 $innerListItem.text(childText);
-                if (child['branch_info']['behind'] !== 0) {
-                    const $behindCount = $('<span class="right"><i class="fa-solid fa-arrow-down"></i>' + child['branch_info']['behind'] + '</span>');
-                    $innerListItem.append($behindCount);
-                }
-                if (child['branch_info']['ahead'] !== 0) {
-                    const $aheadCount = $('<span class="right"><i class="fa-solid fa-arrow-up"></i>' + child['branch_info']['ahead'] + '</span>');
-                    $innerListItem.append($aheadCount);
-                }
+                if (child['branch_info'] !== null) {
+                    if (child['branch_info']['behind'] !== 0) {
+                        const $behindCount = $('<span class="right"><i class="fa-solid fa-arrow-down"></i>' + child['branch_info']['behind'] + '</span>');
+                        $innerListItem.append($behindCount);
+                    }
+                    if (child['branch_info']['ahead'] !== 0) {
+                        const $aheadCount = $('<span class="right"><i class="fa-solid fa-arrow-up"></i>' + child['branch_info']['ahead'] + '</span>');
+                        $innerListItem.append($aheadCount);
+                    }
 
-                if (child['branch_info']['branch_type'] === 'remote') {
-                    $innerListItem.on('dblclick', function() {
-                        self.addProcessCount();
-                        emit("checkout-remote", {full_branch_name: child['branch_info']['full_branch_name'], branch_shorthand: child['branch_info']['branch_shorthand']}).then();
-                    });
-                } else if (child['branch_info']['branch_type'] === 'local') {
-                    $innerListItem.on('dblclick', function() {
-                        self.addProcessCount();
-                        emit("checkout", child['branch_info']['full_branch_name']).then();
+                    if (child['branch_info']['branch_type'] === 'remote') {
+                        $innerListItem.on('dblclick', function() {
+                            self.addProcessCount();
+                            emit("checkout-remote", {full_branch_name: child['branch_info']['full_branch_name'], branch_shorthand: child['branch_info']['branch_shorthand']}).then();
+                        });
+                    } else if (child['branch_info']['branch_type'] === 'local') {
+                        $innerListItem.on('dblclick', function() {
+                            self.addProcessCount();
+                            emit("checkout", child['branch_info']['full_branch_name']).then();
+                        });
+                    }
+                    $innerListItem.contextmenu(function(e) {
+                        e.preventDefault();
+                        self.showBranchContextMenu(e, child['branch_info']['branch_shorthand'], child['branch_info']['branch_type']);
                     });
                 }
-                $innerListItem.contextmenu(function(e) {
-                    e.preventDefault();
-                    self.showBranchContextMenu(e, child['branch_info']['branch_shorthand'], child['branch_info']['branch_type']);
-                });
                 $ul.append($innerListItem);
             }
         });
