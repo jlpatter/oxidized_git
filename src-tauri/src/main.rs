@@ -628,7 +628,7 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let result = git_manager.git_delete_remote_branch(s);
+                        let result = git_manager.git_delete_remote_branch_from_json(s);
                         match result {
                             Ok(()) => emit_update_all(&mut git_manager, false, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),

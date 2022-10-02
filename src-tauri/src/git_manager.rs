@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
+use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
 use git2::build::CheckoutBuilder;
 use rfd::FileDialog;
 use serde::Serialize;
@@ -1034,17 +1034,34 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_delete_local_branch(&self, branch_shorthand: &str) -> Result<()> {
+    pub fn git_delete_local_branch(&self, json_str: &str) -> Result<()> {
         let repo = self.borrow_repo()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+        let branch_shorthand = match json_hm.get("branch_shorthand") {
+            Some(s) => s,
+            None => bail!("branch_shorthand not included in payload from front-end!"),
+        };
+        let delete_remote_branch = match json_hm.get("delete_remote_branch") {
+            Some(s) => s == "true",
+            None => bail!("delete_remote_branch not included in payload from front-end!"),
+        };
+
         let mut branch = repo.find_branch(branch_shorthand, BranchType::Local)?;
+
+        if delete_remote_branch {
+            let remote_branch = branch.upstream()?;
+            self.git_delete_remote_branch(remote_branch)?;
+        }
+
         branch.delete()?;
         Ok(())
     }
 
-    pub fn git_delete_remote_branch(&self, branch_shorthand: &str) -> Result<()> {
+    fn git_delete_remote_branch(&self, remote_branch: Branch) -> Result<()> {
         let repo = self.borrow_repo()?;
 
-        let remote_branch = repo.find_branch(branch_shorthand, BranchType::Remote)?;
+        let branch_shorthand = GitManager::get_utf8_string(remote_branch.get().shorthand(), "Branch Shorthand")?;
         let remote_branch_full_name = GitManager::get_utf8_string(remote_branch.get().name(), "Branch Name")?;
 
         // Look for a local branch that already exists for the specified remote branch. If one exists,
@@ -1074,6 +1091,13 @@ impl GitManager {
         let mut remote = repo.find_remote(&branch_shorthand[0..first_slash_index])?;
         sb.push_str(&branch_shorthand[(first_slash_index + 1)..]);
         remote.push(&[sb.as_str()], Some(&mut push_options))?;
+        Ok(())
+    }
+
+    pub fn git_delete_remote_branch_from_json(&self, branch_shorthand: &str) -> Result<()> {
+        let repo = self.borrow_repo()?;
+        let remote_branch = repo.find_branch(branch_shorthand, BranchType::Remote)?;
+        self.git_delete_remote_branch(remote_branch)?;
         Ok(())
     }
 

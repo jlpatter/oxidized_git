@@ -264,6 +264,14 @@ class Main {
             $branchTxt.val("");
             $('#branchModal').modal('hide');
         });
+
+        $('#deleteLocalBranchBtn').click(() => {
+            self.addProcessCount();
+            const $branchShorthand = $('#localBranchToDeleteShorthand');
+            emit("delete-local-branch", {branch_shorthand: $branchShorthand.text(), delete_remote_branch: $('#deleteRemoteBranchCheckBox').is(':checked').toString()}).then();
+            $branchShorthand.text('');
+            $('#deleteLocalBranchModal').modal('hide');
+        });
     }
 
     setupTreeViews() {
@@ -624,8 +632,9 @@ class Main {
         const $deleteBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-regular fa-trash-can"></i> Delete</button>');
         if (branchType === 'local') {
             $deleteBtn.click(() => {
-                self.addProcessCount();
-                emit("delete-local-branch", branchShorthand).then();
+                $('#localBranchToDeleteShorthand').text(branchShorthand);
+                $('#deleteRemoteBranchCheckBox').prop('checked', false);
+                $('#deleteLocalBranchModal').modal('show');
             });
         } else if (branchType === 'remote') {
             $deleteBtn.click(() => {
