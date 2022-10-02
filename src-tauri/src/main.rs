@@ -150,14 +150,24 @@ fn main() {
                 },
                 "open" => {
                     main_window_c.emit_all("start-process", "").unwrap();
-                    let mut git_manager = git_manager_arc_c.lock().unwrap();
-                    let result = git_manager.open_repo();
+                    let result;
+                    // This closure releases the lock on the git_manager so it can be used later.
+                    {
+                        let mut git_manager = git_manager_arc_c.lock().unwrap();
+                        result = git_manager.open_repo();
+                    }
                     match result {
                         Ok(did_open) => {
                             if did_open {
-                                emit_update_all(&mut git_manager, true, &main_window_c);
-                                let mut just_got_repo = just_got_repo_arc_c.lock().unwrap();
-                                *just_got_repo = true;
+                                let git_manager_arc_c_c = git_manager_arc_c.clone();
+                                let just_got_repo_arc_c_c = just_got_repo_arc_c.clone();
+                                let main_window_c_c = main_window_c.clone();
+                                thread::spawn(move || {
+                                    let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                                    emit_update_all(&mut git_manager, true, &main_window_c_c);
+                                    let mut just_got_repo = just_got_repo_arc_c_c.lock().unwrap();
+                                    *just_got_repo = true;
+                                });
                             } else {
                                 main_window_c.emit_all("end-process", "").unwrap();
                             }
