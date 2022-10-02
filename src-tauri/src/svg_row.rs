@@ -146,10 +146,10 @@ impl SVGRow {
         }
     }
 
-    pub fn get_occupied_table(svg_rows: &mut Vec<Rc<RefCell<SVGRow>>>) -> Result<Vec<Vec<isize>>> {
+    pub fn get_occupied_table(svg_rows: &Vec<Rc<RefCell<SVGRow>>>) -> Result<Vec<Vec<isize>>> {
         let mut main_table: Vec<Vec<isize>> = vec![];
 
-        for svg_row_rc in svg_rows.iter_mut() {
+        for svg_row_rc in svg_rows.iter() {
             let mut svg_row = svg_row_rc.borrow_mut();
 
             if !svg_row.has_parent_child_svg_rows_set {

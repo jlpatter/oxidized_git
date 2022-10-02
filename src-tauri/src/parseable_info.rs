@@ -407,7 +407,7 @@ fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, force_refre
             svg_row_rc.borrow_mut().set_parent_and_child_svg_row_values(&svg_row_hm);
         }
 
-        let main_table = SVGRow::get_occupied_table(&mut svg_rows)?;
+        let main_table = SVGRow::get_occupied_table(&svg_rows)?;
         for svg_row_rc in svg_rows {
             svg_row_draw_properties.push(svg_row_rc.borrow_mut().get_draw_properties(
                 &main_table,
