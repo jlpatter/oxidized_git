@@ -1254,7 +1254,7 @@ impl GitManager {
             rebase.finish(None)?;
             return Ok(());
         } else if (ma.is_fast_forward() && mp.is_no_fast_forward()) || (ma.is_normal() && mp.is_fastforward_only()) {
-            bail!("It looks like a pull may be possible, but your MergePreference(s) are preventing it. If you have --no-ff AND/OR --ff-only enabled, consider disabling one or both.");
+            bail!("It looks like a pull may be possible, but your MergePreference(s) are preventing it. If you have merge.ff or pull.ff set to 'only' or 'false', consider unsetting it by running 'git config --global --unset merge.ff' or 'git config --global --unset pull.ff'");
         }
         bail!("Merge analysis failed to make any determination on how to proceed with the pull. If you're reading this, your repository may be corrupted.")
     }
