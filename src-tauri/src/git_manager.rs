@@ -355,9 +355,15 @@ impl GitManager {
         }
         revwalk.set_sorting(Sort::TOPOLOGICAL)?;
 
-        let preferences = config_manager::get_preferences()?;
-        let limit_commits = preferences.get_limit_commits();
-        let commit_count = preferences.get_commit_count();
+        let preferences = config_manager::get_config()?;
+        let limit_commits = match preferences.borrow_limit_commits() {
+            Some(b) => b.clone(),
+            None => bail!("limit_commits not present in config file!"),
+        };
+        let commit_count = match preferences.borrow_commit_count() {
+            Some(i) => i.clone(),
+            None => bail!("commit_count not present in config file!"),
+        };
 
         let mut oid_list: Vec<Oid> = vec![];
         for (i, commit_oid_result) in revwalk.enumerate() {
@@ -1392,20 +1398,23 @@ impl GitManager {
     fn get_remote_callbacks() -> RemoteCallbacks<'static> {
         let mut callbacks = RemoteCallbacks::new();
         callbacks.credentials(|_url, _username_from_url, _allowed_types| {
-            let username;
+            let config = match config_manager::get_config() {
+                Ok(c) => c,
+                Err(e) => return Err(git2::Error::from_str(&*format!("Error during config file read: {}", e))),
+            };
+            let username = match config.borrow_username() {
+                Some(u) => u.clone(),
+                None => return Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials")),
+            };
             let pass;
             unsafe {
-                username = match keytar::get_password("oxidized_git", "username") {
-                    Ok(p) => p,
-                    Err(_) => return Err(git2::Error::from_str("Error finding username in keychain!")),
-                };
                 pass = match keytar::get_password("oxidized_git", "password") {
                     Ok(p) => p,
                     Err(_) => return Err(git2::Error::from_str("Error finding password in keychain!")),
                 };
             }
-            if username.success && pass.success {
-                Cred::userpass_plaintext(&*username.password, &*pass.password)
+            if pass.success {
+                Cred::userpass_plaintext(username.as_str(), &*pass.password)
             } else {
                 Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials"))
             }
@@ -1423,7 +1432,7 @@ impl GitManager {
     pub fn set_credentials(&self, credentials_json_string: &str) -> Result<()> {
         let credentials_json: HashMap<String, String> = serde_json::from_str(credentials_json_string)?;
         let username = match credentials_json.get("username") {
-            Some(u) => u,
+            Some(u) => u.clone(),
             None => bail!("No username supplied"),
         };
         let password = match credentials_json.get("password") {
@@ -1431,8 +1440,11 @@ impl GitManager {
             None => bail!("No password supplied"),
         };
 
+        let mut config = config_manager::get_config()?;
+        config.set_username(username);
+        config.save()?;
+
         unsafe {
-            keytar::set_password("oxidized_git", "username", username)?;
             keytar::set_password("oxidized_git", "password", password)?;
         }
 

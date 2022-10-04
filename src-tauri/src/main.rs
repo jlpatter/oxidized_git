@@ -123,14 +123,12 @@ fn main() {
         main_window.on_menu_event(move |event| {
             match event.menu_item_id() {
                 "preferences" => {
-                    let preferences = match config_manager::get_preferences() {
-                        Ok(p) => p,
-                        Err(e) => {
-                            handle_error(e, &main_window_c);
-                            return;
+                    match config_manager::get_config() {
+                        Ok(c) => {
+                            main_window_c.emit_all("show-preferences", c).unwrap();
                         },
+                        Err(e) => handle_error(e, &main_window_c),
                     };
-                    main_window_c.emit_all("show-preferences", preferences).unwrap();
                 },
                 // Don't use a separate thread for init, open, or clone so as not to break the file dialog in Linux.
                 "init" => {
@@ -382,7 +380,7 @@ fn main() {
         main_window.listen("save-preferences", move |event| {
             match event.payload() {
                 Some(s) => {
-                    match config_manager::save_preferences(s) {
+                    match config_manager::save_config_from_json(s) {
                         Ok(()) => {
                             let main_window_c_c = main_window_c.clone();
                             let git_manager_arc_c_c = git_manager_arc_c.clone();
