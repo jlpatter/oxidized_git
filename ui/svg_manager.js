@@ -20,6 +20,7 @@ export class SVGManager {
         this.rows = [];
         this.commitsTop = -99;
         this.commitsBottom = -99;
+        this.selectedSHA = '';
         this.setScrollEvent();
     }
 
@@ -38,7 +39,7 @@ export class SVGManager {
     /**
      * Refreshes the commit table. Can be called on its own for a passive refresh.
      */
-    updateGraph(commitsInfo) {
+    updateGraph(commitsInfo, headSHA) {
         const self = this,
             singleCharWidth = self.getSingleCharWidth();
 
@@ -96,7 +97,35 @@ export class SVGManager {
 
         self.setVisibleCommits();
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
-        self.selectRow(self.rows[0]['backRect'], self.rows[0]['sha']);
+        self.selectRowOnRefresh(headSHA);
+    }
+
+    selectRowOnRefresh(headSHA) {
+        const self = this;
+        let selectedIndex = 0;
+        let foundOldSelected = false;
+        if (self.selectedSHA !== '') {
+            const tempIndex = self.rows.findIndex(function(row) {
+                return row['sha'] === self.selectedSHA;
+            });
+            if (tempIndex !== -1) {
+                selectedIndex = tempIndex;
+                foundOldSelected = true;
+            } else {
+                self.selectedSHA = '';
+            }
+        }
+        if (!foundOldSelected && headSHA !== '') {
+            const tempIndex = self.rows.findIndex(function(row) {
+                return row['sha'] === headSHA;
+            });
+            if (tempIndex !== -1) {
+                selectedIndex = tempIndex;
+            }
+        }
+        if (selectedIndex >= 0 && selectedIndex < self.rows.length) {
+            self.selectRow(self.rows[selectedIndex]['backRect'], self.rows[selectedIndex]['sha']);
+        }
     }
 
     addBranchLabels(branchDrawProperties, singleCharWidth) {
@@ -234,6 +263,7 @@ export class SVGManager {
         self.unselectAllRows();
         backRectElement.classList.add('svg-selected-row');
         backRectElement.classList.remove('svg-hoverable-row');
+        self.selectedSHA = sha;
         // Will call start-process from back-end
         emit("get-commit-info", sha).then();
     }

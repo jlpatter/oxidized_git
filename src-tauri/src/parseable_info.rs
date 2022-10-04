@@ -327,8 +327,13 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
     let repo = git_manager.borrow_repo()?;
 
     let mut general_info: HashMap<String, String> = HashMap::new();
+    general_info.insert(String::from("head_sha"), String::new());
     match repo.head() {
         Ok(head_ref) => {
+            if let Some(oid) = head_ref.target() {
+                general_info.insert(String::from("head_sha"), oid.to_string());
+            }
+
             match repo.find_branch(GitManager::get_utf8_string(head_ref.shorthand(), "Branch Name")?, BranchType::Local) {
                 Ok(head_branch) => {
                     match head_branch.upstream() {

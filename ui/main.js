@@ -17,6 +17,8 @@ class Main {
         this.processCount = 0;
         this.svgManager = new SVGManager();
         this.generalInfo = {};
+        this.oldSelectedSHA = '';
+        this.selectedCommitInfoFilePath = '';
     }
 
     run() {
@@ -353,9 +355,15 @@ class Main {
         $('#fileDiffTable').empty();
     }
 
-    selectRow($row) {
+    selectRow($row, filePath, changeType, sha) {
+        const self = this;
+        self.unselectAllRows();
         $row.addClass('selected-row');
         $row.removeClass('hoverable-row');
+        if (changeType === 'commit') {
+            self.selectedCommitInfoFilePath = filePath;
+        }
+        emit('file-diff', {file_path: filePath, change_type: changeType, sha: sha}).then();
     }
 
     showFileDiff(file_info) {
@@ -423,17 +431,33 @@ class Main {
         $commitInfo.append($newCommitInfo);
 
         let first = true;
+        const textJQueryElements = [];
         commit_info['changed_files'].forEach(function(file) {
-            self.addFileChangeRow($commitChanges, null, file, 'commit', commit_info['sha'], first);
+            textJQueryElements.push(self.addFileChangeRow($commitChanges, null, file, 'commit', commit_info['sha'], first));
             first = false;
         });
+
+        let foundFileToSelect = false;
+        if (self.oldSelectedSHA === commit_info['sha']) {
+            const changedFileIndex = commit_info['changed_files'].findIndex(function(file) {
+                return file['path'] === self.selectedCommitInfoFilePath;
+            });
+            if (changedFileIndex !== -1) {
+                self.selectRow(textJQueryElements[changedFileIndex], commit_info['changed_files'][changedFileIndex]['path'], 'commit', commit_info['sha']);
+                foundFileToSelect = true;
+            }
+        }
+        if (!foundFileToSelect && commit_info['changed_files'].length > 0) {
+            self.selectRow(textJQueryElements[0], commit_info['changed_files'][0]['path'], 'commit', commit_info['sha']);
+        }
+        self.oldSelectedSHA = commit_info['sha'];
         self.truncateFilePathText();
     }
 
     updateAll(repo_info) {
         const self = this;
         self.updateGeneralInfo(repo_info["general_info"]);
-        self.svgManager.updateGraph(repo_info["commit_info_list"]);
+        self.svgManager.updateGraph(repo_info["commit_info_list"], repo_info["general_info"]["head_sha"]);
         self.updateFilesChangedInfo(repo_info['files_changed_info_list']);
         self.updateBranchInfo(repo_info["branch_info_list"]);
         self.updateRemoteInfo(repo_info["remote_info_list"]);
@@ -502,7 +526,7 @@ class Main {
         }
     }
 
-    addFileChangeRow($changesDiv, $button, file, changeType, sha, isSelected) {
+    addFileChangeRow($changesDiv, $button, file, changeType, sha) {
         const self = this,
             // The outer div is the whole row (minus the button), the next inner div is the "unshrunken" text size (i.e. what size the text should fit in), and the last inner div is the size of the text width.
             // This is all used for truncating the text.
@@ -511,9 +535,7 @@ class Main {
         $text.click((e) => {
             e.stopPropagation();
             $('#contextMenu').hide();
-            self.unselectAllRows();
-            self.selectRow($text);
-            emit('file-diff', {file_path: file['path'], change_type: changeType, sha: sha}).then();
+            self.selectRow($text, file['path'], changeType, sha);
         });
         if (changeType === 'unstaged' || changeType === 'staged') {
             $text.contextmenu((e) => {
@@ -527,12 +549,7 @@ class Main {
             $row.append($button);
         }
         $changesDiv.append($row);
-
-        if (isSelected) {
-            self.unselectAllRows();
-            self.selectRow($text);
-            emit('file-diff', {file_path: file['path'], change_type: changeType, sha: sha}).then();
-        }
+        return $text;
     }
 
     updateFilesChangedInfo(files_changed_info_list) {
