@@ -96,6 +96,7 @@ export class SVGManager {
 
         self.setVisibleCommits();
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
+        self.selectRow(self.rows[0]['backRect'], self.rows[0]['sha']);
     }
 
     addBranchLabels(branchDrawProperties, singleCharWidth) {
@@ -228,18 +229,19 @@ export class SVGManager {
         $('#commitFileDiffTable').empty();
     }
 
-    selectRow(row) {
-        row.classList.add('svg-selected-row');
-        row.classList.remove('svg-hoverable-row');
+    selectRow(backRectElement, sha) {
+        const self = this;
+        self.unselectAllRows();
+        backRectElement.classList.add('svg-selected-row');
+        backRectElement.classList.remove('svg-hoverable-row');
+        // Will call start-process from back-end
+        emit("get-commit-info", sha).then();
     }
 
     getClickFunction(sha) {
         const self = this;
         return function(event) {
-            self.unselectAllRows();
-            self.selectRow(event.target);
-            // Will call start-process from back-end
-            emit("get-commit-info", sha).then();
+            self.selectRow(event.target, sha);
         };
     }
 

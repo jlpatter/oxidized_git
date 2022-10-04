@@ -422,8 +422,10 @@ class Main {
         );
         $commitInfo.append($newCommitInfo);
 
+        let first = true;
         commit_info['changed_files'].forEach(function(file) {
-            self.addFileChangeRow($commitChanges, null, file, 'commit', commit_info['sha']);
+            self.addFileChangeRow($commitChanges, null, file, 'commit', commit_info['sha'], first);
+            first = false;
         });
         self.truncateFilePathText();
     }
@@ -500,7 +502,7 @@ class Main {
         }
     }
 
-    addFileChangeRow($changesDiv, $button, file, changeType, sha) {
+    addFileChangeRow($changesDiv, $button, file, changeType, sha, isSelected) {
         const self = this,
             // The outer div is the whole row (minus the button), the next inner div is the "unshrunken" text size (i.e. what size the text should fit in), and the last inner div is the size of the text width.
             // This is all used for truncating the text.
@@ -525,6 +527,12 @@ class Main {
             $row.append($button);
         }
         $changesDiv.append($row);
+
+        if (isSelected) {
+            self.unselectAllRows();
+            self.selectRow($text);
+            emit('file-diff', {file_path: file['path'], change_type: changeType, sha: sha}).then();
+        }
     }
 
     updateFilesChangedInfo(files_changed_info_list) {
@@ -551,7 +559,7 @@ class Main {
                 e.stopPropagation();
                 emit('stage', unstagedFile).then();
             });
-            self.addFileChangeRow($unstagedChanges, $button, unstagedFile, 'unstaged', '');
+            self.addFileChangeRow($unstagedChanges, $button, unstagedFile, 'unstaged', '', false);
         });
 
         // Staged changes
@@ -561,7 +569,7 @@ class Main {
                 e.stopPropagation();
                 emit('unstage', stagedFile).then();
             });
-            self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged', '');
+            self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged', '', false);
         });
 
         self.truncateFilePathText();
