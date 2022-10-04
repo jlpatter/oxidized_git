@@ -4,10 +4,35 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
+use git2::{
+    AutotagOption,
+    Branch,
+    BranchType,
+    Commit,
+    Cred,
+    Delta,
+    Diff,
+    DiffFindOptions,
+    DiffLine,
+    DiffOptions,
+    ErrorCode,
+    FetchOptions,
+    FetchPrune,
+    IndexAddOption,
+    Oid,
+    Patch,
+    PushOptions,
+    Rebase,
+    Reference,
+    RemoteCallbacks,
+    Repository,
+    ResetType,
+    Signature,
+    Sort
+};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use rfd::FileDialog;
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
 use crate::config_manager;
 
@@ -45,14 +70,29 @@ impl FileLineInfo {
     }
 }
 
+#[derive(Clone)]
+pub enum LineInfo {
+    SomeFileLineInfo(FileLineInfo),
+    SomeSeparator(String),
+}
+
+impl Serialize for LineInfo {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> where S: Serializer {
+        match &self {
+            LineInfo::SomeFileLineInfo(f) => f.serialize(serializer),
+            LineInfo::SomeSeparator(s) => s.serialize(serializer),
+        }
+    }
+}
+
 #[derive(Clone, Serialize)]
 pub struct FileInfo {
     change_type: String,
-    file_lines: Vec<FileLineInfo>,
+    file_lines: Vec<LineInfo>,
 }
 
 impl FileInfo {
-    pub fn new(change_type: String, file_lines: Vec<FileLineInfo>) -> Self {
+    pub fn new(change_type: String, file_lines: Vec<LineInfo>) -> Self {
         Self {
             change_type,
             file_lines,
@@ -972,10 +1012,12 @@ impl GitManager {
         match patch_opt {
             Some(patch) => {
                 for i in 0..patch.num_hunks() {
+                    let (hunk, _) = patch.hunk(i)?;
+                    file_lines.push(LineInfo::SomeSeparator(String::from(str::from_utf8(hunk.header())?)));
                     let line_count = patch.num_lines_in_hunk(i)?;
                     for j in 0..line_count {
                         let line = patch.line_in_hunk(i, j)?;
-                        file_lines.push(FileLineInfo::from_diff_line(line, &file_type)?);
+                        file_lines.push(LineInfo::SomeFileLineInfo(FileLineInfo::from_diff_line(line, &file_type)?));
                     }
                 }
             },

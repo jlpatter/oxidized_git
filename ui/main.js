@@ -369,19 +369,23 @@ class Main {
         $fileDiffTable.empty();
         file_info['file_lines'].forEach((line) => {
             let fileLineRow = '<tr><td class="line-no">';
-            if (line['origin'] === '+') {
-                fileLineRow = '<tr class="added-code-line"><td class="line-no">';
-            } else if (line['origin'] === '-') {
-                fileLineRow = '<tr class="removed-code-line"><td class="line-no">';
+            if (typeof line === 'string') {
+                fileLineRow += '</td><td class="line-no"></td><td></td><td class="line-content"><pre><code class="language-plaintext">' + line + '</code></pre></td></tr>';
+            } else {
+                if (line['origin'] === '+') {
+                    fileLineRow = '<tr class="added-code-line"><td class="line-no">';
+                } else if (line['origin'] === '-') {
+                    fileLineRow = '<tr class="removed-code-line"><td class="line-no">';
+                }
+                if (line['old_lineno'] !== null) {
+                    fileLineRow += line['old_lineno'];
+                }
+                fileLineRow += '</td><td class="line-no">';
+                if (line['new_lineno'] !== null) {
+                    fileLineRow += line['new_lineno'];
+                }
+                fileLineRow += '</td><td>' + line['origin'] + '</td><td class="line-content"><pre><code class="language-' + line['file_type'] + '">' + line['content'] + '</code></pre></td></tr>';
             }
-            if (line['old_lineno'] !== null) {
-                fileLineRow += line['old_lineno'];
-            }
-            fileLineRow += '</td><td class="line-no">';
-            if (line['new_lineno'] !== null) {
-                fileLineRow += line['new_lineno'];
-            }
-            fileLineRow += '</td><td>' + line['origin'] + '</td><td class="line-content"><pre><code class="language-' + line['file_type'] + '">' + line['content'] + '</code></pre></td></tr>';
             $fileDiffTable.append($(fileLineRow));
         });
         hljs.highlightAll();
