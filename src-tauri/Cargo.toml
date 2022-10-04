@@ -25,6 +25,7 @@ directories = "4.0.*"
 keytar = "0.1.*"
 html-escape = "0.2.*"
 anyhow = { version = "1.0.*", features = ["backtrace"] }
+chrono = "0.4.*"
 
 [features]
 # by default Tauri runs in production mode

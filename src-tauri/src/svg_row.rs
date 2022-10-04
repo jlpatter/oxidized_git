@@ -84,6 +84,8 @@ const RECT_Y_OFFSET: isize = -(RECT_HEIGHT / 2);
 #[derive(Clone)]
 pub struct SVGRow {
     sha: String,
+    author_name: String,
+    author_time: String,
     summary: String,
     parent_oids: Vec<String>,
     child_oids: Vec<String>,
@@ -98,6 +100,8 @@ impl SVGRow {
     pub fn from_commit_info(commit_info: &ParseableCommitInfo) -> Self {
         Self {
             sha: commit_info.borrow_sha().clone(),
+            author_name: commit_info.borrow_author_name().clone(),
+            author_time: commit_info.borrow_author_time().clone(),
             summary: commit_info.borrow_summary().clone(),
             parent_oids: commit_info.borrow_parent_shas().clone(),
             child_oids: commit_info.borrow_child_shas().clone(),
@@ -336,6 +340,30 @@ impl SVGRow {
             (String::from("tag"), SVGProperty::SomeString(String::from("text"))),
             (String::from("attrs"), SVGProperty::SomeHashMap(text_attrs)),
             (String::from("textContent"), SVGProperty::SomeString(self.summary.clone())),
+        ])));
+
+        // Get author name
+        let text_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
+            (String::from("x"), SVGPropertyAttrs::SomeInt(0)),
+            (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_OFFSET)),
+            (String::from("fill"), SVGPropertyAttrs::SomeString(String::from("white"))),
+        ]);
+        draw_properties.insert(String::from("author_name"), DrawProperty::SomeHashMap(HashMap::from([
+            (String::from("tag"), SVGProperty::SomeString(String::from("text"))),
+            (String::from("attrs"), SVGProperty::SomeHashMap(text_attrs)),
+            (String::from("textContent"), SVGProperty::SomeString(self.author_name.clone())),
+        ])));
+
+        // Get author time
+        let text_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
+            (String::from("x"), SVGPropertyAttrs::SomeInt(0)),
+            (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_OFFSET)),
+            (String::from("fill"), SVGPropertyAttrs::SomeString(String::from("white"))),
+        ]);
+        draw_properties.insert(String::from("author_time"), DrawProperty::SomeHashMap(HashMap::from([
+            (String::from("tag"), SVGProperty::SomeString(String::from("text"))),
+            (String::from("attrs"), SVGProperty::SomeHashMap(text_attrs)),
+            (String::from("textContent"), SVGProperty::SomeString(self.author_time.clone())),
         ])));
 
         // Get background rectangle

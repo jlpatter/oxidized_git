@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 use anyhow::{bail, Result};
+use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use git2::{BranchType, Diff, ErrorCode, Oid, RepositoryState};
 use serde::{Serialize, Deserialize, Serializer};
 use crate::git_manager::GitManager;
@@ -44,6 +45,8 @@ impl CommitsInfo {
 #[derive(Clone, Serialize)]
 pub struct ParseableCommitInfo {
     sha: String,
+    author_name: String,
+    author_time: String,
     x: isize,
     y: isize,
     summary: String,
@@ -52,9 +55,11 @@ pub struct ParseableCommitInfo {
 }
 
 impl ParseableCommitInfo {
-    pub fn new(sha: String, x: isize, y: isize, summary: String, parent_shas: Vec<String>, child_shas: Vec<String>) -> Self {
+    pub fn new(sha: String, author_name: String, author_time: String, x: isize, y: isize, summary: String, parent_shas: Vec<String>, child_shas: Vec<String>) -> Self {
         Self {
             sha,
+            author_name,
+            author_time,
             x,
             y,
             summary,
@@ -65,6 +70,14 @@ impl ParseableCommitInfo {
 
     pub fn borrow_sha(&self) -> &String {
         &self.sha
+    }
+
+    pub fn borrow_author_name(&self) -> &String {
+        &self.author_name
+    }
+
+    pub fn borrow_author_time(&self) -> &String {
+        &self.author_time
     }
 
     pub fn borrow_x(&self) -> &isize {
@@ -382,7 +395,25 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
             };
         }
 
-        commit_list.push(ParseableCommitInfo::new(oid.to_string(), 0, i as isize, String::from(commit_summary), parent_shas, vec![]));
+        let author_signature = commit.author();
+        let author_name = String::from(GitManager::get_utf8_string(author_signature.name(), "Author Name")?);
+
+        let author_time = author_signature.when().seconds();
+        let naive_datetime = NaiveDateTime::from_timestamp(author_time, 0);
+        let utc_datetime: DateTime<Utc> = DateTime::from_utc(naive_datetime, Utc);
+        let local_datetime: DateTime<Local> = DateTime::from(utc_datetime);
+        let formatted_datetime = format!("{}", local_datetime.format("%F %r"));
+
+        commit_list.push(ParseableCommitInfo::new(
+            oid.to_string(),
+            author_name,
+            formatted_datetime,
+            0,
+            i as isize,
+            String::from(commit_summary),
+            parent_shas,
+            vec![])
+        );
     }
 
     // Gather the child commits after running through the commit graph once in order

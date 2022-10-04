@@ -28,6 +28,8 @@ class Main {
 
         self.setupTreeViews();
 
+        self.svgManager.setGraphWidth();
+
         // Setup resizable columns.
         const resizableColumns = document.querySelectorAll(".resizable-column");
         resizableColumns.forEach((resizableColumn) => {
@@ -40,6 +42,10 @@ class Main {
             if (resizableColumn.classList.contains('resizable-column-file-paths')) {
                 r.on('resize', function() {
                     self.truncateFilePathText();
+                });
+            } else if (resizableColumn.classList.contains('resizable-column-branches')) {
+                r.on('resize', function() {
+                    self.svgManager.setGraphWidth();
                 });
             }
         });
@@ -66,6 +72,7 @@ class Main {
         $(window).resize(() => {
             self.truncateFilePathText();
             self.svgManager.setVisibleCommits();
+            self.svgManager.setGraphWidth();
         });
 
         listen("start-process", ev => {

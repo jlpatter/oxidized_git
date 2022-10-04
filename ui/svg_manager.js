@@ -8,7 +8,9 @@ export class SVGManager {
     Y_SPACING = 24;  // If changing, be sure to update on backend-end too
     Y_OFFSET = 20;  // If changing, be sure to update on backend-end too
     BRANCH_TEXT_SPACING = 5;
+    RIGHT_TEXT_SPACING = 10;
     SCROLL_RENDERING_MARGIN = 100;
+    SCROLLBAR_WIDTH = 12;  // If changing, be sure to update in CSS!
     /**
      * Constructs the svg manager.
      */
@@ -21,33 +23,37 @@ export class SVGManager {
         this.setScrollEvent();
     }
 
-    /**
-     * Refreshes the commit table. Can be called on its own for a passive refresh.
-     */
-    updateGraph(commitsInfo) {
-        const self = this;
-
-        const $textSizeTestContainer = $('<svg width="500" height="500"></svg>');
-        const textSizeTest = self.makeSVG('text', {id: 'textSizeTest', x: 0, y: 0, fill: 'white'});
+    getSingleCharWidth() {
+        const self = this,
+            $textSizeTestContainer = $('<svg width="500" height="500"></svg>'),
+            textSizeTest = self.makeSVG('text', {id: 'textSizeTest', x: 0, y: 0, fill: 'white'});
         textSizeTest.textContent = 'A';
         $textSizeTestContainer.append(textSizeTest);
         $('#mainBody').append($textSizeTestContainer);
         const singleCharWidth = textSizeTest.getBBox().width;
         $textSizeTestContainer.remove();
+        return singleCharWidth;
+    }
+
+    /**
+     * Refreshes the commit table. Can be called on its own for a passive refresh.
+     */
+    updateGraph(commitsInfo) {
+        const self = this,
+            singleCharWidth = self.getSingleCharWidth();
 
         for (let i = 0; i < self.rows.length; i++) {
             self.removeBranchLabels(self.rows[i]);
         }
 
-        let maxWidth = Number(self.commitTableSVG.getAttribute('width'));
+        const graphWidth = Number(self.commitTableSVG.getAttribute('width'));
         if (commitsInfo['svg_row_draw_properties'].length > 0) {
             self.rows = [];
 
-            maxWidth = 0;
             for (let i = 0; i < commitsInfo['svg_row_draw_properties'].length; i++) {
                 const commit = commitsInfo['svg_row_draw_properties'][i];
                 const elements = commit['elements'];
-                let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'lines': [], 'branches': [], 'circle': null, 'summaryTxt': null, 'backRect': null};
+                let row = {'sha': commit['sha'], 'pixel_y': commit['pixel_y'], 'lines': [], 'branches': [], 'circle': null, 'summaryTxt': null, 'authorName': null, 'authorTime': null, 'backRect': null};
                 for (const childLine of elements['child_lines']) {
                     const line = self.makeSVG(childLine['tag'], childLine['attrs']);
                     if (childLine['row-y'] < i) {
@@ -64,8 +70,18 @@ export class SVGManager {
                 summaryTxt.textContent = elements['summary_text']['textContent'];
                 row['summaryTxt'] = summaryTxt;
 
-                let width = elements['circle']['attrs']['cx'] + elements['summary_text']['textContent'].length * singleCharWidth;
-                elements['back_rect']['attrs']['width'] = width;
+                const authorTimeX = graphWidth - (elements['author_time']['textContent'].length * singleCharWidth) - self.RIGHT_TEXT_SPACING;
+                elements['author_time']['attrs']['x'] = authorTimeX;
+                const authorTime = self.makeSVG(elements['author_time']['tag'], elements['author_time']['attrs']);
+                authorTime.textContent = elements['author_time']['textContent'];
+                row['authorTime'] = authorTime;
+
+                elements['author_name']['attrs']['x'] = authorTimeX - (elements['author_name']['textContent'].length * singleCharWidth) - self.RIGHT_TEXT_SPACING;
+                const authorName = self.makeSVG(elements['author_name']['tag'], elements['author_name']['attrs']);
+                authorName.textContent = elements['author_name']['textContent'];
+                row['authorName'] = authorName;
+
+                elements['back_rect']['attrs']['width'] = graphWidth - elements['circle']['attrs']['cx'];
                 const backRect = self.makeSVG(elements['back_rect']['tag'], elements['back_rect']['attrs']);
                 backRect.onclick = self.getClickFunction(commit['sha']);
                 backRect.ondblclick = self.getDblClickFunction(commit['sha']);
@@ -73,18 +89,16 @@ export class SVGManager {
                 row['backRect'] = backRect;
 
                 self.rows.push(row);
-                maxWidth = Math.max(maxWidth, width);
             }
         }
 
-        maxWidth = self.addBranchLabels(commitsInfo['branch_draw_properties'], singleCharWidth, maxWidth);
+        self.addBranchLabels(commitsInfo['branch_draw_properties'], singleCharWidth);
 
         self.setVisibleCommits();
-        self.commitTableSVG.setAttribute('width', maxWidth.toString());
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
     }
 
-    addBranchLabels(branchDrawProperties, singleCharWidth, maxWidth) {
+    addBranchLabels(branchDrawProperties, singleCharWidth) {
         const self = this;
 
         for (let i = 0; i < branchDrawProperties.length; i++) {
@@ -93,7 +107,6 @@ export class SVGManager {
             });
             if (rowIndex !== -1) {
                 const summaryTxtElem = self.rows[rowIndex]['summaryTxt'];
-                const backRectElem = self.rows[rowIndex]['backRect'];
                 const pixel_y = Number(self.rows[rowIndex]['circle'].getAttribute('cy'));
                 let currentPixelX = Number(summaryTxtElem.getAttribute('x'));
                 for (let j = 0; j < branchDrawProperties[i][1].length; j++) {
@@ -115,11 +128,8 @@ export class SVGManager {
                     currentPixelX += box_width + self.BRANCH_TEXT_SPACING;
                     summaryTxtElem.setAttribute('x', currentPixelX.toString());
                 }
-                backRectElem.setAttribute('width', (currentPixelX + summaryTxtElem.textContent.length * singleCharWidth).toString());
-                maxWidth = Math.max(maxWidth, currentPixelX + summaryTxtElem.textContent.length * singleCharWidth);
             }
         }
-        return maxWidth;
     }
 
     removeBranchLabels(row) {
@@ -143,6 +153,8 @@ export class SVGManager {
         for (let i = self.commitsTop; i <= self.commitsBottom; i++) {
             df.appendChild(self.rows[i]['circle']);
             df.appendChild(self.rows[i]['summaryTxt']);
+            df.appendChild(self.rows[i]['authorName']);
+            df.appendChild(self.rows[i]['authorTime']);
             self.rows[i]['branches'].forEach((branch) => {
                 df.appendChild(branch);
             });
@@ -152,6 +164,20 @@ export class SVGManager {
         self.commitTableSVG.innerHTML = '';
 
         self.commitTableSVG.appendChild(df);
+    }
+
+    setGraphWidth() {
+        const self = this,
+            singleCharWidth = self.getSingleCharWidth(),
+            newGraphWidth = $('#mainBody').width() - self.commitTableSVG.getBoundingClientRect().left - self.SCROLLBAR_WIDTH;
+
+        self.commitTableSVG.setAttribute('width', newGraphWidth.toString());
+        for (let i = 0; i < self.rows.length; i++) {
+            const authorTimeX = newGraphWidth - (self.rows[i]['authorTime'].textContent.length * singleCharWidth) - self.RIGHT_TEXT_SPACING;
+            self.rows[i]['authorTime'].setAttribute('x', authorTimeX.toString());
+            self.rows[i]['authorName'].setAttribute('x', (authorTimeX - (self.rows[i]['authorName'].textContent.length * singleCharWidth) - self.RIGHT_TEXT_SPACING).toString());
+            self.rows[i]['backRect'].setAttribute('width', (newGraphWidth - Number(self.rows[i]['circle'].getAttribute('cx'))).toString());
+        }
     }
 
     setVisibleCommits() {

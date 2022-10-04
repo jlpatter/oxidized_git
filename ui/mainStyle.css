@@ -1,6 +1,7 @@
 body {
     display: block;
     height: 100vh;
+    width: 100vw;
     overflow: auto;
     font-size: 15px;
 }
