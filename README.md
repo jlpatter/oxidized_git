@@ -1,5 +1,8 @@
 # Oxidized Git
 
+## Note: This project is still under construction and doesn't have a release version yet!
+You are free to compile the project and try it if you want, but there are still a bunch of things I want to fix/add before the full release! I'm also planning on setting up a website for the project and getting proper code signing and such so stay tuned!
+
 ## Usage
 ### Windows
 * Install WebView2 https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
