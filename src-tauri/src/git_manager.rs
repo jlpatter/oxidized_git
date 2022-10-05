@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
+use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort, StashFlags};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
@@ -164,6 +164,14 @@ impl GitManager {
 
     pub fn borrow_repo(&self) -> Result<&Repository> {
         let repo_temp_opt = &self.repo;
+        match repo_temp_opt {
+            Some(repo) => Ok(repo),
+            None => bail!("No repo loaded to perform operation on."),
+        }
+    }
+
+    pub fn borrow_repo_mut(&mut self) -> Result<&mut Repository> {
+        let repo_temp_opt = &mut self.repo;
         match repo_temp_opt {
             Some(repo) => Ok(repo),
             None => bail!("No repo loaded to perform operation on."),
@@ -1350,6 +1358,18 @@ impl GitManager {
             let new_remote_branch_shorthand = format!("{remote_name}/{local_branch_shorthand}");
             let mut local_branch = repo.find_branch(local_branch_shorthand, BranchType::Local)?;
             local_branch.set_upstream(Some(&*new_remote_branch_shorthand))?;
+        }
+
+        Ok(())
+    }
+
+    pub fn git_stash(&mut self, message: &str) -> Result<()> {
+        let repo = self.borrow_repo_mut()?;
+
+        if message == "" {
+            repo.stash_save2(&repo.signature()?, None, Some(StashFlags::INCLUDE_UNTRACKED))?;
+        } else {
+            repo.stash_save2(&repo.signature()?, Some(message), Some(StashFlags::INCLUDE_UNTRACKED))?;
         }
 
         Ok(())

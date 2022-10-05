@@ -303,6 +303,17 @@ class Main {
             $('#pushModal').modal('hide');
         });
 
+        $('#openStashModalBtn').click(() => {
+            $('#stashModal').modal('show');
+        });
+
+        $('#stashBtn').click(() => {
+            const $stashTxt = $('#stashTxt');
+            emit("stash", $stashTxt.val()).then();
+            $stashTxt.val('');
+            $('#stashModal').modal('hide');
+        });
+
         $('#openBranchModalBtn').click(() => {
             $('#branchCheckoutCheckBox').prop('checked', true);
             $('#branchModal').modal('show');
@@ -665,7 +676,8 @@ class Main {
         const self = this,
             $localBranches = $('#localBranches'),
             $remoteBranches = $('#remoteBranches'),
-            $tags = $('#tags');
+            $tags = $('#tags'),
+            $stashes = $('#stashes');
 
         let activeTreeIds = [];
         $('.active-tree').each(function() {
@@ -675,11 +687,20 @@ class Main {
         $localBranches.empty();
         $remoteBranches.empty();
         $tags.empty();
+        $stashes.empty();
 
         // The root node is empty, so get its children.
         self.buildBranchResultHTML(branch_info_list['local_branch_info_tree']['children'], $localBranches, "localBranches");
         self.buildBranchResultHTML(branch_info_list['remote_branch_info_tree']['children'], $remoteBranches, "remoteBranches");
         self.buildBranchResultHTML(branch_info_list['tag_branch_info_tree']['children'], $tags, "tags");
+
+        branch_info_list['stash_info_list'].forEach((stashInfo) => {
+            const $stashItem = $('<li class="hoverable-row unselectable inner-branch-item"></li>');
+            $stashItem.text(stashInfo);
+            // TODO: Add context menu!
+            $stashes.append($stashItem);
+        });
+
         self.setupTreeViews();
 
         const activeTreeIdsSelector = "#" + activeTreeIds.join(",#");
