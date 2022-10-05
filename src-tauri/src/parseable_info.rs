@@ -409,7 +409,17 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
         let naive_datetime = NaiveDateTime::from_timestamp(author_time, 0);
         let utc_datetime: DateTime<Utc> = DateTime::from_utc(naive_datetime, Utc);
         let local_datetime: DateTime<Local> = DateTime::from(utc_datetime);
-        let formatted_datetime = format!("{}", local_datetime.format("%F %r"));
+
+        let midnight_tonight = Local::today().and_hms(23, 59, 59);
+        let diff = midnight_tonight - local_datetime;
+        let formatted_datetime;
+        if diff.num_days() == 0 {
+            formatted_datetime = format!("Today {}", local_datetime.format("%r"));
+        } else if diff.num_days() == 1 {
+            formatted_datetime = format!("Yesterday {}", local_datetime.format("%r"));
+        } else {
+            formatted_datetime = format!("{}", local_datetime.format("%F %r"));
+        }
 
         commit_list.push(ParseableCommitInfo::new(
             oid.to_string(),
