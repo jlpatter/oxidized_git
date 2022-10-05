@@ -14,13 +14,14 @@ export class SVGManager {
     /**
      * Constructs the svg manager.
      */
-    constructor() {
+    constructor(mainJS) {
         this.commitColumn = document.getElementById('commitColumn');
         this.commitTableSVG = document.getElementById('commitTableSVG');
         this.rows = [];
         this.commitsTop = -99;
         this.commitsBottom = -99;
         this.selectedSHA = '';
+        this.mainJS = mainJS;
         this.setScrollEvent();
     }
 
@@ -302,6 +303,7 @@ export class SVGManager {
      * @return {(function(*): void)|*}
      */
     getContextFunction(sha) {
+        const self = this;
         return function(event) {
             event.preventDefault();
             const $contextMenu = $('#contextMenu');
@@ -317,6 +319,7 @@ export class SVGManager {
 
             const $rebaseBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-database"></i> Rebase Onto Here</button>');
             $rebaseBtn.click(function() {
+                self.mainJS.addProcessCount();
                 emit("rebase", sha).then();
             });
             $contextMenu.append($rebaseBtn);

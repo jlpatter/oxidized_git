@@ -15,7 +15,7 @@ function togglerClick() {
 class Main {
     constructor() {
         this.processCount = 0;
-        this.svgManager = new SVGManager();
+        this.svgManager = new SVGManager(this);
         this.generalInfo = {};
         this.oldSelectedSHA = '';
         this.selectedCommitInfoFilePath = '';
@@ -268,6 +268,7 @@ class Main {
         });
 
         $('#continueRebaseBtn').click(() => {
+            self.addProcessCount();
             emit("continue-rebase").then();
         });
 
