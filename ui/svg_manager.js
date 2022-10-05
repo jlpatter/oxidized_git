@@ -224,6 +224,22 @@ export class SVGManager {
         }
     }
 
+    scrollToCommit(sha) {
+        const self = this;
+        if (sha !== '') {
+            const rowIndex = self.rows.findIndex(function(row) {
+                return row['sha'] === sha;
+            });
+            if (rowIndex !== -1) {
+                const rowPixelY = rowIndex * self.Y_SPACING + self.Y_OFFSET;
+                const halfClientHeight = self.commitColumn.clientHeight / 2;
+                // scrollTop automatically bounds itself for negative numbers or numbers greater than the max scroll position.
+                self.commitColumn.scrollTop = rowPixelY - halfClientHeight;
+                self.setVisibleCommits();
+            }
+        }
+    }
+
     setScrollEvent() {
         const self = this;
         self.commitColumn.addEventListener('scroll', () => {

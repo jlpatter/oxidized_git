@@ -640,6 +640,9 @@ class Main {
                             emit("checkout", child['branch_info']['full_branch_name']).then();
                         });
                     }
+                    $innerListItem.click(function() {
+                        self.svgManager.scrollToCommit(child['branch_info']['target_sha']);
+                    });
                     $innerListItem.contextmenu(function(e) {
                         e.preventDefault();
                         self.showBranchContextMenu(e, child['branch_info']['branch_shorthand'], child['branch_info']['branch_type']);

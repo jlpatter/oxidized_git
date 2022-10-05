@@ -164,6 +164,7 @@ impl FilesChangedInfo {
 
 #[derive(Clone, Serialize)]
 pub struct BranchInfo {
+    target_sha: String,
     branch_shorthand: String,
     full_branch_name: String,
     is_head: bool,
@@ -174,8 +175,9 @@ pub struct BranchInfo {
 }
 
 impl BranchInfo {
-    pub fn new(branch_shorthand: String, full_branch_name: String, is_head: bool, branch_type: String, ahead: usize, behind: usize, has_upstream: bool) -> Self {
+    pub fn new(target_sha: String, branch_shorthand: String, full_branch_name: String, is_head: bool, branch_type: String, ahead: usize, behind: usize, has_upstream: bool) -> Self {
         Self {
+            target_sha,
             branch_shorthand,
             full_branch_name,
             is_head,
@@ -490,6 +492,11 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
     for reference_result in repo.references()? {
         let reference = reference_result?;
 
+        let target_sha = match reference.peel_to_commit() {
+            Ok(c) => c.id().to_string(),
+            Err(_) => String::new(),
+        };
+
         // Get branch name
         let branch_shorthand = String::from(GitManager::get_utf8_string(reference.shorthand(), "Branch Name")?);
 
@@ -555,7 +562,7 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
         for s in branch_shorthand.split("/") {
             split_shorthand.push_back(String::from(s));
         }
-        let branch_info = BranchInfo::new(branch_shorthand, full_branch_name, is_head, branch_type.clone(), ahead, behind, has_upstream);
+        let branch_info = BranchInfo::new(target_sha, branch_shorthand, full_branch_name, is_head, branch_type.clone(), ahead, behind, has_upstream);
         if branch_type == String::from("local") {
             local_branch_info_tree.insert_split_shorthand(split_shorthand, Some(branch_info));
         } else if branch_type == String::from("remote") {
