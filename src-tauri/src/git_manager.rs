@@ -4,32 +4,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{
-    AutotagOption,
-    Branch,
-    BranchType,
-    Commit,
-    Cred,
-    Delta,
-    Diff,
-    DiffFindOptions,
-    DiffLine,
-    DiffOptions,
-    ErrorCode,
-    FetchOptions,
-    FetchPrune,
-    IndexAddOption,
-    Oid,
-    Patch,
-    PushOptions,
-    Rebase,
-    Reference,
-    RemoteCallbacks,
-    Repository,
-    ResetType,
-    Signature,
-    Sort
-};
+use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
@@ -45,6 +20,13 @@ fn trim_newline(s: &mut String) {
     }
 }
 
+fn get_content_from_diff_line(diff_line: &DiffLine) -> Result<String> {
+    let mut content_string = String::from(str::from_utf8(diff_line.content())?);
+    trim_newline(&mut content_string);
+    content_string = html_escape::encode_text(&content_string).parse()?;
+    Ok(content_string)
+}
+
 #[derive(Clone, Serialize)]
 pub struct FileLineInfo {
     old_lineno: Option<u32>,
@@ -56,9 +38,7 @@ pub struct FileLineInfo {
 
 impl FileLineInfo {
     pub fn from_diff_line(diff_line: DiffLine, file_type: &String) -> Result<Self> {
-        let mut content_string = String::from(str::from_utf8(diff_line.content())?);
-        trim_newline(&mut content_string);
-        content_string = html_escape::encode_text(&content_string).parse()?;
+        let content_string = get_content_from_diff_line(&diff_line)?;
         let new_info = Self {
             old_lineno: diff_line.old_lineno(),
             new_lineno: diff_line.new_lineno(),
@@ -1016,16 +996,24 @@ impl GitManager {
         let mut file_lines = vec![];
         let file_type = String::from(file_path.split(".").last().unwrap_or(""));
         match patch_opt {
-            Some(patch) => {
-                for i in 0..patch.num_hunks() {
-                    let (hunk, _) = patch.hunk(i)?;
-                    file_lines.push(LineInfo::SomeSeparator(String::from(str::from_utf8(hunk.header())?)));
-                    let line_count = patch.num_lines_in_hunk(i)?;
-                    for j in 0..line_count {
-                        let line = patch.line_in_hunk(i, j)?;
-                        file_lines.push(LineInfo::SomeFileLineInfo(FileLineInfo::from_diff_line(line, &file_type)?));
+            Some(mut patch) => {
+                patch.print(&mut |_diff_delta, _diff_hunk_opt, diff_line| {
+                    if diff_line.origin_value() == DiffLineType::FileHeader {
+                        if let Ok(s) = get_content_from_diff_line(&diff_line) {
+                            // Include file header if filemode has changed.
+                            if !s.contains("+++") && (s.contains("old mode") || s.contains("new mode")) {
+                                file_lines.push(LineInfo::SomeSeparator(s));
+                            }
+                        }
+                    } else if diff_line.origin_value() == DiffLineType::HunkHeader {
+                        if let Ok(s) = get_content_from_diff_line(&diff_line) {
+                            file_lines.push(LineInfo::SomeSeparator(s));
+                        }
+                    } else if let Ok(fli) = FileLineInfo::from_diff_line(diff_line, &file_type) {
+                        file_lines.push(LineInfo::SomeFileLineInfo(fli));
                     }
-                }
+                    true
+                })?;
             },
             None => bail!("Patch not found in diff."),
         }
