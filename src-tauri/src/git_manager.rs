@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort, StashApplyOptions, StashFlags};
+use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort, StashFlags};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
@@ -1390,18 +1390,9 @@ impl GitManager {
             None => bail!("delete_stash not included in payload from front-end."),
         };
 
-        let mut dry_run_checkout_opts = CheckoutBuilder::new();
-        dry_run_checkout_opts.dry_run();
-        let mut dry_run_stash_opts = StashApplyOptions::new();
-        dry_run_stash_opts.checkout_options(dry_run_checkout_opts);
-
         if delete_stash {
-            // Do a dry run first, if there's a conflict it will return an error.
-            repo.stash_apply(index, Some(&mut dry_run_stash_opts))?;
             repo.stash_pop(index, None)?;
         } else {
-            // Do a dry run first, if there's a conflict it will return an error.
-            repo.stash_apply(index, Some(&mut dry_run_stash_opts))?;
             repo.stash_apply(index, None)?;
         }
 
