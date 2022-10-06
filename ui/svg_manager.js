@@ -285,6 +285,16 @@ export class SVGManager {
         emit("get-commit-info", sha).then();
     }
 
+    selectRowViaSha(sha) {
+        const self = this;
+        const row = self.rows.find(function(row) {
+            return row['sha'] === sha;
+        });
+        if (row !== undefined) {
+            self.selectRow(row['backRect'], sha);
+        }
+    }
+
     getClickFunction(sha) {
         const self = this;
         return function(event) {

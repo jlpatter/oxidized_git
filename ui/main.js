@@ -670,6 +670,7 @@ class Main {
                     }
                     $innerListItem.click(function() {
                         self.svgManager.scrollToCommit(child['branch_info']['target_sha']);
+                        self.svgManager.selectRowViaSha(child['branch_info']['target_sha']);
                     });
                     $innerListItem.contextmenu(function(e) {
                         e.preventDefault();
