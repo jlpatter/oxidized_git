@@ -24,6 +24,7 @@
                 <button id="fetchBtn" type="button" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-down"></i> Fetch</button>
                 <button id="pullBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-arrow-down"></i> Pull</button>
                 <button id="openPushModalBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-arrow-up"></i> Push</button>
+                <button id="openStashModalBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-box-archive"></i> Stash</button>
                 <button id="openBranchModalBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-code-branch"></i> Branch</button>
             </div>
             <div id="spinnerContainer">
@@ -49,6 +50,9 @@
                         </li>
                         <li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> Tags</span>
                             <ul id="tags" class="nested sub-tree-view"></ul>
+                        </li>
+                        <li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> Stashes</span>
+                            <ul id="stashes" class="nested sub-tree-view"></ul>
                         </li>
                     </ul>
                 </div>
@@ -343,6 +347,43 @@
             </div>
         </div>
 
+        <div class="modal fade text-black" id="stashModal" tabindex="-1" aria-labelledby="stashModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="stashModalLabel">Stash Options</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label for="stashTxt">Message (optional): </label><input id="stashTxt" type="text" class="form-control">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="stashBtn" type="button" class="btn btn-primary btn-sm">Stash</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade text-black" id="applyStashModal" tabindex="-1" aria-labelledby="applyStashModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="applyStashModalLabel">Apply Stash Options</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Stash Index: <span id="stashIndex"></span></p>
+                        <input class="form-check-input" type="checkbox" value="" id="deleteStashCheckBox"><label class="form-check-label" for="deleteStashCheckBox"> Delete Stash After Apply (won't delete if there are conflicts)</label>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="applyStashBtn" type="button" class="btn btn-primary btn-sm">Apply Stash</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="modal fade text-black" id="deleteLocalBranchModal" tabindex="-1" aria-labelledby="deleteLocalBranchModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -370,7 +411,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <label for="branchTxt">Branch Name</label><input id="branchTxt" type="text" class="form-control">
+                        <label for="branchTxt">Branch Name: </label><input id="branchTxt" type="text" class="form-control">
                         <input class="form-check-input" type="checkbox" value="" id="branchCheckoutCheckBox"><label class="form-check-label" for="branchCheckoutCheckBox"> Checkout After Create</label>
                     </div>
                     <div class="modal-footer">

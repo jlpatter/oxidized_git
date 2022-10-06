@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::str;
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort};
+use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort, StashFlags};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
@@ -164,6 +164,14 @@ impl GitManager {
 
     pub fn borrow_repo(&self) -> Result<&Repository> {
         let repo_temp_opt = &self.repo;
+        match repo_temp_opt {
+            Some(repo) => Ok(repo),
+            None => bail!("No repo loaded to perform operation on."),
+        }
+    }
+
+    pub fn borrow_repo_mut(&mut self) -> Result<&mut Repository> {
+        let repo_temp_opt = &mut self.repo;
         match repo_temp_opt {
             Some(repo) => Ok(repo),
             None => bail!("No repo loaded to perform operation on."),
@@ -1355,7 +1363,53 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_branch(&self, json_string: &str) -> Result<()> {
+    pub fn git_stash(&mut self, message: &str) -> Result<()> {
+        let repo = self.borrow_repo_mut()?;
+
+        if message == "" {
+            repo.stash_save2(&repo.signature()?, None, Some(StashFlags::INCLUDE_UNTRACKED))?;
+        } else {
+            repo.stash_save2(&repo.signature()?, Some(message), Some(StashFlags::INCLUDE_UNTRACKED))?;
+        }
+
+        Ok(())
+    }
+
+    pub fn git_apply_stash(&mut self, json_string: &str) -> Result<()> {
+        let repo = self.borrow_repo_mut()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let index = match json_hm.get("index") {
+            Some(s) => {
+                s.parse::<usize>()?
+            },
+            None => bail!("index not included in payload from front-end."),
+        };
+        let delete_stash = match json_hm.get("delete_stash") {
+            Some(s) => s == "true",
+            None => bail!("delete_stash not included in payload from front-end."),
+        };
+
+        if delete_stash {
+            repo.stash_pop(index, None)?;
+        } else {
+            repo.stash_apply(index, None)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn git_delete_stash(&mut self, stash_index_str: &str) -> Result<()> {
+        let repo = self.borrow_repo_mut()?;
+
+        let index = stash_index_str.parse::<usize>()?;
+
+        repo.stash_drop(index)?;
+
+        Ok(())
+    }
+
+    pub fn git_branch(&mut self, json_string: &str) -> Result<()> {
         let repo = self.borrow_repo()?;
 
         let branch_options: HashMap<String, String> = serde_json::from_str(json_string)?;

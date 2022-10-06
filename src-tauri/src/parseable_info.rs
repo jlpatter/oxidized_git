@@ -190,6 +190,21 @@ impl BranchInfo {
 }
 
 #[derive(Clone, Serialize)]
+pub struct StashInfo {
+    index: usize,
+    message: String,
+}
+
+impl StashInfo {
+    pub fn new(index: usize, message: String) -> Self {
+        Self {
+            index,
+            message,
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
 pub struct BranchInfoTreeNode {
     text: String,
     branch_info: Option<BranchInfo>,
@@ -238,14 +253,16 @@ pub struct BranchesInfo {
     local_branch_info_tree: BranchInfoTreeNode,
     remote_branch_info_tree: BranchInfoTreeNode,
     tag_branch_info_tree: BranchInfoTreeNode,
+    stash_info_list: Vec<StashInfo>,
 }
 
 impl BranchesInfo {
-    pub fn new(local_branch_info_tree: BranchInfoTreeNode, remote_branch_info_tree: BranchInfoTreeNode, tag_branch_info_tree: BranchInfoTreeNode) -> Self {
+    pub fn new(local_branch_info_tree: BranchInfoTreeNode, remote_branch_info_tree: BranchInfoTreeNode, tag_branch_info_tree: BranchInfoTreeNode, stash_info_list: Vec<StashInfo>) -> Self {
         Self {
             local_branch_info_tree,
             remote_branch_info_tree,
             tag_branch_info_tree,
+            stash_info_list,
         }
     }
 }
@@ -484,8 +501,8 @@ fn get_commit_svg_draw_properties_list(git_manager: &mut GitManager, force_refre
     Ok(CommitsInfo::new(branch_draw_properties, svg_row_draw_properties))
 }
 
-fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
-    let repo = git_manager.borrow_repo()?;
+fn get_branch_info_list(git_manager: &mut GitManager) -> Result<BranchesInfo> {
+    let repo = git_manager.borrow_repo_mut()?;
 
     // Get all remote heads to be excluded from branches info
     let remotes = repo.remotes()?;
@@ -590,7 +607,14 @@ fn get_branch_info_list(git_manager: &GitManager) -> Result<BranchesInfo> {
         remote_branch_info_tree.insert_split_shorthand(split_shorthand, None);
     }
 
-    Ok(BranchesInfo::new(local_branch_info_tree, remote_branch_info_tree, tag_branch_info_tree))
+    let mut stash_info_list = vec![];
+    repo.stash_foreach(|stash_index, stash_message, _stash_oid| {
+        let stash_info = StashInfo::new(stash_index, format!("{}: {}", stash_index, stash_message));
+        stash_info_list.push(stash_info);
+        true
+    })?;
+
+    Ok(BranchesInfo::new(local_branch_info_tree, remote_branch_info_tree, tag_branch_info_tree, stash_info_list))
 }
 
 fn get_remote_info_list(git_manager: &GitManager) -> Result<Vec<String>> {
