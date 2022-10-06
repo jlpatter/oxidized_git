@@ -470,7 +470,11 @@ class Main {
             self.selectRow(textJQueryElements[0], commit_info['changed_files'][0]['path'], 'commit', commit_info['sha']);
         }
         self.oldSelectedSHA = commit_info['sha'];
-        self.truncateFilePathText();
+
+        // This is a hacky way of waiting until the flexbox has shrunk before truncating text.
+        setTimeout(function() {
+            self.truncateFilePathText();
+        }, 100);
     }
 
     updateAll(repo_info) {
@@ -547,7 +551,9 @@ class Main {
 
     addFileChangeRow($changesDiv, $button, file, changeType, sha) {
         const self = this,
-            // The outer div is the whole row (minus the button), the next inner div is the "unshrunken" text size (i.e. what size the text should fit in), and the last inner div is the size of the text width.
+            // The outer div is the whole row (minus the button)
+            // the next inner div is the "unshrunken" text size (i.e. what size the text should fit in)
+            // and the last inner div is the size of the text width.
             // This is all used for truncating the text.
             $text = $('<div class="hoverable-row unselectable flex-auto-in-row display-flex-row"><div class="flex-auto-in-row display-flex-row"><div><p class="file-path-txt" data-original-txt="' + file['path'] + '">' + file['path'] + '</p></div></div></div>');
         self.prependFileIcon($text, file['status']);
@@ -608,7 +614,10 @@ class Main {
             self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged', '', false);
         });
 
-        self.truncateFilePathText();
+        // This is a hacky way of waiting until the flexbox has shrunk before truncating text.
+        setTimeout(function() {
+            self.truncateFilePathText();
+        }, 100);
     }
 
     buildBranchResultHTML(currentChildren, $ul, parentTxt) {
