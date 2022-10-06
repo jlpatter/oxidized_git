@@ -314,6 +314,13 @@ class Main {
             $('#stashModal').modal('hide');
         });
 
+        $('#applyStashBtn').click(() => {
+            const $stashIndex = $('#stashIndex');
+            emit("apply-stash", {index: $stashIndex.text(), delete_stash: $('#deleteStashCheckBox').is(':checked').toString()}).then();
+            $stashIndex.text('');
+            $('#applyStashModal').modal('hide');
+        });
+
         $('#openBranchModalBtn').click(() => {
             $('#branchCheckoutCheckBox').prop('checked', true);
             $('#branchModal').modal('show');
@@ -696,8 +703,11 @@ class Main {
 
         branch_info_list['stash_info_list'].forEach((stashInfo) => {
             const $stashItem = $('<li class="hoverable-row unselectable inner-branch-item"></li>');
-            $stashItem.text(stashInfo);
-            // TODO: Add context menu!
+            $stashItem.text(stashInfo['message']);
+            $stashItem.contextmenu(function(e) {
+                e.preventDefault();
+                self.showStashContextMenu(e, stashInfo['index']);
+            });
             $stashes.append($stashItem);
         });
 
@@ -789,6 +799,29 @@ class Main {
                 alert("Not implemented, sorry!");
             });
         }
+        $contextMenu.append($deleteBtn);
+
+        $contextMenu.show();
+    }
+
+    showStashContextMenu(event, stashIndex) {
+        const $contextMenu = $('#contextMenu');
+        $contextMenu.empty();
+        $contextMenu.css('left', event.pageX + 'px');
+        $contextMenu.css('top', event.pageY + 'px');
+
+        const $applyBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-check"></i> Apply Stash</button>');
+        $applyBtn.click(() => {
+            $('#stashIndex').text(stashIndex.toString());
+            $('#deleteStashCheckBox').prop('checked', true);
+            $('#applyStashModal').modal('show');
+        });
+        $contextMenu.append($applyBtn);
+
+        const $deleteBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-regular fa-trash-can"></i> Delete Stash</button>');
+        $deleteBtn.click(() => {
+            emit("delete-stash", stashIndex).then();
+        });
         $contextMenu.append($deleteBtn);
 
         $contextMenu.show();

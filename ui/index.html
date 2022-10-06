@@ -365,6 +365,25 @@
             </div>
         </div>
 
+        <div class="modal fade text-black" id="applyStashModal" tabindex="-1" aria-labelledby="applyStashModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="applyStashModalLabel">Apply Stash Options</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Stash Index: <span id="stashIndex"></span></p>
+                        <input class="form-check-input" type="checkbox" value="" id="deleteStashCheckBox"><label class="form-check-label" for="deleteStashCheckBox"> Delete Stash After Apply (won't delete if there are conflicts)</label>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="applyStashBtn" type="button" class="btn btn-primary btn-sm">Apply Stash</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="modal fade text-black" id="deleteLocalBranchModal" tabindex="-1" aria-labelledby="deleteLocalBranchModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">

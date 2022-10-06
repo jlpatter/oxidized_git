@@ -190,6 +190,21 @@ impl BranchInfo {
 }
 
 #[derive(Clone, Serialize)]
+pub struct StashInfo {
+    index: usize,
+    message: String,
+}
+
+impl StashInfo {
+    pub fn new(index: usize, message: String) -> Self {
+        Self {
+            index,
+            message,
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
 pub struct BranchInfoTreeNode {
     text: String,
     branch_info: Option<BranchInfo>,
@@ -238,11 +253,11 @@ pub struct BranchesInfo {
     local_branch_info_tree: BranchInfoTreeNode,
     remote_branch_info_tree: BranchInfoTreeNode,
     tag_branch_info_tree: BranchInfoTreeNode,
-    stash_info_list: Vec<String>,
+    stash_info_list: Vec<StashInfo>,
 }
 
 impl BranchesInfo {
-    pub fn new(local_branch_info_tree: BranchInfoTreeNode, remote_branch_info_tree: BranchInfoTreeNode, tag_branch_info_tree: BranchInfoTreeNode, stash_info_list: Vec<String>) -> Self {
+    pub fn new(local_branch_info_tree: BranchInfoTreeNode, remote_branch_info_tree: BranchInfoTreeNode, tag_branch_info_tree: BranchInfoTreeNode, stash_info_list: Vec<StashInfo>) -> Self {
         Self {
             local_branch_info_tree,
             remote_branch_info_tree,
@@ -594,7 +609,8 @@ fn get_branch_info_list(git_manager: &mut GitManager) -> Result<BranchesInfo> {
 
     let mut stash_info_list = vec![];
     repo.stash_foreach(|stash_index, stash_message, _stash_oid| {
-        stash_info_list.push(format!("{}: {}", stash_index, stash_message));
+        let stash_info = StashInfo::new(stash_index, format!("{}: {}", stash_index, stash_message));
+        stash_info_list.push(stash_info);
         true
     })?;
 
