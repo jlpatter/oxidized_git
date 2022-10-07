@@ -19,6 +19,7 @@ class Main {
         this.generalInfo = {};
         this.oldSelectedSHA = '';
         this.selectedCommitInfoFilePath = '';
+        this.selectedFileChangedInfoFilePath = '';
     }
 
     run() {
@@ -368,20 +369,22 @@ class Main {
         }
     }
 
-    unselectAllRows() {
-        const $selectedRow = $('.selected-row');
+    unselectRows(rowClassToDeselect) {
+        const $selectedRow = $('.' + rowClassToDeselect);
         $selectedRow.removeClass('selected-row');
         $selectedRow.addClass('hoverable-row');
         $('#fileDiffTable').empty();
     }
 
-    selectRow($row, filePath, changeType, sha) {
+    selectRow($row, rowClassToDeselect, filePath, changeType, sha) {
         const self = this;
-        self.unselectAllRows();
+        self.unselectRows(rowClassToDeselect);
         $row.addClass('selected-row');
         $row.removeClass('hoverable-row');
         if (changeType === 'commit') {
             self.selectedCommitInfoFilePath = filePath;
+        } else if (changeType === 'unstaged' || changeType === 'staged') {
+            self.selectedFileChangedInfoFilePath = filePath;
         }
         emit('file-diff', {file_path: filePath, change_type: changeType, sha: sha}).then();
     }
@@ -450,11 +453,9 @@ class Main {
         );
         $commitInfo.append($newCommitInfo);
 
-        let first = true;
         const textJQueryElements = [];
         commit_info['changed_files'].forEach(function(file) {
-            textJQueryElements.push(self.addFileChangeRow($commitChanges, null, file, 'commit', commit_info['sha'], first));
-            first = false;
+            textJQueryElements.push(self.addFileChangeRow($commitChanges, null, 'commitChangeFilePath', file, 'commit', commit_info['sha']));
         });
 
         let foundFileToSelect = false;
@@ -463,12 +464,12 @@ class Main {
                 return file['path'] === self.selectedCommitInfoFilePath;
             });
             if (changedFileIndex !== -1) {
-                self.selectRow(textJQueryElements[changedFileIndex], commit_info['changed_files'][changedFileIndex]['path'], 'commit', commit_info['sha']);
+                self.selectRow(textJQueryElements[changedFileIndex], 'commitChangeFilePath', commit_info['changed_files'][changedFileIndex]['path'], 'commit', commit_info['sha']);
                 foundFileToSelect = true;
             }
         }
         if (!foundFileToSelect && commit_info['changed_files'].length > 0) {
-            self.selectRow(textJQueryElements[0], commit_info['changed_files'][0]['path'], 'commit', commit_info['sha']);
+            self.selectRow(textJQueryElements[0], 'commitChangeFilePath', commit_info['changed_files'][0]['path'], 'commit', commit_info['sha']);
         }
         self.oldSelectedSHA = commit_info['sha'];
 
@@ -550,18 +551,18 @@ class Main {
         }
     }
 
-    addFileChangeRow($changesDiv, $button, file, changeType, sha) {
+    addFileChangeRow($changesDiv, $button, rowClassToDeselect, file, changeType, sha) {
         const self = this,
             // The outer div is the whole row (minus the button)
             // the next inner div is the "unshrunken" text size (i.e. what size the text should fit in)
             // and the last inner div is the size of the text width.
             // This is all used for truncating the text.
-            $text = $('<div class="hoverable-row unselectable flex-auto-in-row display-flex-row"><div class="flex-auto-in-row display-flex-row"><div><p class="file-path-txt" data-original-txt="' + file['path'] + '">' + file['path'] + '</p></div></div></div>');
+            $text = $('<div class="hoverable-row unselectable flex-auto-in-row display-flex-row ' + rowClassToDeselect + '"><div class="flex-auto-in-row display-flex-row"><div><p class="file-path-txt" data-original-txt="' + file['path'] + '">' + file['path'] + '</p></div></div></div>');
         self.prependFileIcon($text, file['status']);
         $text.click((e) => {
             e.stopPropagation();
             $('#contextMenu').hide();
-            self.selectRow($text, file['path'], changeType, sha);
+            self.selectRow($text, rowClassToDeselect, file['path'], changeType, sha);
         });
         if (changeType === 'unstaged' || changeType === 'staged') {
             $text.contextmenu((e) => {
@@ -581,7 +582,7 @@ class Main {
     updateFilesChangedInfo(files_changed_info_list) {
         const self = this;
 
-        self.unselectAllRows();
+        self.unselectRows('changeFilePath');
 
         if (files_changed_info_list['files_changed'] > 0) {
             $('#changes-tab').html('Changes (' + files_changed_info_list['files_changed'] + ')');
@@ -595,6 +596,7 @@ class Main {
         $unstagedChanges.empty();
         $stagedChanges.empty();
 
+        const textJQueryElements = [];
         // Unstaged changes
         files_changed_info_list['unstaged_files'].forEach(function(unstagedFile) {
             const $button = $('<button type="button" class="btn btn-success btn-sm right"><i class="fa-solid fa-plus"></i></button>');
@@ -602,7 +604,7 @@ class Main {
                 e.stopPropagation();
                 emit('stage', unstagedFile).then();
             });
-            self.addFileChangeRow($unstagedChanges, $button, unstagedFile, 'unstaged', '', false);
+            textJQueryElements.push(self.addFileChangeRow($unstagedChanges, $button, 'changeFilePath', unstagedFile, 'unstaged', ''));
         });
 
         // Staged changes
@@ -612,8 +614,22 @@ class Main {
                 e.stopPropagation();
                 emit('unstage', stagedFile).then();
             });
-            self.addFileChangeRow($stagedChanges, $button, stagedFile, 'staged', '', false);
+            textJQueryElements.push(self.addFileChangeRow($stagedChanges, $button, 'changeFilePath', stagedFile, 'staged', ''));
         });
+
+        let changeType = 'unstaged';
+        let changedFileIndex = files_changed_info_list['unstaged_files'].findIndex(function(file) {
+            return file['path'] === self.selectedFileChangedInfoFilePath;
+        });
+        if (changedFileIndex === -1) {
+            changeType = 'staged';
+            changedFileIndex = files_changed_info_list['staged_files'].findIndex(function(file) {
+                return file['path'] === self.selectedFileChangedInfoFilePath;
+            });
+        }
+        if (changedFileIndex !== -1) {
+            self.selectRow(textJQueryElements[changedFileIndex], 'changeFilePath', files_changed_info_list[changeType + '_files'][changedFileIndex]['path'], changeType, '');
+        }
 
         // This is a hacky way of waiting until the flexbox has shrunk before truncating text.
         setTimeout(function() {
