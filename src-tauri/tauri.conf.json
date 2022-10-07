@@ -26,7 +26,7 @@
       "category": "DeveloperTool",
       "copyright": "",
       "deb": {
-        "depends": []
+        "depends": ["gnome-keyring", "libsecret"]
       },
       "externalBin": [],
       "icon": [
