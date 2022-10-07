@@ -132,6 +132,7 @@ class Main {
 
         $('#commits-tab').click(() => {
             self.svgManager.setVisibleCommits();
+            self.truncateFilePathText();
         });
 
         $('#changes-tab').click(() => {
