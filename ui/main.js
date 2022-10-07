@@ -438,7 +438,7 @@ class Main {
             commit_info['sha'] +
             '</p><p style="white-space: pre-wrap;">' +
             commit_info['message'] +
-            '</p><table><tr><td>' +
+            '</p><table><tr><td><h5>Author</h5></td><td><h5>Committer</h5></td></tr><tr><td>' +
             commit_info['author_name'] +
             '</td><td class="little-padding-left">' +
             commit_info['committer_name'] +
