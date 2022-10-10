@@ -123,6 +123,7 @@ impl CommitInfo {
 fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Result<Diff<'b>> {
     let commit_tree = commit.tree()?;
 
+    let mut diff_opt = None;
     for parent_commit in commit.parents() {
         let mut diff = repo.diff_tree_to_tree(Some(&parent_commit.tree()?), Some(&commit_tree), None)?;
         GitManager::set_diff_find_similar(&mut diff)?;
@@ -131,6 +132,12 @@ fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Resul
         if diff.stats()?.files_changed() > 0 {
             return Ok(diff);
         }
+        diff_opt = Some(diff);
+    }
+
+    // If there are parents but no diff was returned earlier, then the commit is empty and should return the empty diff.
+    if let Some(d) = diff_opt {
+        return Ok(d);
     }
 
     // If there are no parents, get the diff between this commit and nothing.
