@@ -1047,8 +1047,11 @@ impl GitManager {
         Ok(())
     }
 
-    // This is used for performing commits in rebases, merges, cherrypicks, and reverts
     fn git_commit(&self, full_message: String, author: &Signature, committer: &Signature, parent_commits: Vec<&Commit>) -> Result<()> {
+        if !self.has_staged_changes()? {
+            bail!("Attempted to commit with no staged changes! Maybe stage some changes first?");
+        }
+
         let repo = self.borrow_repo()?;
 
         let mut index = repo.index()?;
@@ -1102,12 +1105,7 @@ impl GitManager {
             c
         }).collect();
 
-        let mut index = repo.index()?;
-        let tree_oid = index.write_tree()?;
-        index.write()?;
-        let tree = repo.find_tree(tree_oid)?;
-
-        repo.commit(Some("HEAD"), &signature, &signature, &*full_message, &tree, parent_refs.as_slice())?;
+        self.git_commit(full_message, &signature, &signature, parent_refs)?;
         Ok(())
     }
 
