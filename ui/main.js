@@ -13,6 +13,8 @@ function togglerClick() {
 }
 
 class Main {
+    SUMMARY_CHAR_SOFT_LIMIT = 50;
+
     constructor() {
         this.processCount = 0;
         this.svgManager = new SVGManager(this);
@@ -34,6 +36,8 @@ class Main {
         self.setupTreeViews();
 
         self.svgManager.setGraphWidth();
+
+        $('#summaryTxtCounter').text(self.SUMMARY_CHAR_SOFT_LIMIT.toString());
 
         // Setup resizable columns.
         const resizableColumns = document.querySelectorAll(".resizable-column");
@@ -344,6 +348,20 @@ class Main {
             emit("delete-local-branch", {branch_shorthand: $branchShorthand.text(), delete_remote_branch: $('#deleteRemoteBranchCheckBox').is(':checked').toString()}).then();
             $branchShorthand.text('');
             $('#deleteLocalBranchModal').modal('hide');
+        });
+
+        $('#summaryTxt').on('input', function() {
+            const numOfChars = $(this).val().length,
+                remainingNumOfChars = self.SUMMARY_CHAR_SOFT_LIMIT - numOfChars,
+                $summaryTxtCounter = $('#summaryTxtCounter');
+            $summaryTxtCounter.text(remainingNumOfChars.toString());
+            if (remainingNumOfChars < 0) {
+                $summaryTxtCounter.removeClass('text-white');
+                $summaryTxtCounter.addClass('text-red');
+            } else {
+                $summaryTxtCounter.removeClass('text-red');
+                $summaryTxtCounter.addClass('text-white');
+            }
         });
     }
 

@@ -152,6 +152,10 @@ pre code.hljs {
     text-align: left;
 }
 
+.text-red {
+    color: red;
+}
+
 #messageTxt {
     width: 100%;
 }
