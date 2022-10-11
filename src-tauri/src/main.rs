@@ -557,7 +557,7 @@ fn main() {
                 let mut git_manager = git_manager_arc_c_c.lock().unwrap();
                 let result = git_manager.git_abort();
                 match result {
-                    Ok(()) => emit_update_changes(&git_manager, &main_window_c_c),
+                    Ok(()) => emit_update_all(&mut git_manager, false, &main_window_c_c),
                     Err(e) => handle_error(e, &main_window_c_c),
                 };
             });

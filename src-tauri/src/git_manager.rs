@@ -1,7 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::fs::create_dir_all;
 use std::path::PathBuf;
-use std::str;
+use std::{fs, str};
 use anyhow::{bail, Result};
 use directories::BaseDirs;
 use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort, StashFlags};
@@ -149,7 +149,6 @@ fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Resul
 
 pub struct GitManager {
     repo: Option<Repository>,
-    sha_from_commit_from_op: Option<String>,
     old_graph_starting_shas: Vec<String>,
 }
 
@@ -157,7 +156,6 @@ impl GitManager {
     pub const fn new() -> Self {
         Self {
             repo: None,
-            sha_from_commit_from_op: None,
             old_graph_starting_shas: vec![],
         }
     }
@@ -253,13 +251,6 @@ impl GitManager {
 
         self.repo = Some(repo_builder.clone(clone_url, path_buf.as_path())?);
 
-        Ok(())
-    }
-
-    fn cleanup_state(&mut self) -> Result<()> {
-        let repo = self.borrow_repo()?;
-        repo.cleanup_state()?;
-        self.sha_from_commit_from_op = None;
         Ok(())
     }
 
@@ -418,19 +409,14 @@ impl GitManager {
         }
     }
 
-    pub fn git_merge(&mut self, sha: &str) -> Result<()> {
-        // This closure allows self to be borrowed mutably for cleanup.
-        {
-            let repo = self.borrow_repo()?;
-            let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
+    pub fn git_merge(&self, sha: &str) -> Result<()> {
+        let repo = self.borrow_repo()?;
+        let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
 
-            repo.merge(&[&annotated_commit], None, None)?;
-        }
+        repo.merge(&[&annotated_commit], None, None)?;
 
         if !self.has_conflicts()? {
             if self.has_staged_changes()? {
-                let repo = self.borrow_repo()?;
-
                 let head_commit = match repo.head()?.target() {
                     Some(oid) => repo.find_commit(oid)?,
                     None => bail!("HEAD has no target, failed to commit after merging. It should fail earlier than this since there'd be no HEAD to merge into."),
@@ -449,12 +435,11 @@ impl GitManager {
                 message.push_str(&*head_short_sha);
 
                 self.git_commit(message, &committer, &committer, parent_commits)?;
+
+                repo.cleanup_state()?;
             } else {
                 bail!("Merge commit had no changes, not really sure what would cause this...");
             }
-            self.cleanup_state()?;
-        } else {
-            self.sha_from_commit_from_op = Some(String::from(sha.clone()));
         }
 
         Ok(())
@@ -496,7 +481,7 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_cherrypick(&mut self, json_str: &str) -> Result<()> {
+    pub fn git_cherrypick(&self, json_str: &str) -> Result<()> {
         let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
 
         let sha = match json_hm.get("sha") {
@@ -508,21 +493,15 @@ impl GitManager {
             None => bail!("isCommitting wasn't included in payload from the front-end."),
         };
 
-        // This closure allows self to be borrowed mutably for cleanup.
-        {
-            let repo = self.borrow_repo()?;
-            let commit = repo.find_commit(Oid::from_str(sha)?)?;
+        let repo = self.borrow_repo()?;
+        let commit = repo.find_commit(Oid::from_str(sha)?)?;
 
-            repo.cherrypick(&commit, None)?;
-        }
+        repo.cherrypick(&commit, None)?;
 
         if !self.has_conflicts()? {
-            self.cleanup_state()?;
-        } else {
-            self.sha_from_commit_from_op = Some(sha.clone());
+            repo.cleanup_state()?;
         }
 
-        let repo = self.borrow_repo()?;
         let commit = repo.find_commit(Oid::from_str(sha)?)?;
 
         if is_committing && !self.has_conflicts()? && self.has_staged_changes()? {
@@ -537,7 +516,7 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_revert(&mut self, json_str: &str) -> Result<()> {
+    pub fn git_revert(&self, json_str: &str) -> Result<()> {
         let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
 
         let sha = match json_hm.get("sha") {
@@ -549,21 +528,15 @@ impl GitManager {
             None => bail!("isCommitting wasn't included in payload from the front-end."),
         };
 
-        // This closure allows self to be borrowed mutably for cleanup.
-        {
-            let repo = self.borrow_repo()?;
-            let commit = repo.find_commit(Oid::from_str(sha)?)?;
+        let repo = self.borrow_repo()?;
+        let commit = repo.find_commit(Oid::from_str(sha)?)?;
 
-            repo.revert(&commit, None)?;
-        }
+        repo.revert(&commit, None)?;
 
         if !self.has_conflicts()? {
-            self.cleanup_state()?;
-        } else {
-            self.sha_from_commit_from_op = Some(sha.clone());
+            repo.cleanup_state()?;
         }
 
-        let repo = self.borrow_repo()?;
         let commit = repo.find_commit(Oid::from_str(sha)?)?;
 
         if is_committing && !self.has_conflicts()? && self.has_staged_changes()? {
@@ -590,120 +563,114 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_abort(&mut self) -> Result<()> {
-        // This closure allows self to be borrowed mutably for cleanup.
-        {
+    pub fn git_abort(&self) -> Result<()> {
+        let repo = self.borrow_repo()?;
+
+        let head_commit = match repo.head()?.target() {
+            Some(oid) => repo.find_commit(oid)?,
+            None => bail!("HEAD doesn't have a target commit, cannot abort to HEAD"),
+        };
+
+        repo.reset(head_commit.as_object(), ResetType::Hard, None)?;
+
+        repo.cleanup_state()?;
+
+        Ok(())
+    }
+
+    pub fn git_continue_cherrypick(&self) -> Result<()> {
+        if !self.has_conflicts()? {
             let repo = self.borrow_repo()?;
 
             let head_commit = match repo.head()?.target() {
                 Some(oid) => repo.find_commit(oid)?,
-                None => bail!("HEAD doesn't have a target commit, cannot abort to HEAD"),
+                None => bail!("HEAD doesn't have a target commit (which is where a cherrypick operation starts on), can't complete cherrypick."),
             };
 
-            repo.reset(head_commit.as_object(), ResetType::Hard, None)?;
-        }
-        self.cleanup_state()?;
+            let mut cherrypick_head_file = repo.path().to_path_buf();
+            cherrypick_head_file.push("CHERRY_PICK_HEAD");
+            let cherrypick_head_string = fs::read_to_string(cherrypick_head_file)?;
+            let sha = cherrypick_head_string.trim();
 
-        Ok(())
-    }
+            let commit_from_op = repo.find_commit(Oid::from_str(sha)?)?;
 
-    pub fn git_continue_cherrypick(&mut self) -> Result<()> {
-        if !self.has_conflicts()? {
-            // This closure allows self to be borrowed mutably for cleanup.
-            {
-                let repo = self.borrow_repo()?;
+            let committer = repo.signature()?;
 
-                let head_commit = match repo.head()?.target() {
-                    Some(oid) => repo.find_commit(oid)?,
-                    None => bail!("HEAD doesn't have a target commit (which is where a cherrypick operation starts on), can't complete cherrypick."),
-                };
+            self.git_commit(String::from(GitManager::get_utf8_string(commit_from_op.message(), "Commit Message")?), &commit_from_op.author(), &committer, vec![&head_commit])?;
 
-                let commit_from_op = match &self.sha_from_commit_from_op {
-                    Some(c) => repo.find_commit(Oid::from_str(c)?)?,
-                    None => bail!("Original commit from cherrypick operation wasn't captured, can't complete cherrypick."),
-                };
-
-                // Note: using the current user as the author as well since they could've modified the original commit.
-                let committer = repo.signature()?;
-
-                let mut new_full_message = String::from("Revert \"");
-                new_full_message.push_str(GitManager::get_utf8_string(commit_from_op.summary(), "Commit Summary")?);
-                new_full_message.push('"');
-                let (message_without_summary, uses_crlf) = GitManager::get_message_without_summary(GitManager::get_utf8_string(commit_from_op.message(), "Commit Message")?);
-                if uses_crlf {
-                    new_full_message.push_str("\r\n\r\n");
-                } else {
-                    new_full_message.push_str("\n\n");
-                }
-                new_full_message.push_str(&*message_without_summary);
-
-                self.git_commit(new_full_message, &committer, &committer, vec![&head_commit])?;
-            }
-            self.cleanup_state()?;
+            repo.cleanup_state()?;
         }
 
         Ok(())
     }
 
-    pub fn git_continue_revert(&mut self) -> Result<()> {
+    pub fn git_continue_revert(&self) -> Result<()> {
         if !self.has_conflicts()? {
-            // This closure allows self to be borrowed mutably for cleanup.
-            {
-                let repo = self.borrow_repo()?;
+            let repo = self.borrow_repo()?;
 
-                let head_commit = match repo.head()?.target() {
-                    Some(oid) => repo.find_commit(oid)?,
-                    None => bail!("HEAD doesn't have a target commit (which is where a revert operation starts on), can't complete revert."),
-                };
+            let head_commit = match repo.head()?.target() {
+                Some(oid) => repo.find_commit(oid)?,
+                None => bail!("HEAD doesn't have a target commit (which is where a revert operation starts on), can't complete revert."),
+            };
 
-                let commit_from_op = match &self.sha_from_commit_from_op {
-                    Some(c) => repo.find_commit(Oid::from_str(c)?)?,
-                    None => bail!("Original commit from revert operation wasn't captured, can't complete revert."),
-                };
+            let mut revert_file = repo.path().to_path_buf();
+            revert_file.push("REVERT_HEAD");
+            let revert_head_string = fs::read_to_string(revert_file)?;
+            let sha = revert_head_string.trim();
 
-                // Note: using the current user as the author as well since they could've modified the original commit.
-                let committer = repo.signature()?;
-                self.git_commit(String::from(GitManager::get_utf8_string(commit_from_op.message(), "Commit Message")?), &committer, &committer, vec![&head_commit])?;
+            let commit_from_op = repo.find_commit(Oid::from_str(sha)?)?;
+
+            let committer = repo.signature()?;
+
+            let mut new_full_message = String::from("Revert \"");
+            new_full_message.push_str(GitManager::get_utf8_string(commit_from_op.summary(), "Commit Summary")?);
+            new_full_message.push('"');
+            let (message_without_summary, uses_crlf) = GitManager::get_message_without_summary(GitManager::get_utf8_string(commit_from_op.message(), "Commit Message")?);
+            if uses_crlf {
+                new_full_message.push_str("\r\n\r\n");
+            } else {
+                new_full_message.push_str("\n\n");
             }
-            self.cleanup_state()?;
+            new_full_message.push_str(&*message_without_summary);
+
+            self.git_commit(new_full_message, &commit_from_op.author(), &committer, vec![&head_commit])?;
+
+            repo.cleanup_state()?;
         }
 
         Ok(())
     }
 
-    pub fn git_continue_merge(&mut self) -> Result<()> {
+    pub fn git_continue_merge(&self) -> Result<()> {
         if !self.has_conflicts()? {
-            // This closure allows self to be borrowed mutably for cleanup.
-            {
-                let repo = self.borrow_repo()?;
+            let repo = self.borrow_repo()?;
 
-                let head_commit = match repo.head()?.target() {
-                    Some(oid) => repo.find_commit(oid)?,
-                    None => bail!("HEAD doesn't have a target commit (which is where a merge operation starts on), can't complete merge."),
-                };
+            let head_commit = match repo.head()?.target() {
+                Some(oid) => repo.find_commit(oid)?,
+                None => bail!("HEAD doesn't have a target commit (which is where a merge operation starts on), can't complete merge."),
+            };
 
-                let commit_from_op;
-                let mut short_sha;
-                match &self.sha_from_commit_from_op {
-                    Some(c) => {
-                        commit_from_op = repo.find_commit(Oid::from_str(c)?)?;
-                        short_sha = c.clone();
-                        short_sha.truncate(5);
-                    },
-                    None => bail!("Original commit from merge operation wasn't captured, can't complete merge."),
-                };
+            let mut merge_file = repo.path().to_path_buf();
+            merge_file.push("MERGE_HEAD");
+            let merge_head_string = fs::read_to_string(merge_file)?;
+            let sha = merge_head_string.trim();
 
-                let mut message = String::from("Merge commit ");
-                message.push_str(&*short_sha);
-                message.push_str(" into commit ");
-                let mut head_short_sha = head_commit.id().to_string();
-                head_short_sha.truncate(5);
-                message.push_str(&*head_short_sha);
+            let commit_from_op = repo.find_commit(Oid::from_str(sha)?)?;
 
-                let committer = repo.signature()?;
-                self.git_commit(message, &committer, &committer, vec![&head_commit, &commit_from_op])?;
-            }
-            self.cleanup_state()?;
+            let mut short_sha = String::from(sha.clone());
+            short_sha.truncate(5);
+
+            let mut message = String::from("Merge commit ");
+            message.push_str(&*short_sha);
+            message.push_str(" into commit ");
+            let mut head_short_sha = head_commit.id().to_string();
+            head_short_sha.truncate(5);
+            message.push_str(&*head_short_sha);
+
+            let committer = repo.signature()?;
+            self.git_commit(message, &committer, &committer, vec![&head_commit, &commit_from_op])?;
+
+            repo.cleanup_state()?;
         }
 
         Ok(())
