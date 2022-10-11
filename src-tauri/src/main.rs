@@ -49,16 +49,23 @@ fn emit_update_changes(git_manager: &MutexGuard<GitManager>, main_window: &Windo
 fn main() {
     tauri::Builder::default()
     .setup(|app| {
-        let menu;
+        let mut menu;
         if std::env::consts::OS == "macos" {
             menu = Menu::with_items([
                 Submenu::new("App", Menu::with_items([
                     CustomMenuItem::new("preferences", "Preferences").into(),
+                    NativeItem(MenuItem::Separator),
+                    NativeItem(MenuItem::Quit),
                 ])).into(),
                 Submenu::new("File", Menu::with_items([
                     CustomMenuItem::new("init", "Init New Repo").into(),
                     CustomMenuItem::new("open", "Open Repo").into(),
                     CustomMenuItem::new("clone", "Clone Repo").into(),
+                ])).into(),
+                Submenu::new("Edit", Menu::with_items([
+                    NativeItem(MenuItem::SelectAll),
+                    NativeItem(MenuItem::Copy),
+                    NativeItem(MenuItem::Paste),
                 ])).into(),
                 Submenu::new("Security", Menu::with_items([
                     CustomMenuItem::new("credentials", "Set Credentials").into(),
@@ -72,11 +79,23 @@ fn main() {
                     CustomMenuItem::new("clone", "Clone Repo").into(),
                     NativeItem(MenuItem::Separator),
                     CustomMenuItem::new("preferences", "Preferences").into(),
-                ])).into(),
-                Submenu::new("Security", Menu::with_items([
-                    CustomMenuItem::new("credentials", "Set Credentials").into(),
+                    NativeItem(MenuItem::Separator),
+                    NativeItem(MenuItem::Quit),
                 ])).into(),
             ]);
+            if std::env::consts::OS == "windows" {
+                menu = menu.add_submenu(
+                    Submenu::new("Edit", Menu::with_items([
+                        NativeItem(MenuItem::Copy),
+                        NativeItem(MenuItem::Paste),
+                    ]))
+                );
+            }
+            menu = menu.add_submenu(
+                Submenu::new("Security", Menu::with_items([
+                    CustomMenuItem::new("credentials", "Set Credentials").into(),
+                ]))
+            );
         }
 
         let main_window = WindowBuilder::new(
