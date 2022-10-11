@@ -103,6 +103,9 @@ export class SVGManager {
 
     selectRowOnRefresh(headSHA) {
         const self = this;
+
+        self.mainJS.commitFileDiffTableScrollTop = $('#commitFileDiffTableContainer').scrollTop();
+
         let selectedIndex = 0;
         let foundOldSelected = false;
         if (self.selectedSHA !== '') {

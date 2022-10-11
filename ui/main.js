@@ -20,6 +20,8 @@ class Main {
         this.oldSelectedSHA = '';
         this.selectedCommitInfoFilePath = '';
         this.selectedFileChangedInfoFilePath = '';
+        this.commitFileDiffTableScrollTop = 0;
+        this.fileDiffTableScrollTop = 0;
     }
 
     run() {
@@ -390,6 +392,7 @@ class Main {
     }
 
     showFileDiff(file_info) {
+        const self = this;
         let $fileDiffTable;
         if (file_info['change_type'] === 'commit') {
             $fileDiffTable = $('#commitFileDiffTable');
@@ -420,6 +423,14 @@ class Main {
             $fileDiffTable.append($(fileLineRow));
         });
         hljs.highlightAll();
+
+        if (file_info['change_type'] === 'commit') {
+            $('#commitFileDiffTableContainer').scrollTop(self.commitFileDiffTableScrollTop);
+            self.commitFileDiffTableScrollTop = 0;
+        } else if (file_info['change_type'] === 'unstaged' || file_info['change_type'] === 'staged') {
+            $('#fileDiffTableContainer').scrollTop(self.fileDiffTableScrollTop);
+            self.fileDiffTableScrollTop = 0;
+        }
     }
 
     showCommitInfo(commit_info) {
@@ -582,6 +593,7 @@ class Main {
     updateFilesChangedInfo(files_changed_info_list) {
         const self = this;
 
+        self.fileDiffTableScrollTop = $('#fileDiffTableContainer').scrollTop();
         self.unselectRows('changeFilePath');
 
         if (files_changed_info_list['files_changed'] > 0) {
