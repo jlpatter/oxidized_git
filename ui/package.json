@@ -16,7 +16,7 @@
     "events": "~3.3.0"
   },
   "devDependencies": {
-    "@types/node": "~18.7.16",
+    "@types/node": "~18.8.5",
     "vite": "~3.1.0"
   }
 }
