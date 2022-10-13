@@ -63,9 +63,9 @@ fn main() {
                     CustomMenuItem::new("clone", "Clone Repo").into(),
                 ])).into(),
                 Submenu::new("Edit", Menu::with_items([
-                    NativeItem(MenuItem::SelectAll),
                     NativeItem(MenuItem::Copy),
                     NativeItem(MenuItem::Paste),
+                    NativeItem(MenuItem::SelectAll),
                 ])).into(),
                 Submenu::new("Security", Menu::with_items([
                     CustomMenuItem::new("credentials", "Set Credentials").into(),
