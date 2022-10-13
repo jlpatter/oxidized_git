@@ -1,5 +1,5 @@
-use std::fs::{create_dir_all, File};
-use std::io::Read;
+use std::fs;
+use std::fs::create_dir_all;
 use std::path::PathBuf;
 use anyhow::{bail, Result};
 use serde::{Serialize, Deserialize};
@@ -10,7 +10,11 @@ use directories::ProjectDirs;
 pub struct Config {
     limit_commits: Option<bool>,
     commit_count: Option<usize>,
-    username: Option<String>,
+    cred_type: Option<String>,
+    https_username: Option<String>,
+    public_key_path: Option<PathBuf>,
+    private_key_path: Option<PathBuf>,
+    uses_passphrase: Option<bool>,
 }
 
 impl Config {
@@ -18,7 +22,11 @@ impl Config {
         Self {
             limit_commits: Some(true),
             commit_count: Some(2000),
-            username: None,
+            cred_type: None,
+            https_username: None,
+            public_key_path: None,
+            private_key_path: None,
+            uses_passphrase: None,
         }
     }
 
@@ -30,12 +38,44 @@ impl Config {
         &self.commit_count
     }
 
-    pub fn borrow_username(&self) -> &Option<String> {
-        &self.username
+    pub fn borrow_cred_type(&self) -> &Option<String> {
+        &self.cred_type
     }
 
-    pub fn set_username(&mut self, new_username: String) {
-        self.username = Some(new_username);
+    pub fn borrow_https_username(&self) -> &Option<String> {
+        &self.https_username
+    }
+
+    pub fn borrow_public_key_path(&self) -> &Option<PathBuf> {
+        &self.public_key_path
+    }
+
+    pub fn borrow_private_key_path(&self) -> &Option<PathBuf> {
+        &self.private_key_path
+    }
+
+    pub fn borrow_uses_passphrase(&self) -> &Option<bool> {
+        &self.uses_passphrase
+    }
+
+    pub fn set_cred_type(&mut self, cred_type: String) {
+        self.cred_type = Some(cred_type);
+    }
+
+    pub fn set_https_username(&mut self, new_username: String) {
+        self.https_username = Some(new_username);
+    }
+
+    pub fn set_public_key_path(&mut self, public_key_path: PathBuf) {
+        self.public_key_path = Some(public_key_path);
+    }
+
+    pub fn set_private_key_path(&mut self, private_key_path: PathBuf) {
+        self.private_key_path = Some(private_key_path);
+    }
+
+    pub fn set_uses_passphrase(&mut self, uses_passphrase: bool) {
+        self.uses_passphrase = Some(uses_passphrase);
     }
 
     pub fn save(&self) -> Result<()> {
@@ -50,7 +90,7 @@ impl Config {
                 create_dir_all(prefix)?;
             }
         }
-        std::fs::write(config_path, serde_json::to_string_pretty(&self)?)?;
+        fs::write(config_path, serde_json::to_string_pretty(&self)?)?;
         Ok(())
     }
 }
@@ -84,9 +124,7 @@ pub fn get_config() -> Result<Config> {
     if !config_path.exists() {
         save_default_config()?;
     }
-    let mut data_string = String::new();
-    let mut file = File::open(config_path)?;
-    file.read_to_string(&mut data_string)?;
+    let data_string = fs::read_to_string(config_path)?;
     let config: Config = serde_json::from_str(&*data_string)?;
     Ok(config)
 }

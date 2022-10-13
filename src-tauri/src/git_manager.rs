@@ -1411,26 +1411,68 @@ impl GitManager {
     #[allow(unused_unsafe)]
     fn get_remote_callbacks() -> RemoteCallbacks<'static> {
         let mut callbacks = RemoteCallbacks::new();
-        callbacks.credentials(|_url, _username_from_url, _allowed_types| {
+        callbacks.credentials(|_url, username_from_url, _allowed_types| {
             let config = match config_manager::get_config() {
                 Ok(c) => c,
                 Err(e) => return Err(git2::Error::from_str(&*format!("Error during config file read: {}", e))),
             };
-            let username = match config.borrow_username() {
-                Some(u) => u.clone(),
+            let cred_type = match config.borrow_cred_type() {
+                Some(s) => s.clone(),
                 None => return Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials")),
             };
-            let pass;
-            unsafe {
-                pass = match keytar::get_password("oxidized_git", "password") {
-                    Ok(p) => p,
-                    Err(_) => return Err(git2::Error::from_str("Error finding password in keychain!")),
+            return if cred_type == "HTTPS" {
+                let username = match config.borrow_https_username() {
+                    Some(u) => u.clone(),
+                    None => return Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials")),
                 };
-            }
-            if pass.success {
-                Cred::userpass_plaintext(username.as_str(), &*pass.password)
+                let pass;
+                unsafe {
+                    pass = match keytar::get_password("oxidized_git", "password") {
+                        Ok(p) => p,
+                        Err(_) => return Err(git2::Error::from_str("Error finding password in keychain!")),
+                    };
+                }
+                if pass.success {
+                    Cred::userpass_plaintext(username.as_str(), &*pass.password)
+                } else {
+                    Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials"))
+                }
+            } else if cred_type == "SSH" {
+                let username = match username_from_url {
+                    Some(s) => s.clone(),
+                    None => return Err(git2::Error::from_str("No username in Remote URL, did you use an SSH URL for your remote?")),
+                };
+                let public_key_path = match config.borrow_public_key_path() {
+                    Some(p) => p,
+                    None => return Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials")),
+                };
+                let private_key_path = match config.borrow_private_key_path() {
+                    Some(p) => p,
+                    None => return Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials")),
+                };
+                let uses_passphrase = match config.borrow_uses_passphrase() {
+                    Some(b) => b,
+                    None => return Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials")),
+                };
+
+                if *uses_passphrase {
+                    let pass;
+                    unsafe {
+                        pass = match keytar::get_password("oxidized_git", "passphrase") {
+                            Ok(p) => p,
+                            Err(_) => return Err(git2::Error::from_str("Error finding passphrase in keychain!")),
+                        };
+                    }
+                    if pass.success {
+                        Cred::ssh_key(username, Some(public_key_path), private_key_path, Some(&*pass.password))
+                    } else {
+                        Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials"))
+                    }
+                } else {
+                    Cred::ssh_key(username, Some(public_key_path), private_key_path, None)
+                }
             } else {
-                Err(git2::Error::from_str("Credentials are required to perform that operation. Please set your credentials in the menu bar under Security > Set Credentials"))
+                Err(git2::Error::from_str("Credential Type unrecognized. Please set your credentials in the menu bar under Security > Set Credentials"))
             }
         });
         callbacks.push_update_reference(|_ref_name, status_msg| {
@@ -1443,7 +1485,7 @@ impl GitManager {
     }
 
     #[allow(unused_unsafe)]
-    pub fn set_credentials(&self, credentials_json_string: &str) -> Result<()> {
+    pub fn set_https_credentials(&self, credentials_json_string: &str) -> Result<()> {
         let credentials_json: HashMap<String, String> = serde_json::from_str(credentials_json_string)?;
         let username = match credentials_json.get("username") {
             Some(u) => u.clone(),
@@ -1455,12 +1497,48 @@ impl GitManager {
         };
 
         let mut config = config_manager::get_config()?;
-        config.set_username(username);
+        config.set_cred_type(String::from("HTTPS"));
+        config.set_https_username(username);
         config.save()?;
 
         unsafe {
             keytar::set_password("oxidized_git", "password", password)?;
         }
+
+        Ok(())
+    }
+
+    #[allow(unused_unsafe)]
+    pub fn set_ssh_credentials(&self, json_string: &str) -> Result<()> {
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let public_key_path = match json_hm.get("public_key_path") {
+            Some(s) => s.clone(),
+            None => bail!("No public_key_path supplied from front-end."),
+        };
+        let private_key_path = match json_hm.get("private_key_path") {
+            Some(s) => s.clone(),
+            None => bail!("No private_key_path supplied from front-end."),
+        };
+        let passphrase = match json_hm.get("passphrase") {
+            Some(s) => s.clone(),
+            None => bail!("No passphrase supplied from front-end."),
+        };
+
+        let mut config = config_manager::get_config()?;
+        config.set_cred_type(String::from("SSH"));
+        config.set_public_key_path(public_key_path.into());
+        config.set_private_key_path(private_key_path.into());
+
+        if passphrase != "" {
+            config.set_uses_passphrase(true);
+            unsafe {
+                keytar::set_password("oxidized_git", "passphrase", &*passphrase)?;
+            }
+        } else {
+            config.set_uses_passphrase(false);
+        }
+
+        config.save()?;
 
         Ok(())
     }

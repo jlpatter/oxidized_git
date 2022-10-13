@@ -109,7 +109,12 @@ class Main {
             $('#cloneModal').modal('show');
         }).then();
 
-        listen("get-credentials", ev => {
+        listen("get-credentials", async function(ev) {
+            const homePath = await homeDir(),
+                sshPubKeyDefaultPath = homePath + ".ssh/id_ed25519.pub",
+                sshPrivateKeyDefaultPath = homePath + ".ssh/id_ed25519";
+            $('#publicKeyPathTxt').val(sshPubKeyDefaultPath);
+            $('#privateKeyPathTxt').val(sshPrivateKeyDefaultPath);
             $('#credentialsModal').modal('show');
         }).then();
 
@@ -202,12 +207,49 @@ class Main {
             $('#cloneModal').modal('hide');
         });
 
-        $('#saveCredentialsBtn').click(() => {
-            const $usernameTxt = $('#usernameTxt'),
+        $('#saveHTTPSBtn').click(() => {
+            const $usernameTxt = $('#usernameHTTPSTxt'),
                 $passwordTxt = $('#passwordTxt');
-            emit("save-credentials", {username: $usernameTxt.val(), password: $passwordTxt.val()}).then();
+            emit("save-https-credentials", {username: $usernameTxt.val(), password: $passwordTxt.val()}).then();
             $usernameTxt.val("");
             $passwordTxt.val("");
+            $('#credentialsModal').modal('hide');
+        });
+
+        $('#publicKeyPathBtn').click(async function() {
+            const selected = await open({
+                directory: false,
+                multiple: false,
+                defaultPath: await homeDir(),
+            });
+            if (selected !== null) {
+                $('#publicKeyPathTxt').val(selected);
+            }
+        });
+
+        $('#privateKeyPathBtn').click(async function() {
+            const selected = await open({
+                directory: false,
+                multiple: false,
+                defaultPath: await homeDir(),
+            });
+            if (selected !== null) {
+                $('#privateKeyPathTxt').val(selected);
+            }
+        });
+
+        $('#saveSSHBtn').click(() => {
+            const $publicKeyPathTxt = $('#publicKeyPathTxt'),
+                $privateKeyPathTxt = $('#privateKeyPathTxt'),
+                $passphraseTxt = $('#passphraseTxt');
+            emit("save-ssh-credentials", {
+                public_key_path: $publicKeyPathTxt.val(),
+                private_key_path: $privateKeyPathTxt.val(),
+                passphrase: $passphraseTxt.val(),
+            }).then();
+            $publicKeyPathTxt.val("");
+            $privateKeyPathTxt.val("");
+            $passphraseTxt.val("");
             $('#credentialsModal').modal('hide');
         });
 

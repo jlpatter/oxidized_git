@@ -435,14 +435,33 @@ fn main() {
         });
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();
-        main_window.listen("save-credentials", move |event| {
+        main_window.listen("save-https-credentials", move |event| {
             let main_window_c_c = main_window_c.clone();
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let result = git_manager.set_credentials(s);
+                        let result = git_manager.set_https_credentials(s);
+                        match result {
+                            Ok(()) => (),
+                            Err(e) => handle_error(e, &main_window_c_c),
+                        };
+                    },
+                    None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+                };
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("save-ssh-credentials", move |event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                match event.payload() {
+                    Some(s) => {
+                        let git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let result = git_manager.set_ssh_credentials(s);
                         match result {
                             Ok(()) => (),
                             Err(e) => handle_error(e, &main_window_c_c),
