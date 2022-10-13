@@ -563,6 +563,8 @@ class Main {
         const self = this;
         self.generalInfo = general_info;
 
+        $('#projectName').text(self.generalInfo['project_name']);
+
         if (self.generalInfo['is_cherrypicking'] === "true") {
             self.showCherrypickControls();
         } else if (self.generalInfo['is_reverting'] === "true") {

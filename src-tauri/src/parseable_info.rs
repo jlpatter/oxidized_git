@@ -346,6 +346,18 @@ fn get_general_info(git_manager: &GitManager) -> Result<HashMap<String, String>>
     let repo = git_manager.borrow_repo()?;
 
     let mut general_info: HashMap<String, String> = HashMap::new();
+
+    let project_name = match repo.workdir() {
+        Some(p) => {
+            match p.file_name() {
+                Some(d) => d,
+                None => bail!("Working directory path is empty?"),
+            }
+        },
+        None => bail!("Repo doesn't have a working directory?"),
+    };
+    general_info.insert(String::from("project_name"), String::from(GitManager::get_utf8_string(project_name.to_str(), "Project Containing Directory")?));
+
     general_info.insert(String::from("head_sha"), String::new());
     match repo.head() {
         Ok(head_ref) => {
