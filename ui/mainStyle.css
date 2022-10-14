@@ -6,6 +6,10 @@ body {
     font-size: 15px;
 }
 
+textarea {
+    width: 100%;
+}
+
 .nav-tabs .nav-link.active {
     color: white;
     background-color: black;
@@ -158,10 +162,6 @@ pre code.hljs {
 
 .text-grey {
     color: grey;
-}
-
-#messageTxt {
-    width: 100%;
 }
 
 .unselectable {

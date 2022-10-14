@@ -355,6 +355,18 @@ class Main {
             $('#pushModal').modal('hide');
         });
 
+        $('#pushTagBtn').click(() => {
+            self.addProcessCount();
+            const $tagName = $('#tagName');
+            emit("push-tag", {
+                tagFullName: $tagName.text(),
+                selectedRemote: $('#remoteTagSelect').val(),
+                isForcePush: $('#forcePushTagCheckBox').is(':checked').toString(),
+            }).then();
+            $tagName.text('');
+            $('#pushTagModal').modal('hide');
+        });
+
         $('#openStashModalBtn').click(() => {
             $('#stashModal').modal('show');
         });
@@ -384,6 +396,38 @@ class Main {
             emit("branch", {branch_name: $branchTxt.val(), checkout_on_create: $('#branchCheckoutCheckBox').is(':checked').toString()}).then();
             $branchTxt.val("");
             $('#branchModal').modal('hide');
+        });
+
+        $('#openTagModalBtn').click(() => {
+            $('#tagSha').text('');
+            $('#tagModal').modal('show');
+        });
+
+        $('#lightweightTagCheckbox').change(function() {
+            const $tagMessageContainer = $('#tagMessageContainer');
+            if (this.checked) {
+                $tagMessageContainer.hide();
+            } else {
+                $tagMessageContainer.show();
+            }
+        });
+
+        $('#tagBtn').click(() => {
+            self.addProcessCount();
+            const $tagSha = $('#tagSha'),
+                $lightweightTagCheckbox = $('#lightweightTagCheckbox'),
+                $tagTxt = $('#tagTxt'),
+                $tagMessageTxt = $('#tagMessageTxt');
+            emit("tag", {
+                tag_sha: $tagSha.text(),
+                is_lightweight: $lightweightTagCheckbox.is(':checked').toString(),
+                name: $tagTxt.val(),
+                message: $tagMessageTxt.val()
+            }).then();
+            $tagSha.text('');
+            $tagTxt.val('');
+            $tagMessageTxt.val('');
+            $('#tagModal').modal('hide');
         });
 
         $('#deleteLocalBranchBtn').click(() => {
@@ -770,7 +814,7 @@ class Main {
                     });
                     $innerListItem.contextmenu(function(e) {
                         e.preventDefault();
-                        self.showBranchContextMenu(e, child['branch_info']['branch_shorthand'], child['branch_info']['branch_type'], child['branch_info']['has_upstream']);
+                        self.showBranchContextMenu(e, child['branch_info']['branch_shorthand'], child['branch_info']['full_branch_name'], child['branch_info']['branch_type'], child['branch_info']['has_upstream']);
                     });
 
                     if ($innerListItem.attr('data-bs-toggle') !== undefined) {
@@ -828,8 +872,10 @@ class Main {
 
     updateRemoteInfo(remote_info_list) {
         if (remote_info_list.length > 0) {
-            const $remoteSelect = $('#remoteSelect');
+            const $remoteSelect = $('#remoteSelect'),
+                $remoteTagSelect = $('#remoteTagSelect');
             $remoteSelect.empty();
+            $remoteTagSelect.empty();
 
             remote_info_list.forEach((remoteResult) => {
                 let $option = '';
@@ -839,6 +885,7 @@ class Main {
                     $option = $('<option value="' + remoteResult + '">' + remoteResult + '</option>');
                 }
                 $remoteSelect.append($option);
+                $remoteTagSelect.append($option);
             });
         }
     }
@@ -876,40 +923,52 @@ class Main {
         $contextMenu.show();
     }
 
-    showBranchContextMenu(event, branchShorthand, branchType, hasUpstream) {
+    showBranchContextMenu(event, branchShorthand, branchFullName, branchType, hasUpstream) {
         const self = this,
             $contextMenu = $('#contextMenu');
         $contextMenu.empty();
         $contextMenu.css('left', event.pageX + 'px');
         $contextMenu.css('top', event.pageY + 'px');
 
-        const $deleteBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-regular fa-trash-can"></i> Delete</button>');
-        if (branchType === 'local') {
-            $deleteBtn.click(() => {
-                const $deleteRemoteBranchCheckBox = $('#deleteRemoteBranchCheckBox');
-                $('#localBranchToDeleteShorthand').text(branchShorthand);
-                $deleteRemoteBranchCheckBox.prop('checked', false);
-                if (hasUpstream !== true) {
-                    $deleteRemoteBranchCheckBox.prop('disabled', true);
-                }
-                $('#deleteLocalBranchModal').modal('show');
+        if (branchType === 'tag') {
+            const $pushTagBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-up"></i> Push Tag</button>')
+            $pushTagBtn.click(() => {
+                $('#tagName').text(branchFullName);
+                $('#forcePushTagCheckBox').prop('checked', false);
+                $('#pushTagModal').modal('show');
             });
-        } else if (branchType === 'remote') {
-            $deleteBtn.click(() => {
-                self.addProcessCount();
-                emit("delete-remote-branch", branchShorthand).then();
-            });
-        } else if (branchType === 'tag') {
+            $contextMenu.append($pushTagBtn);
+
+            const $deleteBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-regular fa-trash-can"></i> Delete</button>');
             $deleteBtn.click(() => {
                 self.addProcessCount();
                 emit("delete-tag", branchShorthand).then();
             });
+            $contextMenu.append($deleteBtn);
         } else {
-            $deleteBtn.click(() => {
-                alert("Not implemented, sorry!");
-            });
+            const $deleteBtn = $('<button type="button" class="btn btn-outline-danger btn-sm rounded-0 cm-item"><i class="fa-regular fa-trash-can"></i> Delete</button>');
+            if (branchType === 'local') {
+                $deleteBtn.click(() => {
+                    const $deleteRemoteBranchCheckBox = $('#deleteRemoteBranchCheckBox');
+                    $('#localBranchToDeleteShorthand').text(branchShorthand);
+                    $deleteRemoteBranchCheckBox.prop('checked', false);
+                    if (hasUpstream !== true) {
+                        $deleteRemoteBranchCheckBox.prop('disabled', true);
+                    }
+                    $('#deleteLocalBranchModal').modal('show');
+                });
+            } else if (branchType === 'remote') {
+                $deleteBtn.click(() => {
+                    self.addProcessCount();
+                    emit("delete-remote-branch", branchShorthand).then();
+                });
+            } else {
+                $deleteBtn.click(() => {
+                    alert("Not implemented, sorry!");
+                });
+            }
+            $contextMenu.append($deleteBtn);
         }
-        $contextMenu.append($deleteBtn);
 
         $contextMenu.show();
     }

@@ -26,6 +26,7 @@
                 <button id="openPushModalBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-arrow-up"></i> Push</button>
                 <button id="openStashModalBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-box-archive"></i> Stash</button>
                 <button id="openBranchModalBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-code-branch"></i> Branch</button>
+                <button id="openTagModalBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-tag"></i> Tag</button>
             </div>
             <div id="spinnerContainer">
                 <div id="mainSpinner" class="spinner-border text-light" role="status">
@@ -381,6 +382,28 @@
             </div>
         </div>
 
+        <div class="modal fade text-black" id="pushTagModal" tabindex="-1" aria-labelledby="pushTagModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="pushTagModalLabel">Push Tag Options</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="tagName"></p>
+                        <select id="remoteTagSelect" class="form-select" aria-label="Remote Select">
+                            <option selected>No Remotes Detected!</option>
+                        </select>
+                        <input class="form-check-input" type="checkbox" value="" id="forcePushTagCheckBox"><label class="form-check-label" for="forcePushTagCheckBox"> Force Push</label>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="pushTagBtn" type="button" class="btn btn-primary btn-sm">Push Tag</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="modal fade text-black" id="stashModal" tabindex="-1" aria-labelledby="stashModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -451,6 +474,29 @@
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
                         <button id="branchBtn" type="button" class="btn btn-primary btn-sm">Create Branch</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade text-black" id="tagModal" tabindex="-1" aria-labelledby="tagModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="tagModalLabel">Create Tag</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p id="tagSha"></p>
+                        <input class="form-check-input" type="checkbox" value="" id="lightweightTagCheckbox"><label class="form-check-label" for="lightweightTagCheckbox"> Lightweight Tag (has no message or signature)</label>
+                        <div><label for="tagTxt">Tag Name: </label><input id="tagTxt" type="text" class="form-control"></div>
+                        <div id="tagMessageContainer">
+                            <label for="tagMessageTxt">Tag Message (optional): </label><textarea id="tagMessageTxt" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="tagBtn" type="button" class="btn btn-primary btn-sm">Create Tag</button>
                     </div>
                 </div>
             </div>
