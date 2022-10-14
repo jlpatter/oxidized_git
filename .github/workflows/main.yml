@@ -84,8 +84,7 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/appimage
         if: matrix.os == 'ubuntu-latest'
         run: |
-          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage) ${{ env.bundle_app_name_prefix }}.AppImage &&\
-          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz) ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz
+          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage) ${{ env.bundle_app_name_prefix }}.AppImage && mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz) ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz
 
       - name: Upload AppImage Artifacts
         uses: ncipollo/release-action@v1
@@ -109,8 +108,7 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/msi
         if: matrix.os == 'windows-latest'
         run: |
-          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi) ${{ env.bundle_app_name_prefix_other }}.msi &&\
-          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip) ${{ env.bundle_app_name_prefix_other }}.msi.zip
+          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi) ${{ env.bundle_app_name_prefix_other }}.msi && mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip) ${{ env.bundle_app_name_prefix_other }}.msi.zip
 
       - name: Upload MSI Artifacts
         uses: ncipollo/release-action@v1
