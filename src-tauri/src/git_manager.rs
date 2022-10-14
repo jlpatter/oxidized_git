@@ -1335,6 +1335,37 @@ impl GitManager {
         Ok(())
     }
 
+    pub fn git_push_tag(&self, json_string: &str) -> Result<()> {
+        let repo = self.borrow_repo()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let mut tag_full_name = match json_hm.get("tagFullName") {
+            Some(s) => s.clone(),
+            None => bail!("tagFullName not included in payload from front-end."),
+        };
+        let is_force = match json_hm.get("isForcePush") {
+            Some(s) => s == "true",
+            None => bail!("isForcePush not included in payload from front-end."),
+        };
+        let remote_name = match json_hm.get("selectedRemote") {
+            Some(s) => s.as_str(),
+            None => bail!("selectedRemote not included in payload from front-end."),
+        };
+
+        let mut remote = repo.find_remote(remote_name)?;
+
+        let mut push_options = PushOptions::new();
+        push_options.remote_callbacks(GitManager::get_remote_callbacks());
+
+        if is_force {
+            tag_full_name.insert(0, '+');
+        }
+
+        remote.push(&[tag_full_name.as_str()], Some(&mut push_options))?;
+
+        Ok(())
+    }
+
     pub fn git_stash(&mut self, message: &str) -> Result<()> {
         let repo = self.borrow_repo_mut()?;
 
