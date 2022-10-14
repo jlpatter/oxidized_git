@@ -35,3 +35,7 @@ You are free to compile the project and try it if you want, but there are still 
 * Run `cargo install tauri-cli`
 * Run `npm install` inside the `ui` directory
 * Run `cargo tauri dev` in the project root to run the dev environment or `cargo tauri build` to package the application
+### Updating Version Number for Release
+There are 2 places that the version number needs to be updated before creating the version tag:
+* `src-tauri/Cargo.toml`
+* `src-tauri/tauri.conf.json`
