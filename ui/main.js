@@ -264,6 +264,7 @@ class Main {
             emit("commit", {summaryText: $summaryTxt.val(), messageText: $messageTxt.val()}).then();
             $summaryTxt.val("");
             $messageTxt.val("");
+            self.updateSummaryTxtCounter();
         });
 
         $('#commitPushBtn').click(() => {
@@ -273,6 +274,7 @@ class Main {
             emit("commit-push", {summaryText: $summaryTxt.val(), messageText: $messageTxt.val()}).then();
             $summaryTxt.val("");
             $messageTxt.val("");
+            self.updateSummaryTxtCounter();
         });
 
         $('#abortCherrypickBtn').click(() => {
@@ -393,18 +395,23 @@ class Main {
         });
 
         $('#summaryTxt').on('input', function() {
-            const numOfChars = $(this).val().length,
-                remainingNumOfChars = self.SUMMARY_CHAR_SOFT_LIMIT - numOfChars,
-                $summaryTxtCounter = $('#summaryTxtCounter');
-            $summaryTxtCounter.text(remainingNumOfChars.toString());
-            if (remainingNumOfChars < 0) {
-                $summaryTxtCounter.removeClass('text-white');
-                $summaryTxtCounter.addClass('text-red');
-            } else {
-                $summaryTxtCounter.removeClass('text-red');
-                $summaryTxtCounter.addClass('text-white');
-            }
+            self.updateSummaryTxtCounter();
         });
+    }
+
+    updateSummaryTxtCounter() {
+        const self = this,
+            $summaryTxtCounter = $('#summaryTxtCounter'),
+            numOfChars = $('#summaryTxt').val().length,
+            remainingNumOfChars = self.SUMMARY_CHAR_SOFT_LIMIT - numOfChars;
+        $summaryTxtCounter.text(remainingNumOfChars.toString());
+        if (remainingNumOfChars < 0) {
+            $summaryTxtCounter.removeClass('text-white');
+            $summaryTxtCounter.addClass('text-red');
+        } else {
+            $summaryTxtCounter.removeClass('text-red');
+            $summaryTxtCounter.addClass('text-white');
+        }
     }
 
     setupTreeViews() {
