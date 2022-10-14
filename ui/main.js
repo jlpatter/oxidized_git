@@ -471,7 +471,7 @@ class Main {
         file_info['file_lines'].forEach((line) => {
             let fileLineRow = '<tr><td class="line-no">';
             if (typeof line === 'string') {
-                fileLineRow += '</td><td class="line-no"></td><td></td><td class="line-content"><pre><code class="language-plaintext">' + line + '</code></pre></td></tr>';
+                fileLineRow += '</td><td class="line-no"></td><td></td><td class="line-content"><pre><code class="language-plaintext text-grey">' + line + '</code></pre></td></tr>';
             } else {
                 if (line['origin'] === '+') {
                     fileLineRow = '<tr class="added-code-line"><td class="line-no">';

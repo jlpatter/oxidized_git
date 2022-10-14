@@ -156,6 +156,10 @@ pre code.hljs {
     color: red;
 }
 
+.text-grey {
+    color: grey;
+}
+
 #messageTxt {
     width: 100%;
 }
