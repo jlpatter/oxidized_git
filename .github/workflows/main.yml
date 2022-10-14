@@ -84,13 +84,15 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/appimage
         if: matrix.os == 'ubuntu-latest'
         run: |
-          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage) ${{ env.bundle_app_name_prefix }}.AppImage && mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz) ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz
+          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage') ${{ env.bundle_app_name_prefix }}.AppImage && \
+          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz') ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz && \
+          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz.sig') ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz.sig
 
       - name: Upload AppImage Artifacts
         uses: ncipollo/release-action@v1
         if: matrix.os == 'ubuntu-latest'
         with:
-          artifacts: "src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}.AppImage,src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}.AppImage.tar.gz"
+          artifacts: "src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}.AppImage,src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}.AppImage.tar.gz,src-tauri/target/release/bundle/appimage/${{ env.bundle_app_name_prefix }}.AppImage.tar.gz.sig"
           allowUpdates: true
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -99,7 +101,7 @@ jobs:
         uses: ncipollo/release-action@v1
         if: matrix.os == 'macos-latest'
         with:
-          artifacts: "src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_*.dmg,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}.app.tar.gz"
+          artifacts: "src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_*.dmg,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}.app.tar.gz,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}.app.tar.gz.sig"
           allowUpdates: true
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -108,13 +110,15 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/msi
         if: matrix.os == 'windows-latest'
         run: |
-          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi) ${{ env.bundle_app_name_prefix_other }}.msi && mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip) ${{ env.bundle_app_name_prefix_other }}.msi.zip
+          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi') ${{ env.bundle_app_name_prefix_other }}.msi && \
+          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip') ${{ env.bundle_app_name_prefix_other }}.msi.zip && \
+          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip.sig') ${{ env.bundle_app_name_prefix_other }}.msi.zip.sig
 
       - name: Upload MSI Artifacts
         uses: ncipollo/release-action@v1
         if: matrix.os == 'windows-latest'
         with:
-          artifacts: "src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}.msi,src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}.msi.zip"
+          artifacts: "src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}.msi,src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}.msi.zip,src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}.msi.zip.sig"
           allowUpdates: true
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
