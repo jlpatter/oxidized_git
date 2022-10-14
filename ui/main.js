@@ -730,11 +730,11 @@ class Main {
                 $ul.append($newListItem);
             } else {
                 const $innerListItem = $('<li></li>');
-                if (child['branch_info'] !== null) {
+                if (child['branch_info'] === null) {
+                    $innerListItem.html(child['text']);
+                } else {
                     $innerListItem.addClass('hoverable-row unselectable inner-branch-item');
-                }
-                let childText = '';
-                if (child['branch_info'] !== null) {
+                    let childText = '';
                     if (child['branch_info']['is_head'] === true) {
                         childText += '* ';
                     } else if (child['branch_info']['branch_type'] === 'local' && child['branch_info']['has_upstream'] === false) {
@@ -742,10 +742,8 @@ class Main {
                         $innerListItem.attr('data-bs-toggle', 'tooltip');
                         $innerListItem.attr('title', 'This branch has no upstream, consider pushing it!');
                     }
-                }
-                childText += child['text'];
-                $innerListItem.html(childText);
-                if (child['branch_info'] !== null) {
+                    childText += child['text'];
+                    $innerListItem.html(childText);
                     if (child['branch_info']['behind'] !== 0) {
                         const $behindCount = $('<span class="right"><i class="fa-solid fa-arrow-down"></i>' + child['branch_info']['behind'] + '</span>');
                         $innerListItem.append($behindCount);
@@ -774,12 +772,12 @@ class Main {
                         e.preventDefault();
                         self.showBranchContextMenu(e, child['branch_info']['branch_shorthand'], child['branch_info']['branch_type']);
                     });
-                }
 
-                if ($innerListItem.attr('data-bs-toggle') !== undefined) {
-                    $innerListItem.tooltip({
-                        animation: false,
-                    });
+                    if ($innerListItem.attr('data-bs-toggle') !== undefined) {
+                        $innerListItem.tooltip({
+                            animation: false,
+                        });
+                    }
                 }
 
                 $ul.append($innerListItem);
