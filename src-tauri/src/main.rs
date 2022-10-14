@@ -63,6 +63,9 @@ fn main() {
                     CustomMenuItem::new("clone", "Clone Repo").into(),
                 ])).into(),
                 Submenu::new("Edit", Menu::with_items([
+                    NativeItem(MenuItem::Undo),
+                    NativeItem(MenuItem::Redo),
+                    NativeItem(MenuItem::Separator),
                     NativeItem(MenuItem::Copy),
                     NativeItem(MenuItem::Paste),
                     NativeItem(MenuItem::SelectAll),
