@@ -335,6 +335,7 @@ impl SVGRow {
             (String::from("x"), SVGPropertyAttrs::SomeInt((largest_occupied_x + 1) * X_SPACING + X_OFFSET)),
             (String::from("y"), SVGPropertyAttrs::SomeInt(pixel_y + TEXT_Y_OFFSET)),
             (String::from("fill"), SVGPropertyAttrs::SomeString(String::from("white"))),
+            (String::from("data-original-txt"), SVGPropertyAttrs::SomeString(self.summary.clone())),
         ]);
         draw_properties.insert(String::from("summary_text"), DrawProperty::SomeHashMap(HashMap::from([
             (String::from("tag"), SVGProperty::SomeString(String::from("text"))),

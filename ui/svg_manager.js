@@ -95,6 +95,9 @@ export class SVGManager {
         }
 
         self.addBranchLabels(commitsInfo['branch_draw_properties'], singleCharWidth);
+        for (let i = 0; i < self.rows.length; i++) {
+            self.truncateSummaryTxt(i, singleCharWidth);
+        }
 
         self.setVisibleCommits();
         self.commitTableSVG.setAttribute('height', ((self.rows.length + 1) * self.Y_SPACING).toString());
@@ -129,6 +132,20 @@ export class SVGManager {
         }
         if (selectedIndex >= 0 && selectedIndex < self.rows.length) {
             self.selectRow(self.rows[selectedIndex]['backRect'], self.rows[selectedIndex]['sha']);
+        }
+    }
+
+    truncateSummaryTxt(rowIndex, singleCharWidth) {
+        const self = this;
+
+        let summaryTxtContent = self.rows[rowIndex]['summaryTxt'].getAttribute('data-original-txt');
+        const summaryEndX = Number(self.rows[rowIndex]['summaryTxt'].getAttribute('x')) + summaryTxtContent.length * singleCharWidth;
+        const authorNameX = Number(self.rows[rowIndex]['authorName'].getAttribute('x'));
+        if (summaryEndX > authorNameX) {
+            const numOfCharsToRemove = Math.ceil((summaryEndX - authorNameX) / singleCharWidth) + 3;
+            summaryTxtContent = summaryTxtContent.slice(0, -numOfCharsToRemove);
+            summaryTxtContent += '...';
+            self.rows[rowIndex]['summaryTxt'].textContent = summaryTxtContent;
         }
     }
 
@@ -211,6 +228,7 @@ export class SVGManager {
             self.rows[i]['authorTime'].setAttribute('x', authorTimeX.toString());
             self.rows[i]['authorName'].setAttribute('x', (authorTimeX - (self.rows[i]['authorName'].textContent.length * singleCharWidth) - self.RIGHT_TEXT_SPACING).toString());
             self.rows[i]['backRect'].setAttribute('width', (newGraphWidth - Number(self.rows[i]['circle'].getAttribute('cx'))).toString());
+            self.truncateSummaryTxt(i, singleCharWidth);
         }
     }
 
