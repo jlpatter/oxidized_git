@@ -773,9 +773,9 @@ class Main {
                 $newListItem.append($nestedList);
                 $ul.append($newListItem);
             } else {
-                const $innerListItem = $('<li></li>');
+                const $innerListItem = $('<li class="display-flex-row"></li>');
                 if (child['branch_info'] === null) {
-                    $innerListItem.html(child['text']);
+                    $innerListItem.append($('<span class="text-overflow-ellipsis flex-auto-in-row">' + child['text'] + '</span>'));
                 } else {
                     $innerListItem.addClass('hoverable-row unselectable inner-branch-item');
                     let childText = '';
@@ -787,7 +787,7 @@ class Main {
                         $innerListItem.attr('title', 'This branch has no upstream, consider pushing it!');
                     }
                     childText += child['text'];
-                    $innerListItem.html(childText);
+                    $innerListItem.append($('<span class="text-overflow-ellipsis flex-auto-in-row">' + childText + '</span>'));
                     if (child['branch_info']['behind'] !== 0) {
                         const $behindCount = $('<span class="right"><i class="fa-solid fa-arrow-down"></i>' + child['branch_info']['behind'] + '</span>');
                         $innerListItem.append($behindCount);

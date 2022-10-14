@@ -164,6 +164,12 @@ pre code.hljs {
     color: grey;
 }
 
+.text-overflow-ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .unselectable {
     user-select: none;
     -moz-user-select: none;
