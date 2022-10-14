@@ -21,6 +21,7 @@ jobs:
   build:
     env:
       TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+      TAURI_KEY_PASSWORD: ""
 
     strategy:
       matrix:
