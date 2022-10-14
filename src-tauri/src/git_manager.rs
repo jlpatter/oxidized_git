@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::{fs, str};
 use anyhow::{bail, Result};
 use directories::BaseDirs;
-use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort, StashFlags};
+use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, ObjectType, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort, StashFlags};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use rfd::FileDialog;
 use serde::{Serialize, Serializer};
@@ -1381,7 +1381,7 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_branch(&mut self, json_string: &str) -> Result<()> {
+    pub fn git_branch(&self, json_string: &str) -> Result<()> {
         let repo = self.borrow_repo()?;
 
         let branch_options: HashMap<String, String> = serde_json::from_str(json_string)?;
@@ -1403,6 +1403,48 @@ impl GitManager {
 
         if checkout_on_create {
             self.git_checkout(new_branch.get())?;
+        }
+
+        Ok(())
+    }
+
+    pub fn git_tag(&self, json_string: &str) -> Result<()> {
+        let repo = self.borrow_repo()?;
+
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let commit_sha = match json_hm.get("tag_sha") {
+            Some(s) => {
+                if s != "" {
+                    s.clone()
+                } else {
+                    match repo.head()?.target() {
+                        Some(oid) => oid.to_string(),
+                        None => bail!("HEAD has no target to create a tag on."),
+                    }
+                }
+            },
+            None => bail!("tag_sha not included in payload from front-end."),
+        };
+        let is_lightweight = match json_hm.get("is_lightweight") {
+            Some(s) => s == "true",
+            None => bail!("is_lightweight not included in payload from front-end."),
+        };
+        let name = match json_hm.get("name") {
+            Some(s) => s,
+            None => bail!("name not included in payload from front-end."),
+        };
+        let message = match json_hm.get("message") {
+            Some(s) => s,
+            None => bail!("message not included in payload from front-end."),
+        };
+
+        let git_object = repo.find_object(Oid::from_str(&*commit_sha)?, Some(ObjectType::Commit))?;
+
+        if is_lightweight {
+            repo.tag_lightweight(name, &git_object, false)?;
+        } else {
+            let sig = repo.signature()?;
+            repo.tag(name, &git_object, &sig, message, false)?;
         }
 
         Ok(())

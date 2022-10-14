@@ -324,6 +324,13 @@ export class SVGManager {
             $contextMenu.css('left', event.pageX + 'px');
             $contextMenu.css('top', event.pageY + 'px');
 
+            const $tagBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-tag"></i> Tag</button>');
+            $tagBtn.click(function() {
+                $('#tagSha').text(sha);
+                $('#tagModal').modal('show');
+            });
+            $contextMenu.append($tagBtn);
+
             const $mergeBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-code-merge"></i> Merge</button>');
             $mergeBtn.click(function() {
                 emit("merge", sha).then();

@@ -386,6 +386,38 @@ class Main {
             $('#branchModal').modal('hide');
         });
 
+        $('#openTagModalBtn').click(() => {
+            $('#tagSha').text('');
+            $('#tagModal').modal('show');
+        });
+
+        $('#lightweightTagCheckbox').change(function() {
+            const $tagMessageContainer = $('#tagMessageContainer');
+            if (this.checked) {
+                $tagMessageContainer.hide();
+            } else {
+                $tagMessageContainer.show();
+            }
+        });
+
+        $('#tagBtn').click(() => {
+            self.addProcessCount();
+            const $tagSha = $('#tagSha'),
+                $lightweightTagCheckbox = $('#lightweightTagCheckbox'),
+                $tagTxt = $('#tagTxt'),
+                $tagMessageTxt = $('#tagMessageTxt');
+            emit("tag", {
+                tag_sha: $tagSha.text(),
+                is_lightweight: $lightweightTagCheckbox.is(':checked').toString(),
+                name: $tagTxt.val(),
+                message: $tagMessageTxt.val()
+            }).then();
+            $tagSha.text('');
+            $tagTxt.val('');
+            $tagMessageTxt.val('');
+            $('#tagModal').modal('hide');
+        });
+
         $('#deleteLocalBranchBtn').click(() => {
             self.addProcessCount();
             const $branchShorthand = $('#localBranchToDeleteShorthand');
