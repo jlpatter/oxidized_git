@@ -7,7 +7,7 @@
   },
   "package": {
     "productName": "oxidized_git",
-    "version": "0.1.0"
+    "version": "0.9.0"
   },
   "tauri": {
     "allowlist": {
@@ -58,7 +58,12 @@
       "csp": null
     },
     "updater": {
-      "active": false
+      "active": true,
+      "endpoints": [
+        "https://raw.githubusercontent.com/jlpatter/oxidized_git/master/current_version.json"
+      ],
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM3QUUxNjkxMzNCQjcwQzkKUldUSmNMc3prUmF1TjFra3VLdUJhUXhTMnFOSk9YY012VXJYRjJ5YnRVenVQYUtLK3dwNmhFK1MK"
     }
   }
 }
