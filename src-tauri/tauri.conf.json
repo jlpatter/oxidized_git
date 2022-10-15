@@ -7,7 +7,7 @@
   },
   "package": {
     "productName": "oxidized_git",
-    "version": "0.9.7"
+    "version": "0.9.9"
   },
   "tauri": {
     "allowlist": {
@@ -19,6 +19,9 @@
       },
       "path": {
         "all": true
+      },
+      "process": {
+        "relaunch": true
       }
     },
     "bundle": {
