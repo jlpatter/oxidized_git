@@ -47,7 +47,7 @@ class Main {
                 $('#updateModal').modal('show');
             }
         }).catch((e) => {
-            self.showError(e.message);
+            self.showError(e.toString());
         });
 
         // Setup resizable columns.
@@ -156,7 +156,7 @@ class Main {
                 await installUpdate();
                 await relaunch();
             } catch (e) {
-                self.showError(e.message);
+                self.showError(e.toString());
             }
             $('#updateModal').modal('hide');
         });
