@@ -2,6 +2,8 @@ import "./import_jquery";
 import {emit, listen} from "@tauri-apps/api/event";
 import {open} from '@tauri-apps/api/dialog';
 import {homeDir} from '@tauri-apps/api/path';
+import {relaunch} from '@tauri-apps/api/process';
+import {checkUpdate, installUpdate} from '@tauri-apps/api/updater';
 import {SVGManager} from "./svg_manager";
 import hljs from "highlight.js";
 import Resizable from "resizable";
@@ -38,6 +40,13 @@ class Main {
         self.svgManager.setGraphWidth();
 
         $('#summaryTxtCounter').text(self.SUMMARY_CHAR_SOFT_LIMIT.toString());
+
+        checkUpdate().then((updateResult) => {
+            if (updateResult.shouldUpdate) {
+                $('#updateMessage').text('Body: ' + updateResult.manifest.body + ', date: ' + updateResult.manifest.date + ', version: ' + updateResult.manifest.version);
+                $('#updateModal').modal('show');
+            }
+        }).catch((e) => console.error(e));
 
         // Setup resizable columns.
         const resizableColumns = document.querySelectorAll(".resizable-column");
@@ -141,6 +150,16 @@ class Main {
             $('#errorMessage').text(ev.payload);
             $('#errorModal').modal('show');
         }).then();
+
+        $('#updateBtn').click(async function() {
+            try {
+                await installUpdate();
+                await relaunch();
+            } catch (e) {
+                console.error(e);
+            }
+            $('#updateModal').modal('hide');
+        });
 
         $('#commits-tab').click(() => {
             self.svgManager.setVisibleCommits();

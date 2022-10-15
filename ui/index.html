@@ -211,6 +211,24 @@
             </div>
         </div>
 
+        <div class="modal fade text-black" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+            <div id="updateModalDialog" class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="updateModalLabel">Install Update</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body overflow-auto">
+                        <p id="updateMessage"></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                        <button id="updateBtn" type="button" class="btn btn-primary btn-sm">Update and Restart</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="modal fade text-black" id="addRemoteModal" tabindex="-1" aria-labelledby="addRemoteModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
