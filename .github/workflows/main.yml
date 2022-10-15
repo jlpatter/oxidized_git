@@ -80,7 +80,7 @@ jobs:
       - name: Run Cargo Tauri Build
         run: cargo tauri build
 
-      - name: Rename AppImage Artifacts and Set Them As Executable
+      - name: Rename AppImage Artifacts
         working-directory: ./src-tauri/target/release/bundle/appimage
         if: matrix.os == 'ubuntu-latest'
         run: |

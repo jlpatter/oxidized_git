@@ -43,5 +43,5 @@ There are 2 places that the version number needs to be updated BEFORE pushing th
 * `src-tauri/tauri.conf.json`
 
 Once the GitHub release has been created and published (which you have to do manually), you'll need to update the `version`
-field and the `signature` fields (by copying the signatures generated in the associated `.sig` files) in `current_version.json`
+field and the versions in the urls and the `signature` fields (by copying the signatures generated in the associated `.sig` files) in `current_version.json`
 and push it up (so that the tauri updater will automatically download from the new release):
