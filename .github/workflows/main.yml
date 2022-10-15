@@ -86,8 +86,7 @@ jobs:
         run: |
           mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage') ${{ env.bundle_app_name_prefix }}.AppImage && \
           mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz') ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz && \
-          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz.sig') ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz.sig && \
-          chmod +x ${{ env.bundle_app_name_prefix }}.AppImage
+          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz.sig') ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz.sig
 
       - name: Upload AppImage Artifacts
         uses: ncipollo/release-action@v1

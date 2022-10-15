@@ -46,7 +46,9 @@ class Main {
                 $('#updateMessage').text('Body: ' + updateResult.manifest.body + ', date: ' + updateResult.manifest.date + ', version: ' + updateResult.manifest.version);
                 $('#updateModal').modal('show');
             }
-        }).catch((e) => console.error(e));
+        }).catch((e) => {
+            self.showError(e.message);
+        });
 
         // Setup resizable columns.
         const resizableColumns = document.querySelectorAll(".resizable-column");
@@ -146,9 +148,7 @@ class Main {
 
         listen("error", ev => {
             self.removeProcessCount();
-            // TODO: if removing jQuery usage, 'text(_)' automatically escapes html characters, so that will need to be handled.
-            $('#errorMessage').text(ev.payload);
-            $('#errorModal').modal('show');
+            self.showError(ev.payload);
         }).then();
 
         $('#updateBtn').click(async function() {
@@ -156,7 +156,7 @@ class Main {
                 await installUpdate();
                 await relaunch();
             } catch (e) {
-                console.error(e);
+                self.showError(e.message);
             }
             $('#updateModal').modal('hide');
         });
@@ -460,6 +460,12 @@ class Main {
         $('#summaryTxt').on('input', function() {
             self.updateSummaryTxtCounter();
         });
+    }
+
+    showError(messageTxt) {
+        // TODO: if removing jQuery usage, 'text(_)' automatically escapes html characters, so that will need to be handled.
+        $('#errorMessage').text(messageTxt);
+        $('#errorModal').modal('show');
     }
 
     updateSummaryTxtCounter() {
