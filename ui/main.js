@@ -1,6 +1,7 @@
 import "./import_jquery";
-import {emit, listen} from "@tauri-apps/api/event";
+import {getVersion} from '@tauri-apps/api/app';
 import {open} from '@tauri-apps/api/dialog';
+import {emit, listen} from "@tauri-apps/api/event";
 import {homeDir} from '@tauri-apps/api/path';
 import {relaunch} from '@tauri-apps/api/process';
 import {checkUpdate, installUpdate} from '@tauri-apps/api/updater';
@@ -42,10 +43,11 @@ class Main {
 
         $('#summaryTxtCounter').text(self.SUMMARY_CHAR_SOFT_LIMIT.toString());
 
-        checkUpdate().then((updateResult) => {
+        checkUpdate().then(async function(updateResult) {
             if (updateResult.shouldUpdate) {
-                // TODO: Format this better!
-                $('#updateMessage').text('Body: ' + updateResult.manifest.body + ', version: ' + updateResult.manifest.version);
+                $('#updateMessage').text(updateResult.manifest.body);
+                $('#updateCurrentVersion').text('Current Version: ' + await getVersion());
+                $('#updateNewVersion').text('New Version: ' + updateResult.manifest.version);
                 $('#updateModal').modal('show');
             }
         }).catch((e) => {
