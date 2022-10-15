@@ -34,6 +34,7 @@ class Main {
         self.showCommitControls();
 
         $('#mainSpinner').hide();
+        $('#updaterSpinner').hide();
 
         self.setupTreeViews();
 
@@ -152,12 +153,15 @@ class Main {
         }).then();
 
         $('#updateBtn').click(async function() {
+            const $updaterSpinner = $('#updaterSpinner');
+            $updaterSpinner.show();
             try {
                 await installUpdate();
                 await relaunch();
             } catch (e) {
                 self.showError(e.toString());
             }
+            $updaterSpinner.hide();
             $('#updateModal').modal('hide');
         });
 

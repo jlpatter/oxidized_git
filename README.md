@@ -35,10 +35,13 @@ You are free to compile the project and try it if you want, but there are still 
 * Run `cargo install tauri-cli`
 * Run `npm install` inside the `ui` directory
 * Run `cargo tauri dev` in the project root to run the dev environment or `cargo tauri build` to package the application
-* For creating release packages, you will need to set the TAURI_PRIVATE_KEY environment variable to sign updates
 ### Making a Release
-There are 2 places that the version number needs to be updated before pushing the version tag (which should kick off the pipelines that create a GitHub release):
+For creating release packages, you will need to set the `TAURI_PRIVATE_KEY` and `TAURI_KEY_PASSWORD` environment variable to sign updates
+
+There are 2 places that the version number needs to be updated BEFORE pushing the version tag (which should kick off the pipelines that create a GitHub release):
 * `src-tauri/Cargo.toml`
 * `src-tauri/tauri.conf.json`
-Once the GitHub release has been created and published (which you have to do manually), you'll need to update the version in the following file and push it up (so that the tauri updater will automatically download from the new release):
-* `current_version.json` (throughout the file)
+
+Once the GitHub release has been created and published (which you have to do manually), you'll need to update the `version`
+field and the `signature` fields (by copying the signatures generated in the associated `.sig` files) in `current_version.json`
+and push it up (so that the tauri updater will automatically download from the new release):
