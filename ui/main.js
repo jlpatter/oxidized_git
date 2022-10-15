@@ -44,7 +44,8 @@ class Main {
 
         checkUpdate().then((updateResult) => {
             if (updateResult.shouldUpdate) {
-                $('#updateMessage').text('Body: ' + updateResult.manifest.body + ', date: ' + updateResult.manifest.date + ', version: ' + updateResult.manifest.version);
+                // TODO: Format this better!
+                $('#updateMessage').text('Body: ' + updateResult.manifest.body + ', version: ' + updateResult.manifest.version);
                 $('#updateModal').modal('show');
             }
         }).catch((e) => {
