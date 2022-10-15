@@ -1,22 +1,22 @@
 {
-  "version": "v0.9.2",
+  "version": "v0.9.3",
   "notes": "Updater Test version",
   "platforms": {
     "darwin-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM3QUUxNjkxMzNCQjcwQzkKUldUSmNMc3prUmF1TjFra3VLdUJhUXhTMnFOSk9YY012VXJYRjJ5YnRVenVQYUtLK3dwNmhFK1MK",
-      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.2/oxidized_git.app.tar.gz"
+      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.3/oxidized_git.app.tar.gz"
     },
     "darwin-aarch64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM3QUUxNjkxMzNCQjcwQzkKUldUSmNMc3prUmF1TjFra3VLdUJhUXhTMnFOSk9YY012VXJYRjJ5YnRVenVQYUtLK3dwNmhFK1MK",
-      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.2/silicon/oxidized_git.app.tar.gz"
+      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.3/silicon/oxidized_git.app.tar.gz"
     },
     "linux-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM3QUUxNjkxMzNCQjcwQzkKUldUSmNMc3prUmF1TjFra3VLdUJhUXhTMnFOSk9YY012VXJYRjJ5YnRVenVQYUtLK3dwNmhFK1MK",
-      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.2/oxidized-git.AppImage.tar.gz"
+      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.3/oxidized-git.AppImage.tar.gz"
     },
     "windows-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM3QUUxNjkxMzNCQjcwQzkKUldUSmNMc3prUmF1TjFra3VLdUJhUXhTMnFOSk9YY012VXJYRjJ5YnRVenVQYUtLK3dwNmhFK1MK",
-      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.2/oxidized_git.msi.zip"
+      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.3/oxidized_git.msi.zip"
     }
   }
 }
