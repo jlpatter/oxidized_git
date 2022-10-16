@@ -103,11 +103,18 @@ jobs:
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Rename MacOS Artifacts
+        working-directory: ./src-tauri/target/release/bundle/macos
+        if: matrix.os == 'macos-latest'
+        run: |
+          mv ${{ env.bundle_app_name_prefix_other }}.app.tar.gz ${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz && \
+          mv ${{ env.bundle_app_name_prefix_other }}.app.tar.gz.sig ${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz.sig
+
       - name: Upload MacOS Artifacts
         uses: ncipollo/release-action@v1
         if: matrix.os == 'macos-latest'
         with:
-          artifacts: "src-tauri/target/release/bundle/dmg/${{ env.bundle_app_name_prefix_other }}_*.dmg,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}.app.tar.gz,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}.app.tar.gz.sig"
+          artifacts: "src-tauri/target/release/bundle/dmg/${{ env.bundle_app_name_prefix_other }}_*.dmg,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz.sig"
           allowUpdates: true
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
