@@ -16,6 +16,60 @@
     </ul>
   </div>
 </template>
+
+<script>
+import {emit, listen} from "@tauri-apps/api/event";
+export default {
+  data() { 
+    return {}
+  },
+  async mounted() {
+    const  ev = listen("update_all", (ev) => {
+      console.log(ev.payload);
+    });
+    // this.updateAll(ev.payload);
+    // this.removeProcessCount();
+  },
+  methods: {
+    updateBranchInfo() {
+        const self = this,
+            $localBranches = $('#localBranches'),
+            $remoteBranches = $('#remoteBranches'),
+            $tags = $('#tags'),
+            $stashes = $('#stashes');
+
+        let activeTreeIds = [];
+        $('.active-tree').each(function() {
+            activeTreeIds.push($(this).attr('id'));
+        });
+
+        $localBranches.empty();
+        $remoteBranches.empty();
+        $tags.empty();
+        $stashes.empty();
+
+        // The root node is empty, so get its children.
+        self.buildBranchResultHTML(branch_info_list['local_branch_info_tree']['children'], $localBranches, "localBranches");
+        self.buildBranchResultHTML(branch_info_list['remote_branch_info_tree']['children'], $remoteBranches, "remoteBranches");
+        self.buildBranchResultHTML(branch_info_list['tag_branch_info_tree']['children'], $tags, "tags");
+
+        branch_info_list['stash_info_list'].forEach((stashInfo) => {
+            const $stashItem = $('<li class="hoverable-row unselectable inner-branch-item"></li>');
+            $stashItem.text(stashInfo['message']);
+            $stashItem.contextmenu(function(e) {
+                e.preventDefault();
+                self.showStashContextMenu(e, stashInfo['index']);
+            });
+            $stashes.append($stashItem);
+        });
+    
+    }
+  }
+
+}
+
+
+</script>
     
 <style scoped>
 /* Remove default bullets */
