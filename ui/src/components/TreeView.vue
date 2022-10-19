@@ -1,21 +1,19 @@
 <template>
-  <div class="full-height">
-    <div class="resizable-column resizeable-column-branches full-height">
-      <ul id="branchesTreeView" class="tree-view">
-        <li><span class="parent-tree"><i class="fa-solid fa-caret-down rotated-caret"></i> Local Branches</span>
-          <ul id="localBranches" class="nested sub-tree-view active-tree"></ul>
-        </li>
-        <li><span id="remoteBranchesHeader" class="parent-tree"><i class="fa-solid fa-caret-down"></i> Remote Branches</span>
-          <ul id="remoteBranches" class="nested sub-tree-view"></ul>
-        </li>
-        <li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> Tags</span>
-          <ul id="tags" class="nested sub-tree-view"></ul>
-        </li>
-        <li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> Stashes</span>
-          <ul id="stashes" class="nested sub-tree-view"></ul>
-        </li>
-      </ul>
-    </div>
+  <div class="resizable-column resizeable-column-branches full-height">
+    <ul id="branchesTreeView" class="tree-view">
+      <li><span class="parent-tree"><i class="fa-solid fa-caret-down rotated-caret"></i> Local Branches</span>
+        <ul id="localBranches" class="nested sub-tree-view active-tree"></ul>
+      </li>
+      <li><span id="remoteBranchesHeader" class="parent-tree"><i class="fa-solid fa-caret-down"></i> Remote Branches</span>
+        <ul id="remoteBranches" class="nested sub-tree-view"></ul>
+      </li>
+      <li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> Tags</span>
+        <ul id="tags" class="nested sub-tree-view"></ul>
+      </li>
+      <li><span class="parent-tree"><i class="fa-solid fa-caret-down"></i> Stashes</span>
+        <ul id="stashes" class="nested sub-tree-view"></ul>
+      </li>
+    </ul>
   </div>
 </template>
     

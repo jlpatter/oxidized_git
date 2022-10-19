@@ -8,12 +8,13 @@ import GitContent from './components/GitContent.vue'
 </script>
 
 <template>
-  
   <div class="display-flex-column full-height">
     <div class="display-flex-column full-height">
       <action-bar class="display-flex-row" />
-      <tree-view class="flex-auto-in-column display-flex-row"/>
-      <git-content />
+      <div class="flex-auto-in-column display-flex-column display-flex-row">
+        <tree-view />
+        <git-content />
+      </div>
     </div>
   </div>
 </template>
