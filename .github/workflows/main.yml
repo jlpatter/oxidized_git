@@ -78,7 +78,7 @@ jobs:
       - name: Fetch Node Dependencies
         run: npm install
 
-      - name: Run Cargo Tauri Build
+      - name: Run Tauri Build
         run: npm run tauri build
 
       - name: Rename AppImage Artifacts
