@@ -8,17 +8,19 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "~6.2.0",
     "@tauri-apps/api": "~1.1.0",
     "bootstrap": "~5.2.2",
-    "@fortawesome/fontawesome-free": "~6.2.0",
+    "events": "~3.3.0",
     "highlight.js": "~11.6.0",
     "jquery": "~3.6.1",
     "resizable": "~1.2.1",
-    "events": "~3.3.0"
+    "vue": "^3.2.41"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^1.1.1",
     "@types/node": "~18.8.5",
+    "@vitejs/plugin-vue": "^3.1.2",
     "vite": "~3.1.7"
   }
 }
