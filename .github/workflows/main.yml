@@ -76,15 +76,10 @@ jobs:
         shell: bash
 
       - name: Fetch Node Dependencies
-        working-directory: ./ui
         run: npm install
 
-      - name: Install Cargo Tauri-CLI
-        continue-on-error: true
-        run: cargo install tauri-cli
-
       - name: Run Cargo Tauri Build
-        run: cargo tauri build
+        run: npm run tauri build
 
       - name: Rename AppImage Artifacts
         working-directory: ./src-tauri/target/release/bundle/appimage

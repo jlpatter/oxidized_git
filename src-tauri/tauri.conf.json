@@ -1,13 +1,13 @@
 {
   "build": {
-    "beforeBuildCommand": "cd ui && npm run build",
-    "beforeDevCommand": "cd ui && npm run dev",
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
     "devPath": "http://localhost:5173",
     "distDir": "../ui/dist"
   },
   "package": {
     "productName": "oxidized_git",
-    "version": "0.9.12"
+    "version": "0.9.13"
   },
   "tauri": {
     "allowlist": {
