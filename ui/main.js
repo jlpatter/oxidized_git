@@ -910,14 +910,14 @@ class Main {
             $remoteTagSelect.empty();
 
             remote_info_list.forEach((remoteResult) => {
-                let $option = '';
+                let option = '';
                 if (remoteResult === 'origin') {
-                    $option = $('<option value="' + remoteResult + '" selected>' + remoteResult + '</option>');
+                    option = '<option value="' + remoteResult + '" selected>' + remoteResult + '</option>';
                 } else {
-                    $option = $('<option value="' + remoteResult + '">' + remoteResult + '</option>');
+                    option = '<option value="' + remoteResult + '">' + remoteResult + '</option>';
                 }
-                $remoteSelect.append($option);
-                $remoteTagSelect.append($option);
+                $remoteSelect.append(option);
+                $remoteTagSelect.append(option);
             });
         }
     }
