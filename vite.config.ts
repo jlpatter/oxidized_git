@@ -1,4 +1,6 @@
 import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
 
 export default defineConfig({
     // prevent vite from obscuring rust errors
@@ -20,4 +22,5 @@ export default defineConfig({
         // produce sourcemaps for debug builds
         sourcemap: !!process.env.TAURI_DEBUG,
     },
+    plugins: [vue()]
 })
