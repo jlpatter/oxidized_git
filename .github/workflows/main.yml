@@ -8,10 +8,10 @@ env:
 
 # Controls when the workflow will run
 on:
-  # Triggers the workflow on tag pushes
+  # Triggers the workflow on version tag pushes
   push:
     tags:
-      - '**'
+      - 'v*.*.*'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
