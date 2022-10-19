@@ -7,7 +7,7 @@
   },
   "package": {
     "productName": "oxidized_git",
-    "version": "0.9.11"
+    "version": "0.9.12"
   },
   "tauri": {
     "allowlist": {
