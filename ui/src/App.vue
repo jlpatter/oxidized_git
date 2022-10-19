@@ -1,0 +1,244 @@
+/** The main App file that renders the ui */
+<script setup>
+// This starter template is using Vue 3 <script setup> SFCs
+// Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
+import TreeView from './components/TreeView.vue'
+import ActionBar from './components/ActionBar.vue'
+import GitContent from './components/GitContent.vue'
+</script>
+
+<template>
+  
+  <div class="display-flex-column full-height">
+    <div class="display-flex-column full-height">
+      <action-bar class="display-flex-row" />
+      <tree-view class="flex-auto-in-column display-flex-row"/>
+      <git-content />
+    </div>
+  </div>
+</template>
+
+<style>
+body {
+    display: block;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    font-size: 15px;
+}
+
+textarea {
+    width: 100%;
+}
+
+.nav-tabs .nav-link.active {
+    color: white;
+    background-color: black;
+}
+
+.tab-btn-xsm {
+    padding: 2px 4px;
+}
+
+.display-flex-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.display-flex-row {
+    display: flex;
+    flex-direction: row;
+}
+
+.full-height {
+    height: 100%;
+}
+
+.half-height {
+    height: 50%;
+}
+
+.full-width {
+    width: 100% !important;  /* important is required to override Resizable's width */
+}
+
+.flex-auto-in-column {
+    flex: auto;
+    min-height: 0;
+}
+
+.flex-auto-in-row {
+    flex: auto;
+    min-width: 0;
+}
+
+.resizable-column {
+    border-color: white;
+    border-right: 1px solid;
+    position: relative;
+    flex: none;
+    width: 16.66%; /* This is the initial width */
+}
+
+.resizable-row {
+    border-color: white;
+    border-bottom: 1px solid;
+    position: relative;
+    flex: none;
+}
+
+.little-padding-top {
+    padding-top: 10px;
+}
+
+.little-padding-bottom {
+    padding-bottom: 10px;
+}
+
+.little-padding-left {
+    padding-left: 10px;
+}
+
+#spinnerContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    text-align: center;
+}
+
+.file-path-txt, .no-margin-bottom {
+    margin-bottom: 0;
+}
+
+.white-space-nowrap {
+    white-space: nowrap;
+}
+
+.hoverable-row, .svg-hoverable-row {
+    cursor: pointer;
+}
+
+.hoverable-row:hover {
+    background-color: rgba(255, 255, 255, 0.075);
+}
+
+.selected-row {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.added-code-line {
+    background-color: rgba(0, 255, 0, 0.2);
+}
+
+.removed-code-line {
+    background-color: rgba(255, 0, 0, 0.2);
+}
+
+.hljs {
+    background-color: transparent;
+}
+
+pre {
+    margin-bottom: 0;
+    padding-left: 10px;
+}
+
+pre code.hljs {
+    padding: 0;
+}
+
+.line-no {
+    text-align: right;
+    padding-right: 5px;
+}
+
+.line-content {
+    width: 100%;
+}
+
+.controls {
+    flex: initial;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-bottom: 10px;
+}
+
+.right {
+    float: right;
+}
+
+.right-padding {
+    float: right;
+    padding-right: 10px;
+}
+
+.cm-item {
+    text-align: left;
+}
+
+.text-red {
+    color: red;
+}
+
+.text-grey {
+    color: grey;
+}
+
+.text-overflow-ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.unselectable {
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+}
+
+#contextMenu {
+    display: grid;
+    position: absolute;
+    max-width: 500px;
+    margin: 10px;
+    -webkit-border-radius: 15px;
+    border-radius: 15px;
+}
+
+#errorModalDialog {
+    max-width: 80vw;
+}
+
+svg text {
+    font-family: monospace;
+    font-size: 12px;
+}
+
+svg .svg-hoverable-row {
+    opacity: 0;
+}
+
+svg .svg-hoverable-row:hover {
+    opacity: 0.75;
+}
+
+svg .svg-selected-row {
+    opacity: 1.0;
+}
+
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(200,200,200,1);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background-color: #fff;
+    -webkit-box-shadow: inset 0 0 6px rgba(90, 90, 90, 0.7);
+}
+</style>
