@@ -110,6 +110,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.dmg') ${{ env.bundle_app_name_prefix_other }}_x64.dmg
+        shell: bash
 
       - name: Upload MacOS Artifacts
         uses: ncipollo/release-action@v1

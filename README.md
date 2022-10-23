@@ -1,11 +1,9 @@
-# Oxidized Git
-
-## Note: This project is still under construction and doesn't have a release version yet!
-You are free to compile the project and try it if you want, but there are still a bunch of things I want to fix/add before the full release! I'm also planning on setting up a website for the project and getting proper code signing and such so stay tuned!
+<p align="center">
+    <img src="src-tauri/icons/OxidizedGitMainLogo.png" alt="Oxidized Git">
+</p>
 
 ## Usage
-### Windows
-* Install WebView2 https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
+Download and install the desired version from the "Releases"
 ### Linux
 * You may need to install the equivalent of WebView2 on Linux (if you're having trouble getting it work, maybe try installing dependencies listed here: https://tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux)
 * Make sure you have gnome-keyring installed and libsecret. If it isn't working, make sure you've created a default keyring in it!
