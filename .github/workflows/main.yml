@@ -105,11 +105,17 @@ jobs:
           mv ${{ env.bundle_app_name_prefix_other }}.app.tar.gz ${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz && \
           mv ${{ env.bundle_app_name_prefix_other }}.app.tar.gz.sig ${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz.sig
 
+      - name: Rename MacOS DMG Artifact
+        working-directory: ./src-tauri/target/release/bundle/dmg
+        if: matrix.os == 'macos-latest'
+        run: |
+          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.dmg') ${{ env.bundle_app_name_prefix_other }}_x64.dmg
+
       - name: Upload MacOS Artifacts
         uses: ncipollo/release-action@v1
         if: matrix.os == 'macos-latest'
         with:
-          artifacts: "src-tauri/target/release/bundle/dmg/${{ env.bundle_app_name_prefix_other }}_*.dmg,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz.sig"
+          artifacts: "src-tauri/target/release/bundle/dmg/${{ env.bundle_app_name_prefix_other }}_x64.dmg,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz.sig"
           allowUpdates: true
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
