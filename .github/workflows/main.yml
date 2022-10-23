@@ -85,9 +85,9 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/appimage
         if: matrix.os == 'ubuntu-latest'
         run: |
-          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage') ${{ env.bundle_app_name_prefix }}.AppImage && \
-          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz') ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz && \
-          mv $(find -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz.sig') ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz.sig
+          mv $(find . -name '${{ env.bundle_app_name_prefix }}_*.AppImage') ${{ env.bundle_app_name_prefix }}.AppImage && \
+          mv $(find . -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz') ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz && \
+          mv $(find . -name '${{ env.bundle_app_name_prefix }}_*.AppImage.tar.gz.sig') ${{ env.bundle_app_name_prefix }}.AppImage.tar.gz.sig
 
       - name: Upload AppImage Artifacts
         uses: ncipollo/release-action@v1
@@ -109,7 +109,7 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/dmg
         if: matrix.os == 'macos-latest'
         run: |
-          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.dmg') ${{ env.bundle_app_name_prefix_other }}_x64.dmg
+          mv $(find . -name '${{ env.bundle_app_name_prefix_other }}_*.dmg') ${{ env.bundle_app_name_prefix_other }}_x64.dmg
         shell: bash
 
       - name: Upload MacOS Artifacts
@@ -125,9 +125,9 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/msi
         if: matrix.os == 'windows-latest'
         run: |
-          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi') ${{ env.bundle_app_name_prefix_other }}.msi && \
-          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip') ${{ env.bundle_app_name_prefix_other }}.msi.zip && \
-          mv $(find -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip.sig') ${{ env.bundle_app_name_prefix_other }}.msi.zip.sig
+          mv $(find . -name '${{ env.bundle_app_name_prefix_other }}_*.msi') ${{ env.bundle_app_name_prefix_other }}.msi && \
+          mv $(find . -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip') ${{ env.bundle_app_name_prefix_other }}.msi.zip && \
+          mv $(find . -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip.sig') ${{ env.bundle_app_name_prefix_other }}.msi.zip.sig
         shell: bash
 
       - name: Upload MSI Artifacts
