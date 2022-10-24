@@ -1,22 +1,22 @@
 {
-  "version": "v0.9.13",
+  "version": "v1.0.0",
   "notes": "Fixed issue with pushing",
   "platforms": {
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaXpNZHcxMVBmc2dZZkFuWURoYUQvdk12TWRrb2ttTnJ5NitWSytFbEhuK2dDSTdjdTMzSEVhbEI4bW5oN3pVQjE0VzhQazVadldESk0rUWZudWhqMGx6R2hZYXZKY0E0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjY2MTQ4NDM2CWZpbGU6b3hpZGl6ZWRfZ2l0LmFwcC50YXIuZ3oKUGdxakNTWEFHZnJ1ODRmOTBUYyszeUxxRVRSSkZwWUMwYVVCcEFrR2dZZi8rdTlSdDRYZk9xYTJNUmNqREZQbHBzekpXWEVydStFYk44RHZDSEcxQnc9PQo=",
-      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.13/oxidized_git_x64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaXpNZHcxMVBmc2tKdTdWWnVkZmVYMkdKdXFPeDlUVHJMNWRTMnAvWk8reEREdGdMSDVZem9VNjA2cjlFdzl6Yi9NQlpGS0pBVy9jaGZGM01kMlR4WCtDc2Z6S2xzZXcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjY2NTY1NjMzCWZpbGU6b3hpZGl6ZWRfZ2l0LmFwcC50YXIuZ3oKcTJ1WUJRdk5Ba3dQZEU1Q1JNUEJxMVFLVnJ1aHdLYlIrdmlUWWtORnpCd0cwY0lhRjRuN0UvRUl3bElFMEpzVUxrMXE1RXA4QkVac2FtMHUvTGFiQ1E9PQo=",
+      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v1.0.0/oxidized_git_x64.app.tar.gz"
     },
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaXpNZHcxMVBmc2tFQjZCS1dUZkhvOFAyNHF3Q2lJRGNvUFFaVUcwMGYyT05ISnFTMHFxdEo2ZUYrM2ZwWnVvdmlyU3Ria3NhSkM2Zlk5VStUMHp3N2k2OUxqM2U2bUFVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjY2MTg5MDc0CWZpbGU6b3hpZGl6ZWRfZ2l0LmFwcC50YXIuZ3oKRnZ6ZjJQTmtvYWJHTk5wLzE4N0gwUHNNbzZ4SzdOaytDYTQxVWFDb05SdFhxWkdWUy9BNnR6cmVBR0xqY0tqQ3BCWXVNb1VDMjRKOUpBV2FDWk0wQkE9PQo=",
-      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.13/oxidized_git_aarch64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaXpNZHcxMVBmc3EyT1RZMG9RU2VjWXM5YVdMWXFjb1FMQkNCdlJxc2Y1U1RlTVlrY0U0VWc5WiswVlltNDV1emVSS096SDV3cGVrM010R2dVbXdZQkY2NWcxV3B6Q1FrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjY2NTc0NzY1CWZpbGU6b3hpZGl6ZWRfZ2l0LmFwcC50YXIuZ3oKakR5Nm4rUThISEFEb0tYa2pUYzBnWWpGZTJHSDRNMTV6VFFQSUg4RloyalBxUWNFU2tITlJkTzAwTVc0TmpqbnJVVisycllYdkdrenpLc2RDQzJwQnc9PQo=",
+      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v1.0.0/oxidized_git_aarch64.app.tar.gz"
     },
     "linux-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaXpNZHcxMVBmc3Q4UERVZk05dlFacFNaVXV0TGVWUjNmMTh1akcrRWtGeWY1MzZSekNqc2MxeURuY2haMUhNRkFDWUxNZk5jVHhaYi9ESnEwMkNYL2pGZXEvMU5vSWdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjY2MTQ4MzUxCWZpbGU6b3hpZGl6ZWQtZ2l0XzAuOS4xM19hbWQ2NC5BcHBJbWFnZS50YXIuZ3oKdkp0aGQ5YWsweWh0Zk0raUJ5RDM0VzZ1YzdHYXVQMXNaTXNRU2dPRGJuTDBaaFdIREpibDhiSXA0dTNka3IyTTRJS1J4d29ad1hoT3hFK2RNY2ExQnc9PQo=",
-      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.13/oxidized-git.AppImage.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaXpNZHcxMVBmc2hyOXYxRU5PQ1F1Ry9DRFBtUXNkWmpYdXRoSS9PZFMwclhuUjRmVDVhYkt1SzhObEdlWHMzRUJhYUEzRHZBSmpQdkFEdHhQdEpnanMvNnRZUVV3Y3dFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjY2NTY1MTIyCWZpbGU6b3hpZGl6ZWQtZ2l0XzEuMC4wX2FtZDY0LkFwcEltYWdlLnRhci5negoyVFVGdzdwYStsT0hJcGdjdEpFR1orMWdhTSsrT1VENUZ2UGE1NXJlbHB4L2dQV0RUa3o5VGVzdVVUaTJUeWRjdHM1d2JtcGw0cXF3MXZRbFJMeERBdz09Cg==",
+      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v1.0.0/oxidized-git.AppImage.tar.gz"
     },
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaXpNZHcxMVBmc3QyenJiYkxoZ2YvUmtpNVliMVA2NWJYaXZrMjNrb2lQWlpBS1l2S0doMVFRNWRiS25DYmo4WlR4ZXcyZlJPZWd1RXRTemVwZUtVaC9ndU1WdDJXeWdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjY2MTQ4NjA1CWZpbGU6b3hpZGl6ZWRfZ2l0XzAuOS4xM194NjRfZW4tVVMubXNpLnppcApoYW9iUzRlUDYzRzNIbXpaOThLZUVsLzE4aWh0Nlh1TEdrSnpOVTNTUmx5VGN1Y2NqK3o1dFV0Z2dTYXp5L3pYbnFUNWlvUHR1b0phbE41RlE2K2JEQT09Cg==",
-      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v0.9.13/oxidized_git.msi.zip"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaXpNZHcxMVBmc3U2dzhmc1hGVFpkNkRLQUxhQklpMi9wWDZZMmxuYy8xR0hhVVJja1hHZWdXQitvZi8wRTZxYkxlME9MaG1WY01mOU1WWU0vZFNWVkU4c21BZ3JBZVFvPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNjY2NTY1NzcwCWZpbGU6b3hpZGl6ZWRfZ2l0XzEuMC4wX3g2NF9lbi1VUy5tc2kuemlwCm9GVEhxcXdCZDVXU1JLY014ZUxuRVJ0Q25OOE00a2ZQK1phV2h3aU5NZ0szQTQvTTgyUXNsR3hIVDd2cnBtNWpmL3BmZmFEaGdSVHZ4MXV1cE5STEJ3PT0K",
+      "url": "https://github.com/jlpatter/oxidized_git/releases/download/v1.0.0/oxidized_git.msi.zip"
     }
   }
 }
