@@ -14,6 +14,7 @@ Download and install the desired version from the "Releases"
 * Install WebView2 https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section
 * Install Rust https://www.rust-lang.org/tools/install
 * Install NodeJS https://nodejs.org/en/
+* Install Strawberry Perl https://strawberryperl.com/
 * Continue to 'All' below
 ### Mac
 * Install xcode
@@ -34,6 +35,7 @@ Download and install the desired version from the "Releases"
 * Continue to 'All' below
 ### All
 * Run `npm install` in the project root
+* (Optional) Consider setting the environment variable `RUST_BACKTRACE` to `1` if you want a backtrace when an error occurs
 * Run `npm run tauri dev` in the project root to run the dev environment or `npm run tauri build` to package the application
 ### Making a Release
 For creating release packages, you will need:
