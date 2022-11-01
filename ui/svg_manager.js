@@ -29,7 +29,7 @@ export class SVGManager {
         const self = this,
             $textSizeTestContainer = $('<svg width="500" height="500"></svg>'),
             textSizeTest = self.makeSVG('text', {id: 'textSizeTest', x: 0, y: 0, fill: 'white'});
-        textSizeTest.textContent = 'A';
+        textSizeTest.textContent = 'a';
         $textSizeTestContainer.append(textSizeTest);
         $('#mainBody').append($textSizeTestContainer);
         const singleCharWidth = textSizeTest.getBBox().width;
