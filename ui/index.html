@@ -20,7 +20,7 @@
 <body id="mainBody" class="bg-dark text-white">
     <div class="display-flex-column full-height">
         <div class="display-flex-row">
-            <div>
+            <div class="little-padding-left">
                 <button id="fetchBtn" type="button" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-down"></i> Fetch</button>
                 <button id="pullBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-arrow-down"></i> Pull</button>
                 <button id="openPushModalBtn" type="button" class="btn btn-primary btn-sm"><i class="fa-solid fa-arrow-up"></i> Push</button>
@@ -35,12 +35,12 @@
             </div>
         </div>
 
-        <div id="conflictWarningBanner" class="bg-warning">
+        <div id="conflictWarningBanner" class="bg-warning little-padding-top">
             <h4 class="text-black" style="text-align: center;">WARNING: Conflicts detected! You will need to either resolve them and continue or abort from the "Changes" tab.</h4>
         </div>
 
-        <div class="flex-auto-in-column display-flex-row">
-            <div class="resizable-column resizable-column-branches full-height">
+        <div class="flex-auto-in-column display-flex-row little-padding-top">
+            <div class="resizable-column resizable-column-branches full-height little-padding-left">
                 <div class="overflow-auto full-height">
                     <ul id="branchesTreeView" class="tree-view">
                         <li><span class="parent-tree"><i class="fa-solid fa-caret-down rotated-caret"></i> Local Branches</span>
@@ -59,7 +59,7 @@
                 </div>
             </div>
 
-            <div class="flex-auto-in-row display-flex-column">
+            <div class="flex-auto-in-row display-flex-column little-padding-left">
                 <ul class="nav nav-tabs">
                     <li class="nav-item">
                         <button class="nav-link tab-btn-xsm active" id="commits-tab" data-bs-toggle="tab" data-bs-target="#commits" type="button" role="tab" aria-controls="commits" aria-selected="true">Commit Tree</button>
