@@ -74,7 +74,7 @@ impl Serialize for RowProperty {
 const Y_SPACING: isize = 24;  // If changing, be sure to update on front-end too
 const Y_OFFSET: isize = 20;  // If changing, be sure to update on front-end too
 const X_SPACING: isize = 15;
-const X_OFFSET: isize = 20;
+const X_OFFSET: isize = 10;
 const TEXT_Y_OFFSET: isize = 5;
 const CIRCLE_RADIUS: isize = 5;
 const LINE_STROKE_WIDTH: isize = 2;
