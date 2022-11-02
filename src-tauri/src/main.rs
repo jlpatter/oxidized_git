@@ -751,6 +751,16 @@ fn main() {
         });
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("refresh", move |_event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                emit_update_all(&mut git_manager, false, &main_window_c_c);
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
         main_window.listen("fetch", move |_event| {
             let main_window_c_c = main_window_c.clone();
             let git_manager_arc_c_c = git_manager_arc_c.clone();
