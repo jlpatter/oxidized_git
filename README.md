@@ -2,12 +2,6 @@
     <img src="src-tauri/icons/OxidizedGitMainLogo.png" alt="Oxidized Git">
 </p>
 
-## Usage
-Download and install the desired version from the "Releases"
-### Linux
-* You may need to install the equivalent of WebView2 on Linux (if you're having trouble getting it work, maybe try installing dependencies listed here: https://tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux)
-* Make sure you have gnome-keyring installed and libsecret. If it isn't working, make sure you've created a default keyring in it!
-
 ## Features
 ### Easily view your commit history and perform various Git operations
 <p align="center">
@@ -35,6 +29,11 @@ Download and install the desired version from the "Releases"
 * Revert
 * Reset (Soft, Mixed, or Hard)
 
+## Usage
+Download and install the desired version from the "Releases"
+### Linux
+* You may need to install the equivalent of WebView2 on Linux (if you're having trouble getting it work, maybe try installing dependencies listed here: https://tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux)
+* Make sure you have gnome-keyring installed and libsecret. If it isn't working, make sure you've created a default keyring in it!
 
 ## For Development
 ### Windows
