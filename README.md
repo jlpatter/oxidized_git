@@ -8,6 +8,34 @@ Download and install the desired version from the "Releases"
 * You may need to install the equivalent of WebView2 on Linux (if you're having trouble getting it work, maybe try installing dependencies listed here: https://tauri.app/v1/guides/getting-started/prerequisites#setting-up-linux)
 * Make sure you have gnome-keyring installed and libsecret. If it isn't working, make sure you've created a default keyring in it!
 
+## Features
+### Easily view your commit history and perform various Git operations
+<p align="center">
+    <img src="screenshots/GraphScreenshot.png" alt="Graph Screenshot">
+</p>
+
+### Stage changes before you commit them
+<p align="center">
+    <img src="screenshots/ChangesScreenshot.png" alt="Changes Screenshot">
+</p>
+
+* Create/Delete Branches
+* Checkout branches (similar to git switch)
+* Commit
+* Fetch
+* Pull (automatically detects and performs either a fast-forward merge or a rebase!)
+* Push (with option to Force Push)
+* Save and Apply Stashes
+* View File Diffs in a Commit
+* Stage/Unstage and View Changes
+* Discard Changes
+* Merge
+* Rebase
+* Cherrypick
+* Revert
+* Reset (Soft, Mixed, or Hard)
+
+
 ## For Development
 ### Windows
 * Install the Microsoft Visual Studio C++ build tools https://visualstudio.microsoft.com/visual-cpp-build-tools/
