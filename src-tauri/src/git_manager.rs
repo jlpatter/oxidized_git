@@ -1,12 +1,10 @@
 use std::collections::{HashMap, VecDeque};
 use std::fs::create_dir_all;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{fs, str};
 use anyhow::{bail, Result};
-use directories::BaseDirs;
 use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, ObjectType, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort, StashFlags};
 use git2::build::{CheckoutBuilder, RepoBuilder};
-use rfd::FileDialog;
 use serde::{Serialize, Serializer};
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
 use crate::config_manager;
@@ -190,32 +188,14 @@ impl GitManager {
         }
     }
 
-    pub fn get_directory() -> Option<PathBuf> {
-        let bd_opt = BaseDirs::new();
-        match bd_opt {
-            Some(bd) => FileDialog::new().set_directory(bd.home_dir()).pick_folder(),
-            None => FileDialog::new().set_directory(PathBuf::from("/")).pick_folder(),
-        }
+    pub fn init_repo(&mut self, path_string: &str) -> Result<()> {
+        self.repo = Some(Repository::init(Path::new(path_string))?);
+        Ok(())
     }
 
-    pub fn init_repo(&mut self) -> Result<bool> {
-        match GitManager::get_directory() {
-            Some(path_buffer) => {
-                self.repo = Some(Repository::init(path_buffer.as_path())?);
-                Ok(true)
-            },
-            None => Ok(false),
-        }
-    }
-
-    pub fn open_repo(&mut self) -> Result<bool> {
-        match GitManager::get_directory() {
-            Some(path_buffer) => {
-                self.repo = Some(Repository::open(path_buffer.as_path())?);
-                Ok(true)
-            },
-            None => Ok(false),
-        }
+    pub fn open_repo(&mut self, path_string: &str) -> Result<()> {
+        self.repo = Some(Repository::open(Path::new(path_string))?);
+        Ok(())
     }
 
     pub fn clone_repo(&mut self, json_str: &str) -> Result<()> {

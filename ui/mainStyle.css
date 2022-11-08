@@ -10,6 +10,11 @@ textarea {
     width: 100%;
 }
 
+#welcomeView {
+    justify-content: center;
+    align-content: center;
+}
+
 .nav-tabs .nav-link.active {
     color: white;
     background-color: black;
@@ -64,6 +69,10 @@ textarea {
     border-bottom: 1px solid;
     position: relative;
     flex: none;
+}
+
+.text-align-center {
+    text-align: center;
 }
 
 .little-padding-top {

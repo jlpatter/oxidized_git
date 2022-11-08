@@ -27,7 +27,7 @@ fn emit_update_all(git_manager: &mut MutexGuard<GitManager>, force_refresh: bool
             if let Some(repo_info) = repo_info_opt {
                 main_window.emit_all("update_all", repo_info).unwrap();
             } else {
-                main_window.emit_all("end-process", "").unwrap();
+                main_window.emit_all("no-open-repo", "").unwrap();
             }
         },
         Err(e) => handle_error(e, main_window),
@@ -112,27 +112,20 @@ fn main() {
         .build()?;
 
         let git_manager_arc: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new()));
-        let just_got_repo_arc: Arc<Mutex<bool>> = Arc::new(Mutex::new(false));
 
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();
-        let just_got_repo_arc_c = just_got_repo_arc.clone();
         main_window.on_window_event(move |event| {
             match event {
                 WindowEvent::Focused(is_focused) => {
                     if *is_focused {
-                        let mut just_got_repo = just_got_repo_arc_c.lock().unwrap();
-                        if *just_got_repo {
-                            *just_got_repo = false;
-                        } else {
-                            main_window_c.emit_all("start-process", "").unwrap();
-                            let main_window_c_c = main_window_c.clone();
-                            let git_manager_arc_c_c = git_manager_arc_c.clone();
-                            thread::spawn(move || {
-                                let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                                emit_update_all(&mut git_manager, false, &main_window_c_c);
-                            });
-                        }
+                        main_window_c.emit_all("start-process", "").unwrap();
+                        let main_window_c_c = main_window_c.clone();
+                        let git_manager_arc_c_c = git_manager_arc_c.clone();
+                        thread::spawn(move || {
+                            let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                            emit_update_all(&mut git_manager, false, &main_window_c_c);
+                        });
                     }
                 },
                 _ => {},
@@ -140,8 +133,6 @@ fn main() {
         });
 
         let main_window_c = main_window.clone();
-        let git_manager_arc_c = git_manager_arc.clone();
-        let just_got_repo_arc_c = just_got_repo_arc.clone();
         main_window.on_menu_event(move |event| {
             match event.menu_item_id() {
                 "preferences" => {
@@ -154,48 +145,10 @@ fn main() {
                 },
                 // Don't use a separate thread for init, open, or clone so as not to break the file dialog in Linux.
                 "init" => {
-                    main_window_c.emit_all("start-process", "").unwrap();
-                    let mut git_manager = git_manager_arc_c.lock().unwrap();
-                    let result = git_manager.init_repo();
-                    match result {
-                        Ok(did_init) => {
-                            if did_init {
-                                emit_update_all(&mut git_manager, true, &main_window_c);
-                                let mut just_got_repo = just_got_repo_arc_c.lock().unwrap();
-                                *just_got_repo = true;
-                            } else {
-                                main_window_c.emit_all("end-process", "").unwrap();
-                            }
-                        },
-                        Err(e) => handle_error(e, &main_window_c),
-                    };
+                    main_window_c.emit_all("get-init", "").unwrap();
                 },
                 "open" => {
-                    main_window_c.emit_all("start-process", "").unwrap();
-                    let result;
-                    // This closure releases the lock on the git_manager so it can be used later.
-                    {
-                        let mut git_manager = git_manager_arc_c.lock().unwrap();
-                        result = git_manager.open_repo();
-                    }
-                    match result {
-                        Ok(did_open) => {
-                            if did_open {
-                                let git_manager_arc_c_c = git_manager_arc_c.clone();
-                                let just_got_repo_arc_c_c = just_got_repo_arc_c.clone();
-                                let main_window_c_c = main_window_c.clone();
-                                thread::spawn(move || {
-                                    let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                                    emit_update_all(&mut git_manager, true, &main_window_c_c);
-                                    let mut just_got_repo = just_got_repo_arc_c_c.lock().unwrap();
-                                    *just_got_repo = true;
-                                });
-                            } else {
-                                main_window_c.emit_all("end-process", "").unwrap();
-                            }
-                        },
-                        Err(e) => handle_error(e, &main_window_c),
-                    };
+                    main_window_c.emit_all("get-open", "").unwrap();
                 },
                 "clone" => {
                     main_window_c.emit_all("get-clone", "").unwrap();
@@ -219,6 +172,63 @@ fn main() {
                         let result = git_manager.get_commit_info(s);
                         match result {
                             Ok(r) => main_window_c_c.emit_all("commit-info", r).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
+                        };
+                    },
+                    None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+                };
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("init", move |event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                match event.payload() {
+                    Some(s) => {
+                        let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let result = git_manager.init_repo(s);
+                        match result {
+                            Ok(()) => emit_update_all(&mut git_manager, true, &main_window_c_c),
+                            Err(e) => handle_error(e, &main_window_c_c),
+                        };
+                    },
+                    None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+                };
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("open", move |event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                match event.payload() {
+                    Some(s) => {
+                        let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let result = git_manager.open_repo(s);
+                        match result {
+                            Ok(()) => emit_update_all(&mut git_manager, true, &main_window_c_c),
+                            Err(e) => handle_error(e, &main_window_c_c),
+                        };
+                    },
+                    None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+                };
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("clone", move |event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                match event.payload() {
+                    Some(s) => {
+                        let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let result = git_manager.clone_repo(s);
+                        match result {
+                            Ok(()) => emit_update_all(&mut git_manager, true, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
@@ -416,25 +426,6 @@ fn main() {
                 },
                 None => main_window_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
             };
-        });
-        let main_window_c = main_window.clone();
-        let git_manager_arc_c = git_manager_arc.clone();
-        main_window.listen("clone", move |event| {
-            let main_window_c_c = main_window_c.clone();
-            let git_manager_arc_c_c = git_manager_arc_c.clone();
-            thread::spawn(move || {
-                match event.payload() {
-                    Some(s) => {
-                        let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let result = git_manager.clone_repo(s);
-                        match result {
-                            Ok(()) => emit_update_all(&mut git_manager, true, &main_window_c_c),
-                            Err(e) => handle_error(e, &main_window_c_c),
-                        };
-                    },
-                    None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
-                };
-            });
         });
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();

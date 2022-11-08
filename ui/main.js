@@ -41,6 +41,8 @@ class Main {
 
         self.svgManager.setGraphWidth();
 
+        self.showWelcomeView();
+
         $('#summaryTxtCounter').text(self.SUMMARY_CHAR_SOFT_LIMIT.toString());
 
         checkUpdate().then(async function(updateResult) {
@@ -103,7 +105,8 @@ class Main {
             self.addProcessCount();
         }).then();
 
-        listen("end-process", ev => {
+        listen("no-open-repo", ev => {
+            self.showWelcomeView();
             self.removeProcessCount();
         }).then();
 
@@ -112,12 +115,22 @@ class Main {
         }).then();
 
         listen("update_all", ev => {
+            self.showRepoView();
             self.updateAll(ev.payload);
             self.removeProcessCount();
         }).then();
 
         listen("update_changes", ev => {
+            self.showRepoView();
             self.updateFilesChangedInfo(ev.payload);
+        }).then();
+
+        listen("get-init", async function(ev) {
+            await self.doInit();
+        }).then();
+
+        listen("get-open", async function(ev) {
+            await self.doOpen();
         }).then();
 
         listen("get-clone", ev => {
@@ -166,6 +179,18 @@ class Main {
             }
             $updaterSpinner.hide();
             $('#updateModal').modal('hide');
+        });
+
+        $('#wInitBtn').click(async function() {
+            await self.doInit();
+        });
+
+        $('#wOpenBtn').click(async function() {
+            await self.doOpen();
+        });
+
+        $('#wCloneBtn').click(() => {
+            $('#cloneModal').modal('show');
         });
 
         $('#commits-tab').click(() => {
@@ -478,6 +503,42 @@ class Main {
         // TODO: if removing jQuery usage, 'text(_)' automatically escapes html characters, so that will need to be handled.
         $('#errorMessage').text(messageTxt);
         $('#errorModal').modal('show');
+    }
+
+    showWelcomeView() {
+        $('#repoView').hide();
+        $('#welcomeView').show();
+    }
+
+    showRepoView() {
+        $('#welcomeView').hide();
+        $('#repoView').show();
+    }
+
+    async doInit() {
+        const self = this,
+            selected = await open({
+            directory: true,
+            multiple: false,
+            defaultPath: await homeDir(),
+        });
+        if (selected !== null) {
+            self.addProcessCount();
+            emit("init", selected).then();
+        }
+    }
+
+    async doOpen() {
+        const self = this,
+            selected = await open({
+            directory: true,
+            multiple: false,
+            defaultPath: await homeDir(),
+        });
+        if (selected !== null) {
+            self.addProcessCount();
+            emit("open", selected).then();
+        }
     }
 
     updateSummaryTxtCounter() {
