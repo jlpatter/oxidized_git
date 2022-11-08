@@ -66,6 +66,10 @@ textarea {
     flex: none;
 }
 
+.text-align-center {
+    text-align: center;
+}
+
 .little-padding-top {
     padding-top: 10px;
 }
