@@ -10,6 +10,11 @@ textarea {
     width: 100%;
 }
 
+#welcomeView {
+    justify-content: center;
+    align-content: center;
+}
+
 .nav-tabs .nav-link.active {
     color: white;
     background-color: black;
