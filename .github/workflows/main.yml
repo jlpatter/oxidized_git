@@ -4,7 +4,8 @@ name: CI
 
 env:
   bundle_app_name_prefix: oxidized-git
-  bundle_app_name_prefix_other: oxidized_git
+  bundle_app_name_prefix_underscore: oxidized_git
+  bundle_app_name_prefix_verbose: Oxidized Git
 
 # Controls when the workflow will run
 on:
@@ -102,21 +103,21 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/macos
         if: matrix.os == 'macos-latest'
         run: |
-          mv ${{ env.bundle_app_name_prefix_other }}.app.tar.gz ${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz && \
-          mv ${{ env.bundle_app_name_prefix_other }}.app.tar.gz.sig ${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz.sig
+          mv "${{ env.bundle_app_name_prefix_verbose }}.app.tar.gz" ${{ env.bundle_app_name_prefix_underscore }}_x64.app.tar.gz && \
+          mv "${{ env.bundle_app_name_prefix_verbose }}.app.tar.gz.sig" ${{ env.bundle_app_name_prefix_underscore }}_x64.app.tar.gz.sig
 
       - name: Rename MacOS DMG Artifact
         working-directory: ./src-tauri/target/release/bundle/dmg
         if: matrix.os == 'macos-latest'
         run: |
-          mv $(find . -name '${{ env.bundle_app_name_prefix_other }}_*.dmg') ${{ env.bundle_app_name_prefix_other }}_x64.dmg
+          mv $(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.dmg') ${{ env.bundle_app_name_prefix_underscore }}_x64.dmg
         shell: bash
 
       - name: Upload MacOS Artifacts
         uses: ncipollo/release-action@v1
         if: matrix.os == 'macos-latest'
         with:
-          artifacts: "src-tauri/target/release/bundle/dmg/${{ env.bundle_app_name_prefix_other }}_x64.dmg,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_other }}_x64.app.tar.gz.sig"
+          artifacts: "src-tauri/target/release/bundle/dmg/${{ env.bundle_app_name_prefix_underscore }}_x64.dmg,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_underscore }}_x64.app.tar.gz,src-tauri/target/release/bundle/macos/${{ env.bundle_app_name_prefix_underscore }}_x64.app.tar.gz.sig"
           allowUpdates: true
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -125,16 +126,16 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/msi
         if: matrix.os == 'windows-latest'
         run: |
-          mv $(find . -name '${{ env.bundle_app_name_prefix_other }}_*.msi') ${{ env.bundle_app_name_prefix_other }}.msi && \
-          mv $(find . -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip') ${{ env.bundle_app_name_prefix_other }}.msi.zip && \
-          mv $(find . -name '${{ env.bundle_app_name_prefix_other }}_*.msi.zip.sig') ${{ env.bundle_app_name_prefix_other }}.msi.zip.sig
+          mv $(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.msi') ${{ env.bundle_app_name_prefix_underscore }}.msi && \
+          mv $(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.msi.zip') ${{ env.bundle_app_name_prefix_underscore }}.msi.zip && \
+          mv $(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.msi.zip.sig') ${{ env.bundle_app_name_prefix_underscore }}.msi.zip.sig
         shell: bash
 
       - name: Upload MSI Artifacts
         uses: ncipollo/release-action@v1
         if: matrix.os == 'windows-latest'
         with:
-          artifacts: "src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}.msi,src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}.msi.zip,src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_other }}.msi.zip.sig"
+          artifacts: "src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_underscore }}.msi,src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_underscore }}.msi.zip,src-tauri/target/release/bundle/msi/${{ env.bundle_app_name_prefix_underscore }}.msi.zip.sig"
           allowUpdates: true
           draft: true
           token: ${{ secrets.GITHUB_TOKEN }}

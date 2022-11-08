@@ -6,7 +6,7 @@
     "distDir": "../ui/dist"
   },
   "package": {
-    "productName": "oxidized_git",
+    "productName": "Oxidized Git",
     "version": "1.0.1"
   },
   "tauri": {
