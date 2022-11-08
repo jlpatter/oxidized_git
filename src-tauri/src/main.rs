@@ -27,7 +27,7 @@ fn emit_update_all(git_manager: &mut MutexGuard<GitManager>, force_refresh: bool
             if let Some(repo_info) = repo_info_opt {
                 main_window.emit_all("update_all", repo_info).unwrap();
             } else {
-                main_window.emit_all("end-process", "").unwrap();
+                main_window.emit_all("no-open-repo", "").unwrap();
             }
         },
         Err(e) => handle_error(e, main_window),
@@ -164,7 +164,7 @@ fn main() {
                                 let mut just_got_repo = just_got_repo_arc_c.lock().unwrap();
                                 *just_got_repo = true;
                             } else {
-                                main_window_c.emit_all("end-process", "").unwrap();
+                                main_window_c.emit_all("no-open-repo", "").unwrap();
                             }
                         },
                         Err(e) => handle_error(e, &main_window_c),
@@ -191,7 +191,7 @@ fn main() {
                                     *just_got_repo = true;
                                 });
                             } else {
-                                main_window_c.emit_all("end-process", "").unwrap();
+                                main_window_c.emit_all("no-open-repo", "").unwrap();
                             }
                         },
                         Err(e) => handle_error(e, &main_window_c),

@@ -41,6 +41,8 @@ class Main {
 
         self.svgManager.setGraphWidth();
 
+        self.showWelcomeView();
+
         $('#summaryTxtCounter').text(self.SUMMARY_CHAR_SOFT_LIMIT.toString());
 
         checkUpdate().then(async function(updateResult) {
@@ -103,7 +105,8 @@ class Main {
             self.addProcessCount();
         }).then();
 
-        listen("end-process", ev => {
+        listen("no-open-repo", ev => {
+            self.showWelcomeView();
             self.removeProcessCount();
         }).then();
 
@@ -112,11 +115,13 @@ class Main {
         }).then();
 
         listen("update_all", ev => {
+            self.showRepoView();
             self.updateAll(ev.payload);
             self.removeProcessCount();
         }).then();
 
         listen("update_changes", ev => {
+            self.showRepoView();
             self.updateFilesChangedInfo(ev.payload);
         }).then();
 
@@ -478,6 +483,16 @@ class Main {
         // TODO: if removing jQuery usage, 'text(_)' automatically escapes html characters, so that will need to be handled.
         $('#errorMessage').text(messageTxt);
         $('#errorModal').modal('show');
+    }
+
+    showWelcomeView() {
+        $('#repoView').hide();
+        $('#welcomeView').show();
+    }
+
+    showRepoView() {
+        $('#welcomeView').hide();
+        $('#repoView').show();
     }
 
     updateSummaryTxtCounter() {
