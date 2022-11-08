@@ -260,8 +260,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <label for="addRemoteNameTxt">Remote Name: </label><input id="addRemoteNameTxt" type="text" class="form-control">
-                    <label for="addRemoteURLTxt">Remote URL: </label><input id="addRemoteURLTxt" type="text" class="form-control">
+                    <label for="addRemoteNameTxt">Remote Name:</label> <input id="addRemoteNameTxt" type="text" class="form-control">
+                    <label for="addRemoteURLTxt">Remote URL:</label> <input id="addRemoteURLTxt" type="text" class="form-control">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -280,8 +280,8 @@
                 </div>
                 <div class="modal-body">
                     <h6>WARNING: Disabling commit limit may reduce performance</h6>
-                    <input class="form-check-input" type="checkbox" value="" id="limitCommitsCheckBox" checked><label class="form-check-label" for="limitCommitsCheckBox"> Limit Number of Commits</label>
-                    <div><label for="commitCountNumber">Commit Count: </label><input type="number" step="1" class="form-control" id="commitCountNumber"></div>
+                    <input class="form-check-input" type="checkbox" value="" id="limitCommitsCheckBox" checked> <label class="form-check-label" for="limitCommitsCheckBox">Limit Number of Commits</label>
+                    <div><label for="commitCountNumber">Commit Count:</label> <input type="number" step="1" class="form-control" id="commitCountNumber"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -299,9 +299,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <label for="cloneURLTxt">URL: </label><input type="text" class="form-control" id="cloneURLTxt">
+                    <label for="cloneURLTxt">URL:</label> <input type="text" class="form-control" id="cloneURLTxt">
                     <div class="input-group">
-                        <label for="clonePathTxt">Parent Path: </label><input type="text" class="form-control" id="clonePathTxt">
+                        <label for="clonePathTxt">Parent Path:</label> <input type="text" class="form-control" id="clonePathTxt">
                         <button id="clonePathBtn" type="button" class="btn btn-light"><i class="fa-solid fa-folder-open"></i></button>
                     </div>
                 </div>
@@ -332,8 +332,8 @@
                     <div class="tab-pane fade show active full-height" id="https-content" role="tabpanel" aria-labelledby="https-tab">
                         <div class="modal-body">
                             <h6>Note: If you already have credentials stored in the keychain, this will overwrite them.</h6>
-                            <label for="usernameHTTPSTxt">Username: </label><input type="text" class="form-control" id="usernameHTTPSTxt">
-                            <label for="passwordTxt">Password (or Personal Access Token): </label><input type="password" class="form-control" id="passwordTxt">
+                            <label for="usernameHTTPSTxt">Username:</label> <input type="text" class="form-control" id="usernameHTTPSTxt">
+                            <label for="passwordTxt">Password (or Personal Access Token):</label> <input type="password" class="form-control" id="passwordTxt">
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -345,14 +345,14 @@
                     <div class="tab-pane fade full-height" id="ssh" role="tabpanel" aria-labelledby="ssh-tab">
                         <div class="modal-body">
                             <div class="input-group">
-                                <label for="publicKeyPathTxt">Public Key Path: </label><input type="text" class="form-control" id="publicKeyPathTxt">
+                                <label for="publicKeyPathTxt">Public Key Path:</label> <input type="text" class="form-control" id="publicKeyPathTxt">
                                 <button id="publicKeyPathBtn" type="button" class="btn btn-light"><i class="fa-solid fa-folder-open"></i></button>
                             </div>
                             <div class="input-group">
-                                <label for="privateKeyPathTxt">Private Key Path: </label><input type="text" class="form-control" id="privateKeyPathTxt">
+                                <label for="privateKeyPathTxt">Private Key Path:</label> <input type="text" class="form-control" id="privateKeyPathTxt">
                                 <button id="privateKeyPathBtn" type="button" class="btn btn-light"><i class="fa-solid fa-folder-open"></i></button>
                             </div>
-                            <label for="passphraseTxt">Passphrase (Optional): </label><input type="password" class="form-control" id="passphraseTxt">
+                            <label for="passphraseTxt">Passphrase (Optional):</label> <input type="password" class="form-control" id="passphraseTxt">
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -373,7 +373,7 @@
                 </div>
                 <div class="modal-body">
                     <p id="cherrypickSha"></p>
-                    <input class="form-check-input" type="checkbox" value="" id="commitCherrypickCheckBox"><label class="form-check-label" for="commitCherrypickCheckBox"> Commit after Cherrypick</label>
+                    <input class="form-check-input" type="checkbox" value="" id="commitCherrypickCheckBox"> <label class="form-check-label" for="commitCherrypickCheckBox">Commit after Cherrypick</label>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -392,7 +392,7 @@
                 </div>
                 <div class="modal-body">
                     <p id="revertSha"></p>
-                    <input class="form-check-input" type="checkbox" value="" id="commitRevertCheckBox"><label class="form-check-label" for="commitRevertCheckBox"> Commit after Revert</label>
+                    <input class="form-check-input" type="checkbox" value="" id="commitRevertCheckBox"> <label class="form-check-label" for="commitRevertCheckBox">Commit after Revert</label>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -413,7 +413,7 @@
                     <select id="remoteSelect" class="form-select" aria-label="Remote Select">
                         <option selected>No Remotes Detected!</option>
                     </select>
-                    <input class="form-check-input" type="checkbox" value="" id="forcePushCheckBox"><label class="form-check-label" for="forcePushCheckBox"> Force Push</label>
+                    <input class="form-check-input" type="checkbox" value="" id="forcePushCheckBox"> <label class="form-check-label" for="forcePushCheckBox">Force Push</label>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -435,7 +435,7 @@
                     <select id="remoteTagSelect" class="form-select" aria-label="Remote Select">
                         <option selected>No Remotes Detected!</option>
                     </select>
-                    <input class="form-check-input" type="checkbox" value="" id="forcePushTagCheckBox"><label class="form-check-label" for="forcePushTagCheckBox"> Force Push</label>
+                    <input class="form-check-input" type="checkbox" value="" id="forcePushTagCheckBox"> <label class="form-check-label" for="forcePushTagCheckBox">Force Push</label>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -453,7 +453,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <label for="stashTxt">Message (optional): </label><input id="stashTxt" type="text" class="form-control">
+                    <label for="stashTxt">Message (optional):</label> <input id="stashTxt" type="text" class="form-control">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -472,7 +472,7 @@
                 </div>
                 <div class="modal-body">
                     <p>Stash Index: <span id="stashIndex"></span></p>
-                    <input class="form-check-input" type="checkbox" value="" id="deleteStashCheckBox"><label class="form-check-label" for="deleteStashCheckBox"> Delete Stash After Apply (won't delete if there are conflicts)</label>
+                    <input class="form-check-input" type="checkbox" value="" id="deleteStashCheckBox"> <label class="form-check-label" for="deleteStashCheckBox">Delete Stash After Apply (won't delete if there are conflicts)</label>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -491,7 +491,7 @@
                 </div>
                 <div class="modal-body">
                     <p id="localBranchToDeleteShorthand"></p>
-                    <input class="form-check-input" type="checkbox" value="" id="deleteRemoteBranchCheckBox"><label class="form-check-label" for="deleteRemoteBranchCheckBox"> Delete Remote Branch</label>
+                    <input class="form-check-input" type="checkbox" value="" id="deleteRemoteBranchCheckBox"> <label class="form-check-label" for="deleteRemoteBranchCheckBox">Delete Remote Branch</label>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -509,8 +509,8 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <label for="branchTxt">Branch Name: </label><input id="branchTxt" type="text" class="form-control">
-                    <input class="form-check-input" type="checkbox" value="" id="branchCheckoutCheckBox"><label class="form-check-label" for="branchCheckoutCheckBox"> Checkout After Create</label>
+                    <label for="branchTxt">Branch Name:</label> <input id="branchTxt" type="text" class="form-control">
+                    <input class="form-check-input" type="checkbox" value="" id="branchCheckoutCheckBox"> <label class="form-check-label" for="branchCheckoutCheckBox">Checkout After Create</label>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
@@ -529,10 +529,10 @@
                 </div>
                 <div class="modal-body">
                     <p id="tagSha"></p>
-                    <input class="form-check-input" type="checkbox" value="" id="lightweightTagCheckbox"><label class="form-check-label" for="lightweightTagCheckbox"> Lightweight Tag (has no message or signature)</label>
-                    <div><label for="tagTxt">Tag Name: </label><input id="tagTxt" type="text" class="form-control"></div>
+                    <input class="form-check-input" type="checkbox" value="" id="lightweightTagCheckbox"> <label class="form-check-label" for="lightweightTagCheckbox">Lightweight Tag (has no message or signature)</label>
+                    <div><label for="tagTxt">Tag Name:</label> <input id="tagTxt" type="text" class="form-control"></div>
                     <div id="tagMessageContainer">
-                        <label for="tagMessageTxt">Tag Message (optional): </label><textarea id="tagMessageTxt" rows="3"></textarea>
+                        <label for="tagMessageTxt">Tag Message (optional):</label> <textarea id="tagMessageTxt" rows="3"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
