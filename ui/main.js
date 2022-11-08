@@ -173,6 +173,18 @@ class Main {
             $('#updateModal').modal('hide');
         });
 
+        $('#wInitBtn').click(() => {
+            emit("w-init").then();
+        });
+
+        $('#wOpenBtn').click(() => {
+            emit("w-open").then();
+        });
+
+        $('#wCloneBtn').click(() => {
+            $('#cloneModal').modal('show');
+        });
+
         $('#commits-tab').click(() => {
             self.svgManager.setVisibleCommits();
             self.truncateFilePathText();
