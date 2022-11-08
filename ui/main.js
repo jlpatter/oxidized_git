@@ -125,6 +125,14 @@ class Main {
             self.updateFilesChangedInfo(ev.payload);
         }).then();
 
+        listen("get-init", async function(ev) {
+            await self.doInit();
+        }).then();
+
+        listen("get-open", async function(ev) {
+            await self.doOpen();
+        }).then();
+
         listen("get-clone", ev => {
             $('#cloneModal').modal('show');
         }).then();
@@ -173,12 +181,12 @@ class Main {
             $('#updateModal').modal('hide');
         });
 
-        $('#wInitBtn').click(() => {
-            emit("w-init").then();
+        $('#wInitBtn').click(async function() {
+            await self.doInit();
         });
 
-        $('#wOpenBtn').click(() => {
-            emit("w-open").then();
+        $('#wOpenBtn').click(async function() {
+            await self.doOpen();
         });
 
         $('#wCloneBtn').click(() => {
@@ -505,6 +513,32 @@ class Main {
     showRepoView() {
         $('#welcomeView').hide();
         $('#repoView').show();
+    }
+
+    async doInit() {
+        const self = this,
+            selected = await open({
+            directory: true,
+            multiple: false,
+            defaultPath: await homeDir(),
+        });
+        if (selected !== null) {
+            self.addProcessCount();
+            emit("init", selected).then();
+        }
+    }
+
+    async doOpen() {
+        const self = this,
+            selected = await open({
+            directory: true,
+            multiple: false,
+            defaultPath: await homeDir(),
+        });
+        if (selected !== null) {
+            self.addProcessCount();
+            emit("open", selected).then();
+        }
     }
 
     updateSummaryTxtCounter() {

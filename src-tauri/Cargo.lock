@@ -1951,7 +1951,6 @@ dependencies = [
  "keytar",
  "openssl",
  "openssl-sys",
- "rfd",
  "serde",
  "serde_json",
  "serde_with 2.0.1",

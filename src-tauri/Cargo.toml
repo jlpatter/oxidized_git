@@ -21,7 +21,6 @@ serde = { version = "1.0.*", features = ["derive"] }
 serde_with = "2.0.*"
 tauri = { version = "1.1.*", features = ["clipboard-write-text", "dialog-open", "native-tls-vendored", "path-all", "process-relaunch", "updater"] }
 git2 = "0.15.*"
-rfd = "0.10.*"
 directories = "4.0.*"
 keytar = "0.1.*"
 html-escape = "0.2.*"
