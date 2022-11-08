@@ -87,6 +87,10 @@ textarea {
     padding-left: 10px;
 }
 
+.little-padding-right {
+    padding-right: 10px;
+}
+
 #spinnerContainer {
     position: absolute;
     top: 0;
