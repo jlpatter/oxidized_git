@@ -47,7 +47,10 @@ class Main {
 
         checkUpdate().then(async function(updateResult) {
             if (updateResult.shouldUpdate) {
-                $('#updateMessage').text(updateResult.manifest.body);
+                const updateMessages = updateResult.manifest.body.split(', ');
+                updateMessages.forEach((m) => {
+                    $('#updateMessages').append($('<li>' + m + '</li>'));
+                });
                 $('#updateCurrentVersion').text('Current Version: ' + await getVersion());
                 $('#updateNewVersion').text('New Version: ' + updateResult.manifest.version);
                 $('#updateModal').modal('show');
