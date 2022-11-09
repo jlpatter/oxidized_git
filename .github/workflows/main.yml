@@ -110,7 +110,7 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/dmg
         if: matrix.os == 'macos-latest'
         run: |
-          mv $(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.dmg') ${{ env.bundle_app_name_prefix_underscore }}_x64.dmg
+          mv "$(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.dmg')" ${{ env.bundle_app_name_prefix_underscore }}_x64.dmg
         shell: bash
 
       - name: Upload MacOS Artifacts
@@ -126,9 +126,9 @@ jobs:
         working-directory: ./src-tauri/target/release/bundle/msi
         if: matrix.os == 'windows-latest'
         run: |
-          mv $(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.msi') ${{ env.bundle_app_name_prefix_underscore }}.msi && \
-          mv $(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.msi.zip') ${{ env.bundle_app_name_prefix_underscore }}.msi.zip && \
-          mv $(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.msi.zip.sig') ${{ env.bundle_app_name_prefix_underscore }}.msi.zip.sig
+          mv "$(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.msi')" ${{ env.bundle_app_name_prefix_underscore }}.msi && \
+          mv "$(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.msi.zip')" ${{ env.bundle_app_name_prefix_underscore }}.msi.zip && \
+          mv "$(find . -name '${{ env.bundle_app_name_prefix_verbose }}_*.msi.zip.sig')" ${{ env.bundle_app_name_prefix_underscore }}.msi.zip.sig
         shell: bash
 
       - name: Upload MSI Artifacts
