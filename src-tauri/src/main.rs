@@ -70,6 +70,9 @@ fn main() {
                     NativeItem(MenuItem::Paste),
                     NativeItem(MenuItem::SelectAll),
                 ])).into(),
+                Submenu::new("View", Menu::with_items([
+                    CustomMenuItem::new("refresh", "Refresh").accelerator("CommandOrControl+R").into(),
+                ])).into(),
                 Submenu::new("Security", Menu::with_items([
                     CustomMenuItem::new("credentials", "Set Credentials").into(),
                 ])).into(),
@@ -94,6 +97,11 @@ fn main() {
                     ]))
                 );
             }
+            menu = menu.add_submenu(
+                Submenu::new("View", Menu::with_items([
+                    CustomMenuItem::new("refresh", "Refresh").accelerator("CommandOrControl+R").into(),
+                ]))
+            );
             menu = menu.add_submenu(
                 Submenu::new("Security", Menu::with_items([
                     CustomMenuItem::new("credentials", "Set Credentials").into(),
@@ -133,6 +141,7 @@ fn main() {
         });
 
         let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
         main_window.on_menu_event(move |event| {
             match event.menu_item_id() {
                 "preferences" => {
@@ -152,6 +161,15 @@ fn main() {
                 },
                 "clone" => {
                     main_window_c.emit_all("get-clone", "").unwrap();
+                },
+                "refresh" => {
+                    main_window_c.emit_all("start-process", "").unwrap();
+                    let main_window_c_c = main_window_c.clone();
+                    let git_manager_arc_c_c = git_manager_arc_c.clone();
+                    thread::spawn(move || {
+                        let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                        emit_update_all(&mut git_manager, false, &main_window_c_c);
+                    });
                 },
                 "credentials" => {
                     main_window_c.emit_all("get-credentials", "").unwrap();
@@ -738,16 +756,6 @@ fn main() {
                     },
                     None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
                 }
-            });
-        });
-        let main_window_c = main_window.clone();
-        let git_manager_arc_c = git_manager_arc.clone();
-        main_window.listen("refresh", move |_event| {
-            let main_window_c_c = main_window_c.clone();
-            let git_manager_arc_c_c = git_manager_arc_c.clone();
-            thread::spawn(move || {
-                let mut git_manager = git_manager_arc_c_c.lock().unwrap();
-                emit_update_all(&mut git_manager, false, &main_window_c_c);
             });
         });
         let main_window_c = main_window.clone();

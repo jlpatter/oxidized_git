@@ -378,11 +378,6 @@ class Main {
             emit("continue-rebase").then();
         });
 
-        $('#refreshBtn').click(() => {
-            self.addProcessCount();
-            emit("refresh").then();
-        });
-
         $('#fetchBtn').click(() => {
             self.addProcessCount();
             emit("fetch").then();
