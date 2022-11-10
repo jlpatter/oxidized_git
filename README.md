@@ -77,3 +77,7 @@ There are 2 places that the version number needs to be updated BEFORE pushing th
 Once the GitHub release has been created and published (which you have to do manually), you'll need to update the `version`
 field and the versions in the urls and the `signature` fields (by copying the signatures generated in the associated `.sig` files) in `current_version.json`
 and push it up (so that the tauri updater will automatically download from the new release):
+
+## Have Questions? Join Us on Discord!
+
+You can join our public Discord server [here](https://discord.gg/4GTzenj4jY)
