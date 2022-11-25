@@ -188,13 +188,15 @@ impl GitManager {
         }
     }
 
-    pub fn init_repo(&mut self, path_string: &str) -> Result<()> {
-        self.repo = Some(Repository::init(Path::new(path_string))?);
+    pub fn init_repo(&mut self, json_str: &str) -> Result<()> {
+        let path_str: &str = serde_json::from_str(json_str)?;
+        self.repo = Some(Repository::init(Path::new(path_str))?);
         Ok(())
     }
 
-    pub fn open_repo(&mut self, path_string: &str) -> Result<()> {
-        self.repo = Some(Repository::open(Path::new(path_string))?);
+    pub fn open_repo(&mut self, json_str: &str) -> Result<()> {
+        let path_str: &str = serde_json::from_str(json_str)?;
+        self.repo = Some(Repository::open(Path::new(path_str))?);
         Ok(())
     }
 
@@ -341,7 +343,8 @@ impl GitManager {
         Ok(Some(oid_list))
     }
 
-    pub fn get_commit_info(&self, sha: &str) -> Result<CommitInfo> {
+    pub fn get_commit_info(&self, json_str: &str) -> Result<CommitInfo> {
+        let sha: &str = serde_json::from_str(json_str)?;
         let repo = self.borrow_repo()?;
 
         let commit = repo.find_commit(Oid::from_str(sha)?)?;
@@ -389,7 +392,8 @@ impl GitManager {
         }
     }
 
-    pub fn git_merge(&self, sha: &str) -> Result<()> {
+    pub fn git_merge(&self, json_str: &str) -> Result<()> {
+        let sha: &str = serde_json::from_str(json_str)?;
         let repo = self.borrow_repo()?;
         let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
 
@@ -451,7 +455,8 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_rebase(&self, sha: &str) -> Result<()> {
+    pub fn git_rebase(&self, json_str: &str) -> Result<()> {
+        let sha = serde_json::from_str(json_str)?;
         let repo = self.borrow_repo()?;
         let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
         let mut rebase = repo.rebase(None, None, Some(&annotated_commit), None)?;
@@ -746,11 +751,13 @@ impl GitManager {
     }
 
     pub fn git_checkout_from_json(&self, json_str: &str) -> Result<()> {
-        self.git_checkout(&self.borrow_repo()?.find_reference(json_str)?)?;
+        let ref_name: &str = serde_json::from_str(json_str)?;
+        self.git_checkout(&self.borrow_repo()?.find_reference(ref_name)?)?;
         Ok(())
     }
 
-    pub fn git_checkout_detached_head(&self, sha: &str) -> Result<()> {
+    pub fn git_checkout_detached_head(&self, json_str: &str) -> Result<()> {
+        let sha: &str = serde_json::from_str(json_str)?;
         let repo = self.borrow_repo()?;
 
         let oid = Oid::from_str(sha)?;
@@ -824,17 +831,17 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_stage_from_json(&self, json_string: &str) -> Result<()> {
-        let diff_delta: ParseableDiffDelta = serde_json::from_str(json_string)?;
+    pub fn git_stage_from_json(&self, json_str: &str) -> Result<()> {
+        let diff_delta: ParseableDiffDelta = serde_json::from_str(json_str)?;
 
         self.git_stage(diff_delta.get_status(), diff_delta.get_path())?;
 
         Ok(())
     }
 
-    pub fn git_unstage(&self, json_string: &str) -> Result<()> {
+    pub fn git_unstage(&self, json_str: &str) -> Result<()> {
         let repo = self.borrow_repo()?;
-        let diff_delta: ParseableDiffDelta = serde_json::from_str(json_string)?;
+        let diff_delta: ParseableDiffDelta = serde_json::from_str(json_str)?;
 
         let mut index = repo.index()?;
         let status = diff_delta.get_status();
@@ -1167,14 +1174,16 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_delete_remote_branch_from_json(&self, branch_shorthand: &str) -> Result<()> {
+    pub fn git_delete_remote_branch_from_json(&self, json_str: &str) -> Result<()> {
+        let branch_shorthand: &str = serde_json::from_str(json_str)?;
         let repo = self.borrow_repo()?;
         let remote_branch = repo.find_branch(branch_shorthand, BranchType::Remote)?;
         self.git_delete_remote_branch(remote_branch)?;
         Ok(())
     }
 
-    pub fn git_delete_tag(&self, tag_name: &str) -> Result<()> {
+    pub fn git_delete_tag(&self, json_str: &str) -> Result<()> {
+        let tag_name: &str = serde_json::from_str(json_str)?;
         let repo = self.borrow_repo()?;
         repo.tag_delete(tag_name)?;
         Ok(())
@@ -1315,10 +1324,10 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_push_tag(&self, json_string: &str) -> Result<()> {
+    pub fn git_push_tag(&self, json_str: &str) -> Result<()> {
         let repo = self.borrow_repo()?;
 
-        let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
         let mut tag_full_name = match json_hm.get("tagFullName") {
             Some(s) => s.clone(),
             None => bail!("tagFullName not included in payload from front-end."),
@@ -1346,7 +1355,8 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_stash(&mut self, message: &str) -> Result<()> {
+    pub fn git_stash(&mut self, json_str: &str) -> Result<()> {
+        let message: &str = serde_json::from_str(json_str)?;
         let repo = self.borrow_repo_mut()?;
 
         if message == "" {
@@ -1358,10 +1368,10 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_apply_stash(&mut self, json_string: &str) -> Result<()> {
+    pub fn git_apply_stash(&mut self, json_str: &str) -> Result<()> {
         let repo = self.borrow_repo_mut()?;
 
-        let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
         let index = match json_hm.get("index") {
             Some(s) => {
                 s.parse::<usize>()?
@@ -1382,7 +1392,8 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_delete_stash(&mut self, stash_index_str: &str) -> Result<()> {
+    pub fn git_delete_stash(&mut self, json_str: &str) -> Result<()> {
+        let stash_index_str: &str = serde_json::from_str(json_str)?;
         let repo = self.borrow_repo_mut()?;
 
         let index = stash_index_str.parse::<usize>()?;
@@ -1392,10 +1403,10 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_branch(&self, json_string: &str) -> Result<()> {
+    pub fn git_branch(&self, json_str: &str) -> Result<()> {
         let repo = self.borrow_repo()?;
 
-        let branch_options: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let branch_options: HashMap<String, String> = serde_json::from_str(json_str)?;
         let branch_name = match branch_options.get("branch_name") {
             Some(s) => s,
             None => bail!("branch_name not included in payload from front-end."),
@@ -1419,10 +1430,10 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_tag(&self, json_string: &str) -> Result<()> {
+    pub fn git_tag(&self, json_str: &str) -> Result<()> {
         let repo = self.borrow_repo()?;
 
-        let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
         let commit_sha = match json_hm.get("tag_sha") {
             Some(s) => {
                 if s != "" {
@@ -1538,13 +1549,13 @@ impl GitManager {
     }
 
     #[allow(unused_unsafe)]
-    pub fn set_https_credentials(&self, credentials_json_string: &str) -> Result<()> {
-        let credentials_json: HashMap<String, String> = serde_json::from_str(credentials_json_string)?;
-        let username = match credentials_json.get("username") {
+    pub fn set_https_credentials(&self, json_str: &str) -> Result<()> {
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
+        let username = match json_hm.get("username") {
             Some(u) => u.clone(),
             None => bail!("No username supplied"),
         };
-        let password = match credentials_json.get("password") {
+        let password = match json_hm.get("password") {
             Some(p) => p,
             None => bail!("No password supplied"),
         };
@@ -1562,8 +1573,8 @@ impl GitManager {
     }
 
     #[allow(unused_unsafe)]
-    pub fn set_ssh_credentials(&self, json_string: &str) -> Result<()> {
-        let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
+    pub fn set_ssh_credentials(&self, json_str: &str) -> Result<()> {
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
         let public_key_path = match json_hm.get("public_key_path") {
             Some(s) => s.clone(),
             None => bail!("No public_key_path supplied from front-end."),
