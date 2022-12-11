@@ -435,12 +435,15 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
         let author_name = String::from(GitManager::get_utf8_string(author_signature.name(), "Author Name")?);
 
         let author_time = author_signature.when().seconds();
-        let naive_datetime = NaiveDateTime::from_timestamp(author_time, 0);
+        let naive_datetime = match NaiveDateTime::from_timestamp_opt(author_time, 0) {
+            Some(d) => d,
+            None => bail!("Invalid Timestamp!"),
+        };
         let utc_datetime: DateTime<Utc> = DateTime::from_utc(naive_datetime, Utc);
         let local_datetime: DateTime<Local> = DateTime::from(utc_datetime);
 
-        let midnight_tonight = Local::today().and_hms(23, 59, 59);
-        let diff = midnight_tonight - local_datetime;
+        let naive_today = Local::now().date_naive();
+        let diff = naive_today - local_datetime.date_naive();
         let formatted_datetime;
         if diff.num_days() == 0 {
             formatted_datetime = format!("Today {}", local_datetime.format("%r"));
