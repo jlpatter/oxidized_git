@@ -70,8 +70,9 @@ For creating release packages, you will need:
 * `TAURI_PRIVATE_KEY` and `TAURI_KEY_PASSWORD` set to sign updates for all versions
 * `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_PROVIDER_SHORT_NAME`, and `APPLE_SIGNING_IDENTITY` set to sign and notarize Apple versions
 
-There are 2 places that the version number needs to be updated BEFORE pushing the version tag (which should kick off the pipelines that create a GitHub release):
+There are 3 places that the version number needs to be updated BEFORE pushing the version tag (which should kick off the pipelines that create a GitHub release):
 * `src-tauri/Cargo.toml`
+* `src-tauri/Cargo.lock`
 * `src-tauri/tauri.conf.json`
 
 Once the GitHub release has been created and published (which you have to do manually), you'll need to update the `version`
