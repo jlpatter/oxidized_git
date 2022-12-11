@@ -6,6 +6,7 @@ use anyhow::{bail, Result};
 use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, ObjectType, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort, StashFlags};
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use serde::{Serialize, Serializer};
+use serde_json::Value;
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
 use crate::config_manager;
 
@@ -165,6 +166,13 @@ impl GitManager {
         }
     }
 
+    fn get_string_from_serde_string(value: Option<&str>) -> Result<&str> {
+        match value {
+            Some(s) => Ok(s),
+            None => bail!("Invalid JSON String!"),
+        }
+    }
+
     pub fn borrow_repo(&self) -> Result<&Repository> {
         let repo_temp_opt = &self.repo;
         match repo_temp_opt {
@@ -189,13 +197,15 @@ impl GitManager {
     }
 
     pub fn init_repo(&mut self, json_str: &str) -> Result<()> {
-        let path_str: &str = serde_json::from_str(json_str)?;
+        let path_value: Value = serde_json::from_str(json_str)?;
+        let path_str = GitManager::get_string_from_serde_string(path_value.as_str())?;
         self.repo = Some(Repository::init(Path::new(path_str))?);
         Ok(())
     }
 
     pub fn open_repo(&mut self, json_str: &str) -> Result<()> {
-        let path_str: &str = serde_json::from_str(json_str)?;
+        let path_value: Value = serde_json::from_str(json_str)?;
+        let path_str = GitManager::get_string_from_serde_string(path_value.as_str())?;
         self.repo = Some(Repository::open(Path::new(path_str))?);
         Ok(())
     }
@@ -344,7 +354,8 @@ impl GitManager {
     }
 
     pub fn get_commit_info(&self, json_str: &str) -> Result<CommitInfo> {
-        let sha: &str = serde_json::from_str(json_str)?;
+        let sha_value: Value = serde_json::from_str(json_str)?;
+        let sha: &str = GitManager::get_string_from_serde_string(sha_value.as_str())?;
         let repo = self.borrow_repo()?;
 
         let commit = repo.find_commit(Oid::from_str(sha)?)?;
@@ -393,7 +404,8 @@ impl GitManager {
     }
 
     pub fn git_merge(&self, json_str: &str) -> Result<()> {
-        let sha: &str = serde_json::from_str(json_str)?;
+        let sha_value: Value = serde_json::from_str(json_str)?;
+        let sha: &str = GitManager::get_string_from_serde_string(sha_value.as_str())?;
         let repo = self.borrow_repo()?;
         let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
 
@@ -456,7 +468,8 @@ impl GitManager {
     }
 
     pub fn git_rebase(&self, json_str: &str) -> Result<()> {
-        let sha = serde_json::from_str(json_str)?;
+        let sha_value: Value = serde_json::from_str(json_str)?;
+        let sha: &str = GitManager::get_string_from_serde_string(sha_value.as_str())?;
         let repo = self.borrow_repo()?;
         let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
         let mut rebase = repo.rebase(None, None, Some(&annotated_commit), None)?;
@@ -751,13 +764,15 @@ impl GitManager {
     }
 
     pub fn git_checkout_from_json(&self, json_str: &str) -> Result<()> {
-        let ref_name: &str = serde_json::from_str(json_str)?;
+        let ref_name_value: Value = serde_json::from_str(json_str)?;
+        let ref_name: &str = GitManager::get_string_from_serde_string(ref_name_value.as_str())?;
         self.git_checkout(&self.borrow_repo()?.find_reference(ref_name)?)?;
         Ok(())
     }
 
     pub fn git_checkout_detached_head(&self, json_str: &str) -> Result<()> {
-        let sha: &str = serde_json::from_str(json_str)?;
+        let sha_value: Value = serde_json::from_str(json_str)?;
+        let sha: &str = GitManager::get_string_from_serde_string(sha_value.as_str())?;
         let repo = self.borrow_repo()?;
 
         let oid = Oid::from_str(sha)?;
@@ -771,12 +786,12 @@ impl GitManager {
     pub fn git_checkout_remote(&self, json_string: &str) -> Result<()> {
         let repo = self.borrow_repo()?;
 
-        let json_data: HashMap<String, String> = serde_json::from_str(json_string)?;
-        let remote_branch_shortname = match json_data.get("branch_shorthand") {
+        let json_hm: HashMap<String, String> = serde_json::from_str(json_string)?;
+        let remote_branch_shortname = match json_hm.get("branch_shorthand") {
             Some(n) => n,
             None => bail!("JSON Data is missing branch_shorthand attribute."),
         };
-        let remote_branch_full_name = match json_data.get("full_branch_name") {
+        let remote_branch_full_name = match json_hm.get("full_branch_name") {
             Some(n) => n,
             None => bail!("JSON Data is missing full_branch_name attribute."),
         };
@@ -1175,7 +1190,8 @@ impl GitManager {
     }
 
     pub fn git_delete_remote_branch_from_json(&self, json_str: &str) -> Result<()> {
-        let branch_shorthand: &str = serde_json::from_str(json_str)?;
+        let branch_shorthand_value: Value = serde_json::from_str(json_str)?;
+        let branch_shorthand: &str = GitManager::get_string_from_serde_string(branch_shorthand_value.as_str())?;
         let repo = self.borrow_repo()?;
         let remote_branch = repo.find_branch(branch_shorthand, BranchType::Remote)?;
         self.git_delete_remote_branch(remote_branch)?;
@@ -1183,7 +1199,8 @@ impl GitManager {
     }
 
     pub fn git_delete_tag(&self, json_str: &str) -> Result<()> {
-        let tag_name: &str = serde_json::from_str(json_str)?;
+        let tag_name_value: Value = serde_json::from_str(json_str)?;
+        let tag_name: &str = GitManager::get_string_from_serde_string(tag_name_value.as_str())?;
         let repo = self.borrow_repo()?;
         repo.tag_delete(tag_name)?;
         Ok(())
@@ -1356,7 +1373,8 @@ impl GitManager {
     }
 
     pub fn git_stash(&mut self, json_str: &str) -> Result<()> {
-        let message: &str = serde_json::from_str(json_str)?;
+        let message_value: Value = serde_json::from_str(json_str)?;
+        let message: &str = GitManager::get_string_from_serde_string(message_value.as_str())?;
         let repo = self.borrow_repo_mut()?;
 
         if message == "" {
@@ -1393,7 +1411,8 @@ impl GitManager {
     }
 
     pub fn git_delete_stash(&mut self, json_str: &str) -> Result<()> {
-        let stash_index_str: &str = serde_json::from_str(json_str)?;
+        let stash_index_str_value: Value = serde_json::from_str(json_str)?;
+        let stash_index_str: &str = GitManager::get_string_from_serde_string(stash_index_str_value.as_str())?;
         let repo = self.borrow_repo_mut()?;
 
         let index = stash_index_str.parse::<usize>()?;
