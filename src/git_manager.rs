@@ -203,10 +203,8 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn open_repo(&mut self, json_str: &str) -> Result<()> {
-        let path_value: Value = serde_json::from_str(json_str)?;
-        let path_str = GitManager::get_string_from_serde_string(path_value.as_str())?;
-        self.repo = Some(Repository::open(Path::new(path_str))?);
+    pub fn open_repo(&mut self, path_buf: PathBuf) -> Result<()> {
+        self.repo = Some(Repository::open(path_buf.as_path())?);
         Ok(())
     }
 

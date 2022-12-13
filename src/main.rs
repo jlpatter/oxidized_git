@@ -4,10 +4,7 @@ mod svg_row;
 mod parseable_info;
 mod oxidized_git_app;
 
-use std::sync::{Arc, Mutex, MutexGuard};
-use std::thread;
 use eframe::{egui, NativeOptions};
-use git_manager::GitManager;
 use oxidized_git_app::OxidizedGitApp;
 
 fn main() {

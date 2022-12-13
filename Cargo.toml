@@ -20,6 +20,7 @@ keytar = "0.1.*"
 html-escape = "0.2.*"
 anyhow = { version = "1.0.*", features = ["backtrace"] }
 chrono = "0.4.*"
+rfd = "0.10.*"
 # This is a hack so MacOS doesn't try to use homebrew's openssl. It should work with just the "native-tls-vendored" feature, but it doesn't for some reason...
 openssl = { version = "*", features = ["vendored"] }
 openssl-sys = { version = "*", features = ["vendored"] }
