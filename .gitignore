@@ -1,5 +1,3 @@
-src-tauri/target/
+target/
 .idea/
-node_modules/
-ui/dist/
 .envrc

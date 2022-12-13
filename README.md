@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="src-tauri/icons/OxidizedGitMainLogo.png" alt="Oxidized Git">
+    <img src="icons/OxidizedGitMainLogo.png" alt="Oxidized Git">
 </p>
 
 ## Features

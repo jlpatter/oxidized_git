@@ -1,24 +1,19 @@
 [package]
 name = "oxidized_git"
-version = "1.1.1"
-description = "A Tauri Git Client Application"
+version = "2.0.0"
+description = "A Rust Git Client Application"
 authors = ["Joshua Patterson"]
 license = "GPL-3.0-or-later"
-build = "build.rs"
-default-run = "oxidized_git"
 edition = "2021"
 rust-version = "1.65"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[build-dependencies]
-tauri-build = { version = "1.2.*", features = [] }
-
 [dependencies]
 serde_json = "1.0.*"
 serde = { version = "1.0.*", features = ["derive"] }
 serde_with = "2.1.*"
-tauri = { version = "1.2.*", features = ["clipboard-write-text", "dialog-open", "native-tls-vendored", "path-all", "process-relaunch", "updater"] }
+eframe = "0.20.*"
 git2 = "0.15.*"
 directories = "4.0.*"
 keytar = "0.1.*"
@@ -28,11 +23,3 @@ chrono = "0.4.*"
 # This is a hack so MacOS doesn't try to use homebrew's openssl. It should work with just the "native-tls-vendored" feature, but it doesn't for some reason...
 openssl = { version = "*", features = ["vendored"] }
 openssl-sys = { version = "*", features = ["vendored"] }
-
-[features]
-# by default Tauri runs in production mode
-# when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL
-default = [ "custom-protocol" ]
-# this feature is used used for production builds where `devPath` points to the filesystem
-# DO NOT remove this
-custom-protocol = [ "tauri/custom-protocol" ]
