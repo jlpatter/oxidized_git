@@ -17,9 +17,9 @@ tauri-build = { version = "1.2.*", features = [] }
 [dependencies]
 serde_json = "1.0.*"
 serde = { version = "1.0.*", features = ["derive"] }
-serde_with = "2.1.*"
+serde_with = "2.2.*"
 tauri = { version = "1.2.*", features = ["clipboard-write-text", "dialog-open", "native-tls-vendored", "path-all", "process-relaunch", "updater"] }
-git2 = "0.15.*"
+git2 = "0.16.*"
 directories = "4.0.*"
 keytar = "0.1.*"
 html-escape = "0.2.*"
