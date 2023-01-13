@@ -18,7 +18,7 @@ tauri-build = { version = "1.2.*", features = [] }
 serde_json = "1.0.*"
 serde = { version = "1.0.*", features = ["derive"] }
 serde_with = "2.2.*"
-tauri = { version = "1.2.*", features = ["clipboard-write-text", "dialog-open", "native-tls-vendored", "path-all", "process-relaunch", "updater"] }
+tauri = { version = "1.2.*", features = ["clipboard-write-text", "dialog-open", "path-all", "process-relaunch", "updater"] }
 git2 = "0.16.*"
 directories = "4.0.*"
 keytar = "0.1.*"
@@ -26,6 +26,7 @@ html-escape = "0.2.*"
 anyhow = { version = "1.0.*", features = ["backtrace"] }
 chrono = "0.4.*"
 # This is a hack so MacOS doesn't try to use homebrew's openssl. It should work with just the "native-tls-vendored" feature, but it doesn't for some reason...
+[target.'cfg(target_os = "macos")'.dependencies]
 openssl = { version = "*", features = ["vendored"] }
 openssl-sys = { version = "*", features = ["vendored"] }
 
