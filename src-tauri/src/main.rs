@@ -119,7 +119,7 @@ fn main() {
         .title("Oxidized Git")
         .build()?;
 
-        let git_manager_arc: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new()));
+        let git_manager_arc: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new()?));
 
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();
