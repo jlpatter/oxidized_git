@@ -950,6 +950,9 @@ class Main {
         branch_info_list['stash_info_list'].forEach((stashInfo) => {
             const $stashItem = $('<li class="hoverable-row unselectable inner-branch-item"></li>');
             $stashItem.text(stashInfo['message']);
+            $stashItem.dblclick(function() {
+                self.applyStash(stashInfo['index']);
+            });
             $stashItem.contextmenu(function(e) {
                 e.preventDefault();
                 self.showStashContextMenu(e, stashInfo['index']);
@@ -1069,17 +1072,22 @@ class Main {
         $contextMenu.show();
     }
 
+    applyStash(stashIndex) {
+        $('#stashIndex').text(stashIndex.toString());
+        $('#deleteStashCheckBox').prop('checked', true);
+        $('#applyStashModal').modal('show');
+    }
+
     showStashContextMenu(event, stashIndex) {
-        const $contextMenu = $('#contextMenu');
+        const self = this,
+            $contextMenu = $('#contextMenu');
         $contextMenu.empty();
         $contextMenu.css('left', event.pageX + 'px');
         $contextMenu.css('top', event.pageY + 'px');
 
         const $applyBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-check"></i> Apply Stash</button>');
         $applyBtn.click(() => {
-            $('#stashIndex').text(stashIndex.toString());
-            $('#deleteStashCheckBox').prop('checked', true);
-            $('#applyStashModal').modal('show');
+            self.applyStash(stashIndex);
         });
         $contextMenu.append($applyBtn);
 
