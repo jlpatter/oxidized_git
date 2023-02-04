@@ -183,10 +183,11 @@ pre code.hljs {
     text-overflow: ellipsis;
 }
 
-.unselectable {
-    user-select: none;
-    -moz-user-select: none;
+.text-unselectable {
     -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 #contextMenu {

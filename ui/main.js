@@ -1,5 +1,6 @@
 import "./import_jquery";
 import {getVersion} from '@tauri-apps/api/app';
+import {writeText} from "@tauri-apps/api/clipboard";
 import {open} from '@tauri-apps/api/dialog';
 import {emit, listen} from "@tauri-apps/api/event";
 import {homeDir} from '@tauri-apps/api/path';
@@ -57,6 +58,15 @@ class Main {
             }
         }).catch((e) => {
             self.showError(e.toString());
+        });
+
+        // Setup file diff tables to only copy content.
+        $('#fileDiffTable, #commitFileDiffTable').each(function() {
+            $(this).on('copy', function(e) {
+                e.preventDefault();
+                const text = self.getSelectedText();
+                writeText(text).then();
+            });
         });
 
         // Setup resizable columns.
@@ -497,6 +507,24 @@ class Main {
         });
     }
 
+    getSelectedText() {
+        const doc = window.getSelection().getRangeAt(0).cloneContents(),
+            nodes = doc.querySelectorAll('tr');
+        let text = '';
+
+        if (nodes.length === 0) {
+            text = doc.textContent;
+        } else {
+            [].forEach.call(nodes, function(tr, i) {
+                // Get last column's text (since that has the text we want to copy).
+                const td = tr.cells[tr.cells.length - 1];
+                text += (i ? '\n' : '') + td.textContent;
+            });
+        }
+
+        return text;
+    }
+
     showError(messageTxt) {
         // TODO: if removing jQuery usage, 'text(_)' automatically escapes html characters, so that will need to be handled.
         $('#errorMessage').text(messageTxt);
@@ -609,23 +637,23 @@ class Main {
 
         $fileDiffTable.empty();
         file_info['file_lines'].forEach((line) => {
-            let fileLineRow = '<tr><td class="line-no">';
+            let fileLineRow = '<tr><td class="line-no text-unselectable">';
             if (typeof line === 'string') {
-                fileLineRow += '</td><td class="line-no"></td><td></td><td class="line-content"><pre><code class="language-plaintext text-grey">' + line + '</code></pre></td></tr>';
+                fileLineRow += '</td><td class="line-no text-unselectable"></td><td class="text-unselectable"></td><td class="line-content"><pre><code class="language-plaintext text-grey">' + line + '</code></pre></td></tr>';
             } else {
                 if (line['origin'] === '+') {
-                    fileLineRow = '<tr class="added-code-line"><td class="line-no">';
+                    fileLineRow = '<tr class="added-code-line"><td class="line-no text-unselectable">';
                 } else if (line['origin'] === '-') {
-                    fileLineRow = '<tr class="removed-code-line"><td class="line-no">';
+                    fileLineRow = '<tr class="removed-code-line"><td class="line-no text-unselectable">';
                 }
                 if (line['old_lineno'] !== null) {
                     fileLineRow += line['old_lineno'];
                 }
-                fileLineRow += '</td><td class="line-no">';
+                fileLineRow += '</td><td class="line-no text-unselectable">';
                 if (line['new_lineno'] !== null) {
                     fileLineRow += line['new_lineno'];
                 }
-                fileLineRow += '</td><td>' + line['origin'] + '</td><td class="line-content"><pre><code class="language-' + line['file_type'] + '">' + line['content'] + '</code></pre></td></tr>';
+                fileLineRow += '</td><td class="text-unselectable">' + line['origin'] + '</td><td class="line-content"><pre><code class="language-' + line['file_type'] + '">' + line['content'] + '</code></pre></td></tr>';
             }
             $fileDiffTable.append($(fileLineRow));
         });
@@ -777,7 +805,7 @@ class Main {
             // the next inner div is the "unshrunken" text size (i.e. what size the text should fit in)
             // and the last inner div is the size of the text width.
             // This is all used for truncating the text.
-            $text = $('<div class="hoverable-row unselectable flex-auto-in-row display-flex-row ' + rowClassToDeselect + '"><div class="flex-auto-in-row display-flex-row"><div><p class="file-path-txt" data-original-txt="' + file['path'] + '">' + file['path'] + '</p></div></div></div>');
+            $text = $('<div class="hoverable-row text-unselectable flex-auto-in-row display-flex-row ' + rowClassToDeselect + '"><div class="flex-auto-in-row display-flex-row"><div><p class="file-path-txt" data-original-txt="' + file['path'] + '">' + file['path'] + '</p></div></div></div>');
         self.prependFileIcon($text, file['status']);
         $text.click((e) => {
             e.stopPropagation();
@@ -873,7 +901,7 @@ class Main {
                 if (child['branch_info'] === null) {
                     $innerListItem.append($('<span class="text-overflow-ellipsis flex-auto-in-row">' + child['text'] + '</span>'));
                 } else {
-                    $innerListItem.addClass('hoverable-row unselectable inner-branch-item');
+                    $innerListItem.addClass('hoverable-row text-unselectable inner-branch-item');
                     let childText = '';
                     if (child['branch_info']['is_head'] === true) {
                         childText += '* ';
@@ -948,7 +976,7 @@ class Main {
         self.buildBranchResultHTML(branch_info_list['tag_branch_info_tree']['children'], $tags, "tags");
 
         branch_info_list['stash_info_list'].forEach((stashInfo) => {
-            const $stashItem = $('<li class="hoverable-row unselectable inner-branch-item"></li>');
+            const $stashItem = $('<li class="hoverable-row text-unselectable inner-branch-item"></li>');
             $stashItem.text(stashInfo['message']);
             $stashItem.dblclick(function() {
                 self.applyStash(stashInfo['index']);
