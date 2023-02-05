@@ -476,6 +476,32 @@ impl GitManager {
         Ok(())
     }
 
+    pub fn git_rebase_interactive(&self, json_str: &str) -> Result<()> {
+        let repo = self.borrow_repo()?;
+        let sha_value: Value = serde_json::from_str(json_str)?;
+        let sha: &str = GitManager::get_string_from_serde_string(sha_value.as_str())?;
+        let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
+        let mut rebase = repo.rebase(None, None, Some(&annotated_commit), None)?;
+
+        let mut rebase_path = repo.path().to_path_buf();
+        rebase_path.push("rebase-merge");
+
+        let paths = fs::read_dir(rebase_path)?;
+        for path in paths {
+            println!("{}", path?.path().display());
+        }
+
+        println!("----------------");
+
+        let mut rebase_todo_path = repo.path().to_path_buf();
+        rebase_todo_path.push("rebase-merge/git-rebase-todo");
+        let rebase_todo = fs::read_to_string(rebase_todo_path)?;
+        println!("{}", rebase_todo);
+
+        rebase.abort()?;
+        Ok(())
+    }
+
     pub fn git_cherrypick(&self, json_str: &str) -> Result<()> {
         let json_hm: HashMap<String, String> = serde_json::from_str(json_str)?;
 

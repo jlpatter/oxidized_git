@@ -362,6 +362,13 @@ export class SVGManager {
             });
             $contextMenu.append($rebaseBtn);
 
+            const $interactiveRebaseBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-database"></i> Interactive Rebase Onto Here</button>');
+            $interactiveRebaseBtn.click(function() {
+                self.mainJS.addProcessCount();
+                emit("interactive-rebase", sha).then();
+            });
+            $contextMenu.append($interactiveRebaseBtn);
+
             const $cherrypickBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-bullseye"></i> Cherrypick Commit</button>');
             $cherrypickBtn.click(function() {
                 $('#cherrypickSha').text(sha);
