@@ -680,7 +680,7 @@ class Main {
 
         const $commitList = $('<ul></ul>');
         parseable_commits.forEach(function(parseable_commit, i) {
-            const $li = $('<li data-sha="' + parseable_commit['sha'] + '"></li>');
+            const $li = $('<li class="little-padding-bottom" data-sha="' + parseable_commit['sha'] + '"></li>');
             $li.append(self.getIRActionDropdown(i));
             $li.append($('<span class="little-padding-left">' + parseable_commit['summary'] + '</span>'));
             $commitList.append($li);
@@ -692,7 +692,7 @@ class Main {
 
     getIRActionDropdown(index) {
         return $(
-            '<div class="dropdown">' +
+            '<span class="dropdown">' +
                 '<button type="button" id="IRDropdownBtn' + index + '" class="btn btn-success dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false">Pick</button>' +
                 '<ul class="dropdown-menu" aria-labelledby="IRDropdownBtn' + index + '">' +
                     '<li><a class="dropdown-item" href="#">Pick</a></li>' +
@@ -700,7 +700,7 @@ class Main {
                     '<li><a class="dropdown-item" href="#">Fixup</a></li>' +
                     '<li><a class="dropdown-item" href="#">Drop</a></li>' +
                 '</ul>' +
-            '</div>'
+            '</span>'
         );
     }
 
