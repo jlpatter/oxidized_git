@@ -175,6 +175,11 @@ class Main {
             self.showFileDiff(ev.payload);
         }).then();
 
+        listen("show-interactive-rebase", ev => {
+            self.removeProcessCount();
+            self.showInteractiveRebase(ev.payload);
+        }).then();
+
         listen("error", ev => {
             self.removeProcessCount();
             self.showError(ev.payload);
@@ -665,6 +670,17 @@ class Main {
             $('#fileDiffTableContainer').scrollTop(self.fileDiffTableScrollTop);
             self.fileDiffTableScrollTop = 0;
         }
+    }
+
+    showInteractiveRebase(shas) {
+        // TODO: Add buttons and such!
+        const $interactiveRebaseBody = $('#interactiveRebaseBody');
+
+        shas.forEach(function(sha) {
+            $interactiveRebaseBody.append($('<p>' + sha + '</p>'));
+        });
+
+        $('#interactiveRebaseModal').modal('show');
     }
 
     showCommitInfo(commit_info) {

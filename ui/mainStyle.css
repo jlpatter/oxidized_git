@@ -199,7 +199,7 @@ pre code.hljs {
     border-radius: 15px;
 }
 
-#errorModalDialog {
+.wide-modal {
     max-width: 80vw;
 }
 

@@ -303,9 +303,7 @@ fn main() {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_rebase_interactive(s);
                         match result {
-                            Ok(shas) => {
-                                // TODO: Send SHAs to front-end and display options for interactive rebase!
-                            },
+                            Ok(shas) => main_window_c_c.emit_all("show-interactive-rebase", shas).unwrap(),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
