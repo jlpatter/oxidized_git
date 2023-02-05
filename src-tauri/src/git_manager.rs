@@ -984,8 +984,10 @@ impl GitManager {
                 patch.print(&mut |_diff_delta, _diff_hunk_opt, diff_line| {
                     if diff_line.origin_value() == DiffLineType::FileHeader {
                         if let Ok(s) = get_content_from_diff_line(&diff_line) {
-                            // Include file header if filemode has changed.
-                            if !s.contains("+++") && (s.contains("old mode") || s.contains("new mode")) {
+                            // Include file header if filemode has changed or the file was renamed.
+                            let is_filemode_change = !s.contains("+++") && (s.contains("old mode") || s.contains("new mode"));
+                            let is_renamed_file = s.contains("rename") || s.contains("similarity");
+                            if is_filemode_change || is_renamed_file {
                                 file_lines.push(LineInfo::SomeSeparator(s));
                             }
                         }
