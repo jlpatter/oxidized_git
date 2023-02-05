@@ -673,14 +673,34 @@ class Main {
     }
 
     showInteractiveRebase(shas) {
-        // TODO: Add buttons and such!
-        const $interactiveRebaseBody = $('#interactiveRebaseBody');
+        const self = this,
+            $interactiveRebaseBody = $('#interactiveRebaseBody');
 
+        $interactiveRebaseBody.empty();
+
+        const $commitList = $('<ul></ul>');
         shas.forEach(function(sha) {
-            $interactiveRebaseBody.append($('<p>' + sha + '</p>'));
+            const $li = $('<li></li>');
+            $li.append(self.getIRActionDropdown());
+            $li.append($('<p>' + sha + '</p>'));
+            $commitList.append($li);
         });
+        $interactiveRebaseBody.append($commitList);
 
         $('#interactiveRebaseModal').modal('show');
+    }
+
+    getIRActionDropdown() {
+        return $(
+            '<div class="btn-group">' +
+                '<button type="button" class="btn btn-success dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false">Pick</button>' +
+                '<ul class="dropdown-menu">' +
+                    '<li><a class="dropdown-item" href="#">Pick</a></li>' +
+                    '<li><a class="dropdown-item" href="#">Fixup</a></li>' +
+                    '<li><a class="dropdown-item" href="#">Drop</a></li>' +
+                '</ul>' +
+            '</div>'
+        );
     }
 
     showCommitInfo(commit_info) {
