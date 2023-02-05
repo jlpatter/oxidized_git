@@ -476,30 +476,48 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_rebase_interactive(&self, json_str: &str) -> Result<()> {
+    pub fn git_rebase_interactive(&self, json_str: &str) -> Result<Vec<String>> {
         let repo = self.borrow_repo()?;
         let sha_value: Value = serde_json::from_str(json_str)?;
         let sha: &str = GitManager::get_string_from_serde_string(sha_value.as_str())?;
         let annotated_commit = repo.find_annotated_commit(Oid::from_str(sha)?)?;
+
+        // This is a hacky way of figuring out what commits need to be rebased:
+        // this initializes a regular rebase and digs into the `.git` folder to find the commits
+        // e.g. "project-root/.git/rebase-merge/cmt.1"
         let mut rebase = repo.rebase(None, None, Some(&annotated_commit), None)?;
 
         let mut rebase_path = repo.path().to_path_buf();
         rebase_path.push("rebase-merge");
 
+        let mut commit_file_paths: Vec<PathBuf> = vec![];
         let paths = fs::read_dir(rebase_path)?;
         for path in paths {
-            println!("{}", path?.path().display());
+            let path_buf = path?.path();
+            let path_string = match path_buf.to_str() {
+                Some(s) => s,
+                None => bail!("Path to .git folder is not valid unicode!"),
+            };
+
+            if path_string.contains("cmt.") {
+                commit_file_paths.push(path_buf);
+            }
+        }
+        // Sort in reverse so we can render the list to the user.
+        commit_file_paths.sort_by(|a, b| b.cmp(a));
+
+        let mut shas = vec![];
+        for path_buf in commit_file_paths {
+            let mut sha = fs::read_to_string(path_buf)?;
+            sha = String::from(sha.as_str().trim());
+            shas.push(sha);
         }
 
-        println!("----------------");
-
-        let mut rebase_todo_path = repo.path().to_path_buf();
-        rebase_todo_path.push("rebase-merge/git-rebase-todo");
-        let rebase_todo = fs::read_to_string(rebase_todo_path)?;
-        println!("{}", rebase_todo);
-
+        // Abort the regular rebase so we can perform our own operations on the commits
+        // for an interactive rebase.
         rebase.abort()?;
-        Ok(())
+
+        Ok(shas)
     }
 
     pub fn git_cherrypick(&self, json_str: &str) -> Result<()> {

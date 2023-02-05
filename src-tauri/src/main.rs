@@ -300,10 +300,12 @@ fn main() {
             thread::spawn(move || {
                 match event.payload() {
                     Some(s) => {
-                        let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_rebase_interactive(s);
                         match result {
-                            Ok(()) => emit_update_all(&mut git_manager, false, &main_window_c_c),
+                            Ok(shas) => {
+                                // TODO: Send SHAs to front-end and display options for interactive rebase!
+                            },
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
