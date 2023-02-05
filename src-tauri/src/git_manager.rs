@@ -1239,29 +1239,22 @@ impl GitManager {
             Some(oid) => oid,
             None => bail!("Remote branch is not targeting a commit, cannot pull."),
         };
-        let remote_ac = repo.find_annotated_commit(remote_target)?;
 
-        let (ma, _) = repo.merge_analysis(&[&remote_ac])?;
+        let head = repo.head()?;
+        let local_ref = local_branch.get_mut();
 
-        if ma.is_fast_forward() {
-            let head = repo.head()?;
-            let local_ref = local_branch.get_mut();
-
-            // If fast-forwarding the branch currently checked out, need to update the working
-            // directory too.
-            if *local_ref == head {
-                let commit = match remote_ref.target() {
-                    Some(oid) => repo.find_commit(oid)?,
-                    None => bail!("Remote branch has no target commit."),
-                };
-                let tree = commit.tree()?;
-                repo.checkout_tree(tree.as_object(), None)?;
-            }
-
-            local_ref.set_target(remote_target, "oxidized_git fast-forward: setting new target for local ref")?;
-        } else {
-            bail!("Unable to fast-forward local branch. You may need to try checking it out and pulling.");
+        // If fast-forwarding the branch currently checked out, need to update the working
+        // directory too.
+        if *local_ref == head {
+            let commit = match remote_ref.target() {
+                Some(oid) => repo.find_commit(oid)?,
+                None => bail!("Remote branch has no target commit."),
+            };
+            let tree = commit.tree()?;
+            repo.checkout_tree(tree.as_object(), None)?;
         }
+
+        local_ref.set_target(remote_target, "oxidized_git fast-forward: setting new target for local ref")?;
 
         Ok(())
     }
