@@ -691,17 +691,56 @@ class Main {
     }
 
     getIRActionDropdown(index) {
-        return $(
-            '<span class="dropdown">' +
-                '<button type="button" id="IRDropdownBtn' + index + '" class="btn btn-success dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false">Pick</button>' +
-                '<ul class="dropdown-menu" aria-labelledby="IRDropdownBtn' + index + '">' +
-                    '<li><a class="dropdown-item" href="#">Pick</a></li>' +
-                    '<li><a class="dropdown-item" href="#">Reword</a></li>' +
-                    '<li><a class="dropdown-item" href="#">Fixup</a></li>' +
-                    '<li><a class="dropdown-item" href="#">Drop</a></li>' +
-                '</ul>' +
-            '</span>'
-        );
+        const $dropdown = $('<span class="dropdown"></span>'),
+            $dropdownBtn = $('<button type="button" id="IRDropdownBtn' + index + '" class="btn btn-success dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false">Pick</button>');
+        $dropdown.append($dropdownBtn);
+
+        const $options = $('<ul class="dropdown-menu" aria-labelledby="IRDropdownBtn' + index + '"></ul>');
+
+        const $pick = $('<li><button class="dropdown-item" type="button">Pick</button></li>');
+        const $reword = $('<li><button class="dropdown-item" type="button">Reword</button></li>');
+        const $fixup = $('<li><button class="dropdown-item" type="button">Fixup</button></li>');
+        const $drop = $('<li><button class="dropdown-item" type="button">Drop</button></li>');
+
+        const removeBtnColor = function() {
+            $dropdownBtn.removeClass('btn-success');
+            $dropdownBtn.removeClass('btn-secondary');
+            $dropdownBtn.removeClass('btn-warning');
+            $dropdownBtn.removeClass('btn-danger');
+        };
+
+        $pick.click(function() {
+            removeBtnColor();
+            $dropdownBtn.addClass('btn-success');
+            $dropdownBtn.text('Pick');
+        });
+
+        $reword.click(function() {
+            removeBtnColor();
+            $dropdownBtn.addClass('btn-warning');
+            $dropdownBtn.text('Reword');
+        });
+
+        $fixup.click(function() {
+            removeBtnColor();
+            $dropdownBtn.addClass('btn-secondary');
+            $dropdownBtn.text('Fixup');
+        });
+
+        $drop.click(function() {
+            removeBtnColor();
+            $dropdownBtn.addClass('btn-danger');
+            $dropdownBtn.text('Drop');
+        });
+
+        $options.append($pick);
+        $options.append($reword);
+        $options.append($fixup);
+        $options.append($drop);
+
+        $dropdown.append($options);
+
+        return $dropdown;
     }
 
     showCommitInfo(commit_info) {
