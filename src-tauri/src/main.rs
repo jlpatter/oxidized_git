@@ -303,7 +303,7 @@ fn main() {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
                         let result = git_manager.git_rebase_interactive(s);
                         match result {
-                            Ok(shas) => main_window_c_c.emit_all("show-interactive-rebase", shas).unwrap(),
+                            Ok(parseable_commits) => main_window_c_c.emit_all("show-interactive-rebase", parseable_commits).unwrap(),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },

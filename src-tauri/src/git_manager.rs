@@ -476,7 +476,7 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_rebase_interactive(&self, json_str: &str) -> Result<Vec<String>> {
+    pub fn git_rebase_interactive(&self, json_str: &str) -> Result<Vec<HashMap<String, String>>> {
         let repo = self.borrow_repo()?;
         let sha_value: Value = serde_json::from_str(json_str)?;
         let sha: &str = GitManager::get_string_from_serde_string(sha_value.as_str())?;
@@ -506,18 +506,28 @@ impl GitManager {
         // Sort in reverse so we can render the list to the user.
         commit_file_paths.sort_by(|a, b| b.cmp(a));
 
-        let mut shas = vec![];
+        let mut parseable_commits = vec![];
         for path_buf in commit_file_paths {
             let mut sha = fs::read_to_string(path_buf)?;
             sha = String::from(sha.as_str().trim());
-            shas.push(sha);
+
+            let mut parseable_commit = HashMap::new();
+            parseable_commit.insert(String::from("sha"), sha.clone());
+
+            let oid = Oid::from_str(sha.as_str())?;
+            let commit = repo.find_commit(oid)?;
+            let summary = String::from(GitManager::get_utf8_string(commit.summary(), "Commit Summary")?);
+
+            parseable_commit.insert(String::from("summary"), summary);
+
+            parseable_commits.push(parseable_commit);
         }
 
         // Abort the regular rebase so we can perform our own operations on the commits
         // for an interactive rebase.
         rebase.abort()?;
 
-        Ok(shas)
+        Ok(parseable_commits)
     }
 
     pub fn git_cherrypick(&self, json_str: &str) -> Result<()> {
