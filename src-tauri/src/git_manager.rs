@@ -1222,6 +1222,50 @@ impl GitManager {
         Ok(())
     }
 
+    pub fn git_fast_forward_branch(&self, json_str: &str) -> Result<()> {
+        let repo = self.borrow_repo()?;
+
+        let branch_shorthand_value: Value = serde_json::from_str(json_str)?;
+        let branch_shorthand: &str = GitManager::get_string_from_serde_string(branch_shorthand_value.as_str())?;
+
+        // Fetch first to make sure everything's up to date.
+        self.git_fetch()?;
+
+        let mut local_branch = repo.find_branch(branch_shorthand, BranchType::Local)?;
+
+        let remote_branch = local_branch.upstream()?;
+        let remote_ref = remote_branch.get();
+        let remote_target = match remote_ref.target() {
+            Some(oid) => oid,
+            None => bail!("Remote branch is not targeting a commit, cannot pull."),
+        };
+        let remote_ac = repo.find_annotated_commit(remote_target)?;
+
+        let (ma, _) = repo.merge_analysis(&[&remote_ac])?;
+
+        if ma.is_fast_forward() {
+            let head = repo.head()?;
+            let local_ref = local_branch.get_mut();
+
+            // If fast-forwarding the branch currently checked out, need to update the working
+            // directory too.
+            if *local_ref == head {
+                let commit = match remote_ref.target() {
+                    Some(oid) => repo.find_commit(oid)?,
+                    None => bail!("Remote branch has no target commit."),
+                };
+                let tree = commit.tree()?;
+                repo.checkout_tree(tree.as_object(), None)?;
+            }
+
+            local_ref.set_target(remote_target, "oxidized_git fast-forward: setting new target for local ref")?;
+        } else {
+            bail!("Unable to fast-forward local branch. You may need to try checking it out and pulling.");
+        }
+
+        Ok(())
+    }
+
     pub fn git_pull(&self) -> Result<()> {
         let repo = self.borrow_repo()?;
 
@@ -1252,7 +1296,7 @@ impl GitManager {
             println!("Performing fast forward merge for pull!");
             let commit = match remote_ref.target() {
                 Some(oid) => repo.find_commit(oid)?,
-                None => bail!("Trying to check out branch that has no target commit."),
+                None => bail!("Remote branch has no target commit."),
             };
             let tree = commit.tree()?;
             repo.checkout_tree(tree.as_object(), None)?;

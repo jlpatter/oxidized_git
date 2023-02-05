@@ -1084,6 +1084,14 @@ class Main {
                     }
                     $('#deleteLocalBranchModal').modal('show');
                 });
+
+                const $fastForwardBtn = $('<button type="button" class="btn btn-outline-light btn-sm rounded-0 cm-item"><i class="fa-solid fa-arrow-down"></i> Fast-forward to Remote Branch</button>');
+                $fastForwardBtn.click(() => {
+                    self.addProcessCount();
+                    emit("fast-forward-branch", branchShorthand).then();
+                });
+
+                $contextMenu.append($fastForwardBtn);
             } else if (branchType === 'remote') {
                 $deleteBtn.click(() => {
                     self.addProcessCount();
