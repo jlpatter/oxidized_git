@@ -1,4 +1,3 @@
-import "./import_jquery";
 import {getVersion} from '@tauri-apps/api/app';
 import {writeText} from "@tauri-apps/api/clipboard";
 import {open} from '@tauri-apps/api/dialog';
