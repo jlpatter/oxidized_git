@@ -679,9 +679,9 @@ class Main {
         $interactiveRebaseBody.empty();
 
         const $commitList = $('<ul></ul>');
-        parseable_commits.forEach(function(parseable_commit) {
+        parseable_commits.forEach(function(parseable_commit, i) {
             const $li = $('<li data-sha="' + parseable_commit['sha'] + '"></li>');
-            $li.append(self.getIRActionDropdown());
+            $li.append(self.getIRActionDropdown(i));
             $li.append($('<span class="little-padding-left">' + parseable_commit['summary'] + '</span>'));
             $commitList.append($li);
         });
@@ -690,12 +690,13 @@ class Main {
         $('#interactiveRebaseModal').modal('show');
     }
 
-    getIRActionDropdown() {
+    getIRActionDropdown(index) {
         return $(
-            '<div class="btn-group">' +
-                '<button type="button" class="btn btn-success dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false">Pick</button>' +
-                '<ul class="dropdown-menu">' +
+            '<div class="dropdown">' +
+                '<button type="button" id="IRDropdownBtn' + index + '" class="btn btn-success dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false">Pick</button>' +
+                '<ul class="dropdown-menu" aria-labelledby="IRDropdownBtn' + index + '">' +
                     '<li><a class="dropdown-item" href="#">Pick</a></li>' +
+                    '<li><a class="dropdown-item" href="#">Reword</a></li>' +
                     '<li><a class="dropdown-item" href="#">Fixup</a></li>' +
                     '<li><a class="dropdown-item" href="#">Drop</a></li>' +
                 '</ul>' +
