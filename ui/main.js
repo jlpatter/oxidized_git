@@ -672,17 +672,17 @@ class Main {
         }
     }
 
-    showInteractiveRebase(parseable_commits) {
+    showInteractiveRebase(interactive_rebase_info) {
         const self = this,
             $interactiveRebaseBody = $('#interactiveRebaseBody');
 
         $interactiveRebaseBody.empty();
 
-        const $commitList = $('<ul></ul>');
-        parseable_commits.forEach(function(parseable_commit, i) {
-            const $li = $('<li class="little-padding-bottom" data-sha="' + parseable_commit['sha'] + '"></li>');
+        const $commitList = $('<ul data-onto-sha="' + interactive_rebase_info['onto_sha'] + '"></ul>');
+        interactive_rebase_info['commits'].forEach(function(commit, i) {
+            const $li = $('<li class="little-padding-bottom" data-sha="' + commit['sha'] + '"></li>');
             $li.append(self.getIRActionDropdown(i));
-            $li.append($('<span class="little-padding-left">' + parseable_commit['summary'] + '</span>'));
+            $li.append($('<span class="little-padding-left">' + commit['summary'] + '</span>'));
             $commitList.append($li);
         });
         $interactiveRebaseBody.append($commitList);

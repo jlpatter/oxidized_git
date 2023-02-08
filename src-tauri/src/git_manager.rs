@@ -119,6 +119,21 @@ impl CommitInfo {
     }
 }
 
+#[derive(Clone, Serialize)]
+pub struct InteractiveRebaseInfo {
+    onto_sha: String,
+    commits: Vec<HashMap<String, String>>,
+}
+
+impl InteractiveRebaseInfo {
+    pub fn new(onto_sha: String, commits: Vec<HashMap<String, String>>) -> Self {
+        Self {
+            onto_sha,
+            commits,
+        }
+    }
+}
+
 fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Result<Diff<'b>> {
     let commit_tree = commit.tree()?;
 
@@ -476,7 +491,7 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_rebase_interactive(&self, json_str: &str) -> Result<Vec<HashMap<String, String>>> {
+    pub fn git_rebase_interactive(&self, json_str: &str) -> Result<InteractiveRebaseInfo> {
         let repo = self.borrow_repo()?;
         let sha_value: Value = serde_json::from_str(json_str)?;
         let sha: &str = GitManager::get_string_from_serde_string(sha_value.as_str())?;
@@ -527,7 +542,7 @@ impl GitManager {
         // for an interactive rebase.
         rebase.abort()?;
 
-        Ok(parseable_commits)
+        Ok(InteractiveRebaseInfo::new(String::from(sha), parseable_commits))
     }
 
     pub fn git_cherrypick(&self, json_str: &str) -> Result<()> {
