@@ -278,12 +278,11 @@ fn get_oid_refs(git_manager: &GitManager) -> Result<HashMap<String, Vec<(String,
         let (branch, _) = branch_result?;
         let mut branch_string = String::new();
         if branch.is_head() {
-            branch_string.push_str("* ");
+            branch_string += "* ";
         }
 
         let reference = branch.get();
-        let ref_shorthand = GitManager::get_utf8_string(reference.shorthand(), "Ref Name")?;
-        branch_string.push_str(ref_shorthand);
+        branch_string += GitManager::get_utf8_string(reference.shorthand(), "Ref Name")?;
         match reference.target() {
             Some(oid) => {
                 let branch_type;
@@ -523,8 +522,7 @@ fn get_branch_info_list(git_manager: &mut GitManager) -> Result<BranchesInfo> {
     let remotes = repo.remotes()?;
     let mut remote_heads: Vec<String> = vec![];
     for remote in remotes.iter() {
-        let mut remote_head_name = String::from(GitManager::get_utf8_string(remote, "Remote Name")?);
-        remote_head_name.push_str("/HEAD");
+        let remote_head_name = String::from(GitManager::get_utf8_string(remote, "Remote Name")?) + "/HEAD";
         remote_heads.push(remote_head_name);
     }
 

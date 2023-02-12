@@ -247,10 +247,8 @@ impl SVGRow {
                     let top_pixel_y = i * Y_SPACING + Y_OFFSET;
                     let bottom_pixel_y = (i + 1) * Y_SPACING + Y_OFFSET;
 
-                    let mut style_str = String::from("stroke:");
-                    style_str.push_str(&*SVGRow::get_color_string((line_pixel_x - X_OFFSET) / X_SPACING));
-                    style_str.push_str(";stroke-width:");
-                    style_str.push_str(&*LINE_STROKE_WIDTH.to_string());
+                    let style_str = String::from("stroke:") + SVGRow::get_color_string((line_pixel_x - X_OFFSET) / X_SPACING).as_str() +
+                        ";stroke-width:" + LINE_STROKE_WIDTH.to_string().as_str();
                     let line_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
                         (String::from("x1"), SVGPropertyAttrs::SomeInt(line_pixel_x)),
                         (String::from("y1"), SVGPropertyAttrs::SomeInt(top_pixel_y)),
@@ -269,13 +267,13 @@ impl SVGRow {
             let row_y = self.y;
             if child_svg_row.x >= self.x {
                 // Sets the color for "branching" lines and straight lines
-                style_str.push_str(&*SVGRow::get_color_string(child_svg_row.x));
+                style_str += SVGRow::get_color_string(child_svg_row.x).as_str();
             } else {
                 // Sets the color for "merging" lines
-                style_str.push_str(&*SVGRow::get_color_string(self.x));
+                style_str += SVGRow::get_color_string(self.x).as_str();
             }
-            style_str.push_str(";fill:transparent;stroke-width:");
-            style_str.push_str(&*LINE_STROKE_WIDTH.to_string());
+            style_str += ";fill:transparent;stroke-width:";
+            style_str += LINE_STROKE_WIDTH.to_string().as_str();
             if child_pixel_x == pixel_x {
                 let line_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
                     (String::from("x1"), SVGPropertyAttrs::SomeInt(child_pixel_x)),
@@ -411,9 +409,7 @@ impl SVGRow {
                 branch_rect_color = "grey";
             }
 
-            let mut style_str = String::from("fill:");
-            style_str.push_str(branch_rect_color);
-            style_str.push_str(";fill-opacity:0.5;");
+            let style_str = String::from("fill:") + branch_rect_color + ";fill-opacity:0.5;";
             let rect_attrs: HashMap<String, SVGPropertyAttrs> = HashMap::from([
                 (String::from("x"), SVGPropertyAttrs::SomeInt(0)),
                 (String::from("y"), SVGPropertyAttrs::SomeInt(RECT_Y_OFFSET)),

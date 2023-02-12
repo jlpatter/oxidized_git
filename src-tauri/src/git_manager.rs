@@ -421,14 +421,11 @@ impl GitManager {
                 let parent_commits = vec![&head_commit, &merge_parent_two];
                 let committer = repo.signature()?;
 
-                let mut message = String::from("Merge commit ");
                 let mut short_sha = String::from(sha);
                 short_sha.truncate(5);
-                message.push_str(&*short_sha);
-                message.push_str(" into commit ");
                 let mut head_short_sha = head_commit.id().to_string();
                 head_short_sha.truncate(5);
-                message.push_str(&*head_short_sha);
+                let message = String::from("Merge commit ") + short_sha.as_str() + " into commit " + head_short_sha.as_str();
 
                 self.git_commit(message, &committer, &committer, parent_commits)?;
 
@@ -544,16 +541,14 @@ impl GitManager {
                 None => bail!("HEAD has no target, failed to commit after revert."),
             };
 
-            let mut new_full_message = String::from("Revert \"");
-            new_full_message.push_str(GitManager::get_utf8_string(commit.summary(), "Commit Summary")?);
-            new_full_message.push('"');
+            let mut new_full_message = String::from("Revert \"") + GitManager::get_utf8_string(commit.summary(), "Commit Summary")? + "\"";
             let (message_without_summary, uses_crlf) = GitManager::get_message_without_summary(GitManager::get_utf8_string(commit.message(), "Commit Message")?);
             if uses_crlf {
-                new_full_message.push_str("\r\n\r\n");
+                new_full_message += "\r\n\r\n";
             } else {
-                new_full_message.push_str("\n\n");
+                new_full_message += "\n\n";
             }
-            new_full_message.push_str(&*message_without_summary);
+            new_full_message += message_without_summary.as_str();
 
             self.git_commit(new_full_message, &commit.author(), &committer, vec![&head_commit])?;
         }
@@ -620,16 +615,14 @@ impl GitManager {
 
             let committer = repo.signature()?;
 
-            let mut new_full_message = String::from("Revert \"");
-            new_full_message.push_str(GitManager::get_utf8_string(commit_from_op.summary(), "Commit Summary")?);
-            new_full_message.push('"');
+            let mut new_full_message = String::from("Revert \"") + GitManager::get_utf8_string(commit_from_op.summary(), "Commit Summary")? + "\"";
             let (message_without_summary, uses_crlf) = GitManager::get_message_without_summary(GitManager::get_utf8_string(commit_from_op.message(), "Commit Message")?);
             if uses_crlf {
-                new_full_message.push_str("\r\n\r\n");
+                new_full_message += "\r\n\r\n";
             } else {
-                new_full_message.push_str("\n\n");
+                new_full_message += "\n\n";
             }
-            new_full_message.push_str(&*message_without_summary);
+            new_full_message += message_without_summary.as_str();
 
             self.git_commit(new_full_message, &commit_from_op.author(), &committer, vec![&head_commit])?;
 
@@ -658,12 +651,9 @@ impl GitManager {
             let mut short_sha = String::from(sha.clone());
             short_sha.truncate(5);
 
-            let mut message = String::from("Merge commit ");
-            message.push_str(&*short_sha);
-            message.push_str(" into commit ");
             let mut head_short_sha = head_commit.id().to_string();
             head_short_sha.truncate(5);
-            message.push_str(&*head_short_sha);
+            let message = String::from("Merge commit ") + short_sha.as_str() + " into commit " + head_short_sha.as_str();
 
             let committer = repo.signature()?;
             self.git_commit(message, &committer, &committer, vec![&head_commit, &commit_from_op])?;
@@ -816,9 +806,9 @@ impl GitManager {
         let remote_branch_name_parts: Vec<&str> = remote_branch_shortname.split("/").collect();
         let mut local_branch_shortname = String::new();
         for i in 1..remote_branch_name_parts.len() {
-            local_branch_shortname.push_str(remote_branch_name_parts[i]);
+            local_branch_shortname += remote_branch_name_parts[i];
             if i < remote_branch_name_parts.len() - 1 {
-                local_branch_shortname.push('/');
+                local_branch_shortname += "/";
             }
         }
         let remote_branch = repo.find_branch(remote_branch_shortname, BranchType::Remote)?;
@@ -1052,8 +1042,8 @@ impl GitManager {
 
         let mut full_message = summary.clone();
         if message != "" {
-            full_message.push_str("\n\n");
-            full_message.push_str(message);
+            full_message += "\n\n";
+            full_message += message.as_str();
         }
 
         let mut parents = vec![];
@@ -1180,14 +1170,13 @@ impl GitManager {
         let mut push_options = PushOptions::new();
         push_options.remote_callbacks(GitManager::get_remote_callbacks());
 
-        let mut sb = String::from(":refs/heads/");
         let first_slash_index = match branch_shorthand.find("/") {
             Some(i) => i,
             None => bail!("Remote Branch doesn't seem to have a remote in its name?"),
         };
         let mut remote = repo.find_remote(&branch_shorthand[0..first_slash_index])?;
-        sb.push_str(&branch_shorthand[(first_slash_index + 1)..]);
-        remote.push(&[sb.as_str()], Some(&mut push_options))?;
+        let refspec = String::from(":refs/heads/") + &branch_shorthand[(first_slash_index + 1)..];
+        remote.push(&[refspec.as_str()], Some(&mut push_options))?;
         Ok(())
     }
 
