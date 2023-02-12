@@ -254,6 +254,11 @@ class Main {
             $('#preferencesModal').modal('hide');
         });
 
+        $('#interactiveRebaseBtn').click(() => {
+            self.addProcessCount();
+            // TODO: Start sequence.
+        });
+
         $('#clonePathBtn').click(async function() {
             const selected = await open({
                 directory: true,
@@ -680,8 +685,8 @@ class Main {
 
         const $commitList = $('<ul data-onto-sha="' + interactive_rebase_info['onto_sha'] + '"></ul>');
         interactive_rebase_info['commits'].forEach(function(commit, i) {
-            const $li = $('<li class="little-padding-bottom" data-sha="' + commit['sha'] + '"></li>');
-            $li.append(self.getIRActionDropdown(i));
+            const $li = $('<li class="little-padding-bottom" data-sha="' + commit['sha'] + '" data-op="pick"></li>');
+            $li.append(self.getIRActionDropdown(i, $li));
             $li.append($('<span class="little-padding-left">' + commit['summary'] + '</span>'));
             $commitList.append($li);
         });
@@ -690,7 +695,7 @@ class Main {
         $('#interactiveRebaseModal').modal('show');
     }
 
-    getIRActionDropdown(index) {
+    getIRActionDropdown(index, $li) {
         const $dropdown = $('<span class="dropdown"></span>'),
             $dropdownBtn = $('<button type="button" id="IRDropdownBtn' + index + '" class="btn btn-success dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false">Pick</button>');
         $dropdown.append($dropdownBtn);
@@ -699,6 +704,7 @@ class Main {
 
         const $pick = $('<li><button class="dropdown-item" type="button">Pick</button></li>');
         const $reword = $('<li><button class="dropdown-item" type="button">Reword</button></li>');
+        const $squash = $('<li><button class="dropdown-item" type="button">Squash</button></li>');
         const $fixup = $('<li><button class="dropdown-item" type="button">Fixup</button></li>');
         const $drop = $('<li><button class="dropdown-item" type="button">Drop</button></li>');
 
@@ -713,27 +719,39 @@ class Main {
             removeBtnColor();
             $dropdownBtn.addClass('btn-success');
             $dropdownBtn.text('Pick');
+            $li.attr('data-op', 'pick');
         });
 
         $reword.click(function() {
             removeBtnColor();
             $dropdownBtn.addClass('btn-warning');
             $dropdownBtn.text('Reword');
+            $li.attr('data-op', 'reword');
+        });
+
+        $squash.click(function() {
+            removeBtnColor();
+            $dropdownBtn.addClass('btn-secondary');
+            $dropdownBtn.text('Squash');
+            $li.attr('data-op', 'squash');
         });
 
         $fixup.click(function() {
             removeBtnColor();
             $dropdownBtn.addClass('btn-secondary');
             $dropdownBtn.text('Fixup');
+            $li.attr('data-op', 'fixup');
         });
 
         $drop.click(function() {
             removeBtnColor();
             $dropdownBtn.addClass('btn-danger');
             $dropdownBtn.text('Drop');
+            $li.attr('data-op', 'drop');
         });
 
         $options.append($pick);
+        $options.append($squash);
         $options.append($reword);
         $options.append($fixup);
         $options.append($drop);

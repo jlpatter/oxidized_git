@@ -294,7 +294,7 @@ fn main() {
         });
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();
-        main_window.listen("interactive-rebase", move |event| {
+        main_window.listen("begin-interactive-rebase", move |event| {
             let main_window_c_c = main_window_c.clone();
             let git_manager_arc_c_c = git_manager_arc_c.clone();
             thread::spawn(move || {
