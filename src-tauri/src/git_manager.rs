@@ -1,11 +1,11 @@
 use std::collections::{HashMap, VecDeque};
-use std::fs::create_dir_all;
+use std::fs::{create_dir_all, File};
 use std::path::{Path, PathBuf};
 use std::{fs, str};
 use anyhow::{bail, Result};
-use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, ObjectType, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, ResetType, Signature, Sort, StashFlags};
+use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFindOptions, DiffLine, DiffLineType, DiffOptions, ErrorCode, FetchOptions, FetchPrune, IndexAddOption, ObjectType, Oid, Patch, PushOptions, Rebase, Reference, RemoteCallbacks, Repository, RepositoryState, ResetType, Signature, Sort, StashFlags};
 use git2::build::{CheckoutBuilder, RepoBuilder};
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value;
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
 use crate::config_manager;
@@ -131,6 +131,22 @@ impl InteractiveRebaseInfo {
             onto_sha,
             commits,
         }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct InteractiveRebaseOps {
+    onto_sha: String,
+    commit_ops: Vec<HashMap<String, String>>,
+}
+
+impl InteractiveRebaseOps {
+    pub fn clone_onto_sha(&self) -> String {
+        self.onto_sha.clone()
+    }
+
+    pub fn clone_commit_ops(&self) -> Vec<HashMap<String, String>> {
+        self.commit_ops.clone()
     }
 }
 
@@ -491,7 +507,7 @@ impl GitManager {
         Ok(())
     }
 
-    pub fn git_rebase_interactive(&self, json_str: &str) -> Result<InteractiveRebaseInfo> {
+    pub fn git_begin_rebase_interactive(&self, json_str: &str) -> Result<InteractiveRebaseInfo> {
         let repo = self.borrow_repo()?;
         let sha_value: Value = serde_json::from_str(json_str)?;
         let sha: &str = GitManager::get_string_from_serde_string(sha_value.as_str())?;
@@ -543,6 +559,80 @@ impl GitManager {
         rebase.abort()?;
 
         Ok(InteractiveRebaseInfo::new(String::from(sha), parseable_commits))
+    }
+
+    pub fn git_rebase_interactive(&self, json_str: &str) -> Result<()> {
+        // TODO: May need to wrap this function in a function that aborts the rebase in progress
+        // in case something goes wrong.
+        let repo = self.borrow_repo()?;
+        let ir_ops: InteractiveRebaseOps = serde_json::from_str(json_str)?;
+        let onto_sha = ir_ops.clone_onto_sha();
+        let commit_ops = ir_ops.clone_commit_ops();
+
+        if repo.state() != RepositoryState::Clean {
+            bail!("Repository not in a clean state (another operation is in progress). \
+            Please complete or abort your previous operation before performing an interactive rebase.")
+        }
+
+        let head_ref = repo.head()?;
+        let head_full_name = GitManager::get_utf8_string(head_ref.name(), "Branch Name")?;
+        let orig_head_commit = match head_ref.target() {
+            Some(oid) => repo.find_commit(oid)?,
+            None => bail!("Current HEAD has no commit."),
+        };
+
+        let dot_git_path = repo.path().to_path_buf();
+        let rebase_path = dot_git_path.join("rebase-merge");
+
+        if rebase_path.exists() {
+            bail!("Rebase metadata already present. Maybe another rebase is already in progress?");
+        }
+
+        let mut msg_num: usize = 0;
+
+        // WARNING: ENTERING DANGER ZONE!!
+        // Create files in .git to initialize an interactive rebase.
+
+        // TODO: AUTO_MERGE
+        // TODO: Might not need to set HEAD directly, should try rust-git2 function instead.
+        fs::write(dot_git_path.join("HEAD"), onto_sha.clone())?;
+        // TODO: MERGE_MSG
+
+        // TODO: logs/HEAD
+
+        create_dir_all(rebase_path.clone())?;
+        // TODO: author-script
+        File::create(rebase_path.join("done"))?;
+        fs::write(rebase_path.join("end"), commit_ops.len().to_string())?;
+        // TODO: git-rebase-todo
+        // TODO: git-rebase-todo.backup
+        fs::write(rebase_path.join("head-name"), head_full_name)?;
+        File::create(rebase_path.join("interactive"))?;
+        fs::write(rebase_path.join("msgnum"), msg_num.to_string())?;
+        File::create(rebase_path.join("no-reschedule-failed-exec"))?;
+        fs::write(rebase_path.join("onto"), onto_sha.clone())?;
+        fs::write(rebase_path.join("orig-head"), orig_head_commit.id())?;
+        // TODO: patch
+
+        // Perform sequence in interactive rebase.
+
+        for commit_op in commit_ops {
+            let commit_op_sha = match commit_op.get("sha") {
+                Some(s) => s,
+                None => bail!("Payload from front-end is missing SHAs."),
+            };
+
+            let commit = repo.find_commit(Oid::from_str(commit_op_sha.as_str())?)?;
+            let commit_message = GitManager::get_utf8_string(commit.message(), "Commit Message")?;
+
+            fs::write(dot_git_path.join("REBASE_HEAD"), commit_op_sha.clone())?;
+            fs::write(rebase_path.join("message"), commit_message)?;
+            msg_num += 1;
+            fs::write(rebase_path.join("msgnum"), msg_num.to_string())?;
+            // TODO: stopped-sha - if rebase stops?
+        }
+
+        Ok(())
     }
 
     pub fn git_cherrypick(&self, json_str: &str) -> Result<()> {

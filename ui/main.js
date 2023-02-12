@@ -256,7 +256,19 @@ class Main {
 
         $('#interactiveRebaseBtn').click(() => {
             self.addProcessCount();
-            // TODO: Start sequence.
+            const $irList = $('#ir-list'),
+                commitOps = [];
+            $irList.children().each(function() {
+                commitOps.push({
+                    sha: $(this).attr('data-sha'),
+                    op: $(this).attr('data-op'),
+                });
+            });
+            emit("interactive-rebase-sequence", {
+                onto_sha: $irList.attr("data-onto-sha"),
+                commit_ops: commitOps,
+            }).then();
+            $('#interactiveRebaseModal').modal('hide');
         });
 
         $('#clonePathBtn').click(async function() {
@@ -683,7 +695,7 @@ class Main {
 
         $interactiveRebaseBody.empty();
 
-        const $commitList = $('<ul data-onto-sha="' + interactive_rebase_info['onto_sha'] + '"></ul>');
+        const $commitList = $('<ul id="ir-list" data-onto-sha="' + interactive_rebase_info['onto_sha'] + '"></ul>');
         interactive_rebase_info['commits'].forEach(function(commit, i) {
             const $li = $('<li class="little-padding-bottom" data-sha="' + commit['sha'] + '" data-op="pick"></li>');
             $li.append(self.getIRActionDropdown(i, $li));

@@ -301,9 +301,28 @@ fn main() {
                 match event.payload() {
                     Some(s) => {
                         let git_manager = git_manager_arc_c_c.lock().unwrap();
-                        let result = git_manager.git_rebase_interactive(s);
+                        let result = git_manager.git_begin_rebase_interactive(s);
                         match result {
                             Ok(interactive_rebase_info) => main_window_c_c.emit_all("show-interactive-rebase", interactive_rebase_info).unwrap(),
+                            Err(e) => handle_error(e, &main_window_c_c),
+                        };
+                    },
+                    None => main_window_c_c.emit_all("error", "Failed to receive payload from front-end").unwrap(),
+                };
+            });
+        });
+        let main_window_c = main_window.clone();
+        let git_manager_arc_c = git_manager_arc.clone();
+        main_window.listen("interactive-rebase-sequence", move |event| {
+            let main_window_c_c = main_window_c.clone();
+            let git_manager_arc_c_c = git_manager_arc_c.clone();
+            thread::spawn(move || {
+                match event.payload() {
+                    Some(s) => {
+                        let mut git_manager = git_manager_arc_c_c.lock().unwrap();
+                        let result = git_manager.git_rebase_interactive(s);
+                        match result {
+                            Ok(()) => emit_update_all(&mut git_manager, false, &main_window_c_c),
                             Err(e) => handle_error(e, &main_window_c_c),
                         };
                     },
