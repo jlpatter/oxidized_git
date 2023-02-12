@@ -601,7 +601,6 @@ impl GitManager {
         // TODO: logs/HEAD
 
         create_dir_all(rebase_path.clone())?;
-        // TODO: author-script
         File::create(rebase_path.join("done"))?;
         fs::write(rebase_path.join("end"), commit_ops.len().to_string())?;
         // TODO: git-rebase-todo
@@ -623,10 +622,29 @@ impl GitManager {
             };
 
             let commit = repo.find_commit(Oid::from_str(commit_op_sha.as_str())?)?;
+            let commit_author = commit.author();
+            let commit_author_name = GitManager::get_utf8_string(commit_author.name(), "Commit Author Name")?;
+            let commit_author_email = GitManager::get_utf8_string(commit_author.email(), "Commit Author Email")?;
             let commit_message = GitManager::get_utf8_string(commit.message(), "Commit Message")?;
 
+            // Format commit author signature time
+            let commit_author_time = commit_author.when();
+            let offset_hours = format!("{:02}", commit_author_time.offset_minutes().abs() / 60);
+            let offset_minutes = format!("{:02}", commit_author_time.offset_minutes().abs() % 60);
+            let offset_datetime_formatted_string = String::from("@") + commit_author_time.seconds().to_string().as_str() +
+                " " + commit_author_time.sign().to_string().as_str() + offset_hours.as_str() + offset_minutes.as_str();
+
             fs::write(dot_git_path.join("REBASE_HEAD"), commit_op_sha.clone())?;
+            let author_script_string = String::from("GIT_AUTHOR_NAME='") + commit_author_name +
+                "'\nGIT_AUTHOR_EMAIL='" + commit_author_email +
+                "'\nGIT_AUTHOR_DATE='" + offset_datetime_formatted_string.as_str() + "'";
+            fs::write(rebase_path.join("author-script"), author_script_string)?;
+            // The 'done' file is updated before the operation takes place.
+            // TODO: done
             fs::write(rebase_path.join("message"), commit_message)?;
+
+            // TODO: perform operation!
+
             msg_num += 1;
             fs::write(rebase_path.join("msgnum"), msg_num.to_string())?;
             // TODO: stopped-sha - if rebase stops?
