@@ -1,6 +1,6 @@
 [package]
 name = "oxidized_git"
-version = "1.2.1"
+version = "1.2.2"
 description = "A Tauri Git Client Application"
 authors = ["Joshua Patterson"]
 license = "GPL-3.0-or-later"
