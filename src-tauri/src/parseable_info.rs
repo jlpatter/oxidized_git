@@ -4,7 +4,7 @@ use std::rc::Rc;
 use anyhow::{bail, Result};
 use git2::{BranchType, Diff, ErrorCode, Oid, RepositoryState};
 use serde::{Serialize, Deserialize, Serializer};
-use time::OffsetDateTime;
+use time::{format_description, OffsetDateTime};
 use crate::git_manager::GitManager;
 use crate::svg_row::{RowProperty, SVGProperty, SVGRow};
 
@@ -440,13 +440,16 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
         let now_utc = OffsetDateTime::now_utc();
         let now_local = now_utc.to_offset(git_manager.borrow_current_local_offset().clone());
         let diff = now_local.date() - author_local_datetime.date();
+
+        let time_format = format_description::parse("[hour repr:12]:[minute]:[second] [period case:upper]")?;
+        let datetime_format = format_description::parse("[year]-[month]-[day] [hour repr:12]:[minute]:[second] [period case:upper]")?;
         let formatted_datetime;
         if diff.whole_days() == 0 {
-            formatted_datetime = format!("Today {}", author_local_datetime.time());
+            formatted_datetime = format!("Today {}", author_local_datetime.time().format(&time_format)?);
         } else if diff.whole_days() == 1 {
-            formatted_datetime = format!("Yesterday {}", author_local_datetime.time());
+            formatted_datetime = format!("Yesterday {}", author_local_datetime.time().format(&time_format)?);
         } else {
-            formatted_datetime = format!("{}", author_local_datetime);
+            formatted_datetime = format!("{}", author_local_datetime.format(&datetime_format)?);
         }
 
         commit_list.push(ParseableCommitInfo::new(
