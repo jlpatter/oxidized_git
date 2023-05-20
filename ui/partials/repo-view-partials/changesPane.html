@@ -1,0 +1,33 @@
+<div class="tab-pane fade full-height" id="changes" role="tabpanel" aria-labelledby="changes-tab">
+  <div class="full-height display-flex-column">
+    <div class="flex-auto-in-column display-flex-row">
+      <div class="resizable-column resizable-column-file-paths full-height little-padding-left little-padding-top">
+        <div class="overflow-hidden display-flex-column full-height">
+          <div class="resizable-row half-height full-width">
+            <div class="display-flex-column full-height">
+              <div class="display-flex-row full-width">
+                <h5>Unstaged Changes</h5>
+                <div class="flex-auto-in-row">
+                  <button id="stageAllBtn" class="btn btn-success btn-sm right-padding" type="button">Stage All</button>
+                </div>
+              </div>
+              <div id="unstagedChanges" class="flex-auto-in-column overflow-auto"></div>
+            </div>
+          </div>
+          <div class="flex-auto-in-column display-flex-column">
+            <h5>Staged Changes</h5>
+            <div id="stagedChanges" class="flex-auto-in-column overflow-auto"></div>
+          </div>
+        </div>
+      </div>
+      <div id="fileDiffTableContainer" class="flex-auto-in-row full-height overflow-auto little-padding-top little-padding-left">
+        <table id="fileDiffTable"></table>
+      </div>
+    </div>
+    {{> repo-view-partials/changes-pane-partials/commitControls }}
+    {{> repo-view-partials/changes-pane-partials/mergeControls }}
+    {{> repo-view-partials/changes-pane-partials/rebaseControls }}
+    {{> repo-view-partials/changes-pane-partials/cherrypickControls }}
+    {{> repo-view-partials/changes-pane-partials/revertControls }}
+  </div>
+</div>

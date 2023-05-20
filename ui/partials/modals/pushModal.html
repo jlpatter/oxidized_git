@@ -1,0 +1,20 @@
+<div class="modal fade text-black" id="pushModal" tabindex="-1" aria-labelledby="pushModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="pushModalLabel">Push Options</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <select id="remoteSelect" class="form-select" aria-label="Remote Select">
+          <option selected>No Remotes Detected!</option>
+        </select>
+        <input class="form-check-input" type="checkbox" value="" id="forcePushCheckBox"> <label class="form-check-label" for="forcePushCheckBox">Force Push</label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+        <button id="pushBtn" type="button" class="btn btn-primary btn-sm">Push</button>
+      </div>
+    </div>
+  </div>
+</div>

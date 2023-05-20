@@ -1,0 +1,24 @@
+<div id="repoView" class="display-flex-column full-height">
+  {{> repo-view-partials/buttonBar }}
+  {{> repo-view-partials/conflictWarningBanner }}
+
+  <div class="flex-auto-in-column display-flex-row little-padding-top">
+    {{> repo-view-partials/leftColumn }}
+
+    <div class="flex-auto-in-row display-flex-column little-padding-left">
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <button class="nav-link tab-btn-xsm active" id="commits-tab" data-bs-toggle="tab" data-bs-target="#commits" type="button" role="tab" aria-controls="commits" aria-selected="true">Commit Tree</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link tab-btn-xsm" id="changes-tab" data-bs-toggle="tab" data-bs-target="#changes" type="button" role="tab" aria-controls="changes" aria-selected="true">Changes</button>
+        </li>
+      </ul>
+
+      <div class="tab-content flex-auto-in-column">
+        {{> repo-view-partials/commitGraphPane }}
+        {{> repo-view-partials/changesPane}}
+      </div>
+    </div>
+  </div>
+</div>

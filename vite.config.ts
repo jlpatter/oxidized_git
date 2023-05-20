@@ -1,3 +1,5 @@
+import { resolve } from 'path'
+import handlebars from 'vite-plugin-handlebars'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
@@ -20,4 +22,10 @@ export default defineConfig({
         // produce sourcemaps for debug builds
         sourcemap: !!process.env.TAURI_DEBUG,
     },
+    plugins: [
+        // @ts-ignore
+        handlebars({
+            partialDirectory: resolve(__dirname, 'ui/partials'),
+        }),
+    ],
 })
