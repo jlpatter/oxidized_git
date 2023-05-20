@@ -24,7 +24,7 @@ directories = "5.0.*"
 keytar = "0.1.*"
 html-escape = "0.2.*"
 anyhow = { version = "1.0.*", features = ["backtrace"] }
-chrono = "0.4.*"
+time = { version = "0.3.*", features = ["local-offset", "formatting"] }
 # This is a hack so MacOS doesn't try to use homebrew's openssl. It should work with just the "native-tls-vendored" feature, but it doesn't for some reason...
 [target.'cfg(target_os = "macos")'.dependencies]
 openssl = { version = "*", features = ["vendored"] }

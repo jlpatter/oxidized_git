@@ -2,9 +2,9 @@ use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
 use anyhow::{bail, Result};
-use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use git2::{BranchType, Diff, ErrorCode, Oid, RepositoryState};
 use serde::{Serialize, Deserialize, Serializer};
+use time::{format_description, OffsetDateTime};
 use crate::git_manager::GitManager;
 use crate::svg_row::{RowProperty, SVGProperty, SVGRow};
 
@@ -434,22 +434,22 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
         let author_name = String::from(GitManager::get_utf8_string(author_signature.name(), "Author Name")?);
 
         let author_time = author_signature.when().seconds();
-        let naive_datetime = match NaiveDateTime::from_timestamp_opt(author_time, 0) {
-            Some(d) => d,
-            None => bail!("Invalid Timestamp!"),
-        };
-        let utc_datetime: DateTime<Utc> = DateTime::from_utc(naive_datetime, Utc);
-        let local_datetime: DateTime<Local> = DateTime::from(utc_datetime);
+        let author_utc_datetime = OffsetDateTime::from_unix_timestamp(author_time)?;
+        let author_local_datetime = author_utc_datetime.to_offset(git_manager.borrow_current_local_offset().clone());
 
-        let naive_today = Local::now().date_naive();
-        let diff = naive_today - local_datetime.date_naive();
+        let now_utc = OffsetDateTime::now_utc();
+        let now_local = now_utc.to_offset(git_manager.borrow_current_local_offset().clone());
+        let diff = now_local.date() - author_local_datetime.date();
+
+        let time_format = format_description::parse("[hour repr:12]:[minute]:[second] [period case:upper]")?;
+        let datetime_format = format_description::parse("[year]-[month]-[day] [hour repr:12]:[minute]:[second] [period case:upper]")?;
         let formatted_datetime;
-        if diff.num_days() == 0 {
-            formatted_datetime = format!("Today {}", local_datetime.format("%r"));
-        } else if diff.num_days() == 1 {
-            formatted_datetime = format!("Yesterday {}", local_datetime.format("%r"));
+        if diff.whole_days() == 0 {
+            formatted_datetime = format!("Today {}", author_local_datetime.time().format(&time_format)?);
+        } else if diff.whole_days() == 1 {
+            formatted_datetime = format!("Yesterday {}", author_local_datetime.time().format(&time_format)?);
         } else {
-            formatted_datetime = format!("{}", local_datetime.format("%F %r"));
+            formatted_datetime = format!("{}", author_local_datetime.format(&datetime_format)?);
         }
 
         commit_list.push(ParseableCommitInfo::new(

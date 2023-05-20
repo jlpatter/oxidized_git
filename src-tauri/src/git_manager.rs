@@ -7,6 +7,7 @@ use git2::{AutotagOption, Branch, BranchType, Commit, Cred, Delta, Diff, DiffFin
 use git2::build::{CheckoutBuilder, RepoBuilder};
 use serde::{Serialize, Serializer};
 use serde_json::Value;
+use time::UtcOffset;
 use crate::parseable_info::{get_parseable_diff_delta, ParseableDiffDelta};
 use crate::config_manager;
 
@@ -149,13 +150,15 @@ fn get_commit_changes<'a, 'b>(commit: &'a Commit, repo: &'b Repository) -> Resul
 pub struct GitManager {
     repo: Option<Repository>,
     old_graph_starting_shas: Vec<String>,
+    current_local_offset: UtcOffset,
 }
 
 impl GitManager {
-    pub const fn new() -> Self {
+    pub fn new(current_local_offset: UtcOffset) -> Self {
         Self {
             repo: None,
             old_graph_starting_shas: vec![],
+            current_local_offset,
         }
     }
 
@@ -171,6 +174,10 @@ impl GitManager {
             Some(s) => Ok(s),
             None => bail!("Invalid JSON String!"),
         }
+    }
+
+    pub fn borrow_current_local_offset(&self) -> &UtcOffset {
+        &self.current_local_offset
     }
 
     pub fn borrow_repo(&self) -> Result<&Repository> {
