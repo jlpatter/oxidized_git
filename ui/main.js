@@ -5,7 +5,6 @@ import {emit, listen} from "@tauri-apps/api/event";
 import {homeDir} from '@tauri-apps/api/path';
 import {relaunch} from '@tauri-apps/api/process';
 import {checkUpdate, installUpdate} from '@tauri-apps/api/updater';
-import {SVGManager} from "./svg_manager";
 import hljs from "highlight.js";
 import Resizable from "resizable";
 
@@ -20,13 +19,21 @@ class Main {
 
     constructor() {
         this.processCount = 0;
-        this.svgManager = new SVGManager(this);
+        this.svgManager = null;
         this.generalInfo = {};
         this.oldSelectedSHA = '';
         this.selectedCommitInfoFilePath = '';
         this.selectedFileChangedInfoFilePath = '';
         this.commitFileDiffTableScrollTop = 0;
         this.fileDiffTableScrollTop = 0;
+    }
+
+    async loadModules() {
+        const svgManagerModule = await import("./svgManager.js");
+        this.svgManager = new svgManagerModule.SVGManager(this);
+
+        const externalGitOpsModule = await import("./externalGitOps.js");
+        this.externalGitOps = new externalGitOpsModule.ExternalGitOps(this);
     }
 
     run() {
@@ -137,13 +144,7 @@ class Main {
             self.updateFilesChangedInfo(ev.payload);
         }).then();
 
-        listen("get-init", async function(ev) {
-            await self.doInit();
-        }).then();
-
-        listen("get-open", async function(ev) {
-            await self.doOpen();
-        }).then();
+        this.externalGitOps.setListeners();
 
         listen("get-clone", ev => {
             $('#cloneModal').modal('show');
@@ -193,13 +194,7 @@ class Main {
             $('#updateModal').modal('hide');
         });
 
-        $('#wInitBtn').click(async function() {
-            await self.doInit();
-        });
-
-        $('#wOpenBtn').click(async function() {
-            await self.doOpen();
-        });
+        this.externalGitOps.setEvents();
 
         $('#wCloneBtn').click(() => {
             $('#cloneModal').modal('show');
@@ -538,32 +533,6 @@ class Main {
     showRepoView() {
         $('#welcomeView').hide();
         $('#repoView').show();
-    }
-
-    async doInit() {
-        const self = this,
-            selected = await open({
-            directory: true,
-            multiple: false,
-            defaultPath: await homeDir(),
-        });
-        if (selected !== null) {
-            self.addProcessCount();
-            emit("init", selected).then();
-        }
-    }
-
-    async doOpen() {
-        const self = this,
-            selected = await open({
-            directory: true,
-            multiple: false,
-            defaultPath: await homeDir(),
-        });
-        if (selected !== null) {
-            self.addProcessCount();
-            emit("open", selected).then();
-        }
     }
 
     updateSummaryTxtCounter() {
@@ -1187,5 +1156,8 @@ class Main {
 }
 
 $(window).on('load', () => {
-    new Main().run();
+    const main = new Main();
+    main.loadModules().then(() => {
+        main.run();
+    });
 });
