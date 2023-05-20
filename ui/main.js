@@ -26,13 +26,13 @@ class Main {
     }
 
     async loadModules() {
-        const updaterModule = await import("./updater.js");
+        const updaterModule = await import("./modules/updater.js");
         this.updater = new updaterModule.Updater(this);
 
-        const svgManagerModule = await import("./svgManager.js");
+        const svgManagerModule = await import("./modules/svgManager.js");
         this.svgManager = new svgManagerModule.SVGManager(this);
 
-        const externalGitOpsModule = await import("./externalGitOps.js");
+        const externalGitOpsModule = await import("./modules/externalGitOps.js");
         this.externalGitOps = new externalGitOpsModule.ExternalGitOps(this);
     }
 
