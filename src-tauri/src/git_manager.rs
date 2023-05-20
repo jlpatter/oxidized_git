@@ -154,12 +154,12 @@ pub struct GitManager {
 }
 
 impl GitManager {
-    pub fn new() -> Result<Self> {
-        Ok(Self {
+    pub fn new(current_local_offset: UtcOffset) -> Self {
+        Self {
             repo: None,
             old_graph_starting_shas: vec![],
-            current_local_offset: UtcOffset::current_local_offset()?,
-        })
+            current_local_offset,
+        }
     }
 
     pub fn get_utf8_string<'a, 'b>(value: Option<&'a str>, str_name_type: &'b str) -> Result<&'a str> {

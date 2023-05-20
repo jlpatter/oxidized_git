@@ -437,7 +437,8 @@ fn get_commit_info_list(git_manager: &GitManager, oid_list: Vec<Oid>) -> Result<
         let author_utc_datetime = OffsetDateTime::from_unix_timestamp(author_time)?;
         let author_local_datetime = author_utc_datetime.to_offset(git_manager.borrow_current_local_offset().clone());
 
-        let now_local = OffsetDateTime::now_local()?;
+        let now_utc = OffsetDateTime::now_utc();
+        let now_local = now_utc.to_offset(git_manager.borrow_current_local_offset().clone());
         let diff = now_local.date() - author_local_datetime.date();
         let formatted_datetime;
         if diff.whole_days() == 0 {

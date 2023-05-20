@@ -12,6 +12,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use tauri::{CustomMenuItem, Manager, Menu, MenuItem, Submenu, Window, WindowBuilder, WindowEvent, Wry};
 use tauri::MenuEntry::NativeItem;
+use time::UtcOffset;
 use git_manager::GitManager;
 use parseable_info::{get_parseable_repo_info, get_files_changed_info_list};
 
@@ -47,8 +48,9 @@ fn emit_update_changes(git_manager: &MutexGuard<GitManager>, main_window: &Windo
 }
 
 fn main() {
+    let current_local_offset = UtcOffset::current_local_offset().unwrap();
     tauri::Builder::default()
-    .setup(|app| {
+    .setup(move |app| {
         let mut menu;
         if std::env::consts::OS == "macos" {
             menu = Menu::with_items([
@@ -119,7 +121,7 @@ fn main() {
         .title("Oxidized Git")
         .build()?;
 
-        let git_manager_arc: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new()?));
+        let git_manager_arc: Arc<Mutex<GitManager>> = Arc::new(Mutex::new(GitManager::new(current_local_offset)));
 
         let main_window_c = main_window.clone();
         let git_manager_arc_c = git_manager_arc.clone();
