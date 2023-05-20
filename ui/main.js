@@ -1,10 +1,7 @@
-import {getVersion} from '@tauri-apps/api/app';
 import {writeText} from "@tauri-apps/api/clipboard";
 import {open} from '@tauri-apps/api/dialog';
 import {emit, listen} from "@tauri-apps/api/event";
 import {homeDir} from '@tauri-apps/api/path';
-import {relaunch} from '@tauri-apps/api/process';
-import {checkUpdate, installUpdate} from '@tauri-apps/api/updater';
 import hljs from "highlight.js";
 import Resizable from "resizable";
 
@@ -29,6 +26,9 @@ class Main {
     }
 
     async loadModules() {
+        const updaterModule = await import("./updater.js");
+        this.updater = new updaterModule.Updater(this);
+
         const svgManagerModule = await import("./svgManager.js");
         this.svgManager = new svgManagerModule.SVGManager(this);
 
@@ -52,19 +52,7 @@ class Main {
 
         $('#summaryTxtCounter').text(self.SUMMARY_CHAR_SOFT_LIMIT.toString());
 
-        checkUpdate().then(async function(updateResult) {
-            if (updateResult.shouldUpdate) {
-                const updateMessages = updateResult.manifest.body.split(', ');
-                updateMessages.forEach((m) => {
-                    $('#updateMessages').append($('<li>' + m + '</li>'));
-                });
-                $('#updateCurrentVersion').text('Current Version: ' + await getVersion());
-                $('#updateNewVersion').text('New Version: ' + updateResult.manifest.version);
-                $('#updateModal').modal('show');
-            }
-        }).catch((e) => {
-            self.showError(e.toString());
-        });
+        self.updater.checkForUpdates();
 
         // Setup file diff tables to only copy content.
         $('#fileDiffTable, #commitFileDiffTable').each(function() {
@@ -181,19 +169,7 @@ class Main {
             self.showError(ev.payload);
         }).then();
 
-        $('#updateBtn').click(async function() {
-            const $updaterSpinner = $('#updaterSpinner');
-            $updaterSpinner.show();
-            try {
-                await installUpdate();
-                await relaunch();
-            } catch (e) {
-                self.showError(e.toString());
-            }
-            $updaterSpinner.hide();
-            $('#updateModal').modal('hide');
-        });
-
+        this.updater.setEvents();
         this.externalGitOps.setEvents();
 
         $('#wCloneBtn').click(() => {
