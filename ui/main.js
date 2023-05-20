@@ -15,8 +15,12 @@ class Main {
     SUMMARY_CHAR_SOFT_LIMIT = 50;
 
     constructor() {
-        this.processCount = 0;
+        this.updater = null;
         this.svgManager = null;
+        this.welcomeView = null;
+        this.modalManager = null;
+
+        this.processCount = 0;
         this.generalInfo = {};
         this.oldSelectedSHA = '';
         this.selectedCommitInfoFilePath = '';
@@ -32,8 +36,12 @@ class Main {
         const svgManagerModule = await import("./modules/svgManager.js");
         this.svgManager = new svgManagerModule.SVGManager(this);
 
-        const externalGitOpsModule = await import("./modules/externalGitOps.js");
-        this.externalGitOps = new externalGitOpsModule.ExternalGitOps(this);
+        const welcomeViewModule = await import("./modules/welcomeView.js");
+        this.welcomeView = new welcomeViewModule.WelcomeView(this);
+
+        const modalManagerModule = await import("./modules/modalManager.js");
+        this.modalManager = new modalManagerModule.ModalManager(this);
+        await this.modalManager.loadModules();
     }
 
     run() {
@@ -48,7 +56,7 @@ class Main {
 
         self.svgManager.setGraphWidth();
 
-        self.showWelcomeView();
+        self.welcomeView.showWelcomeView();
 
         $('#summaryTxtCounter').text(self.SUMMARY_CHAR_SOFT_LIMIT.toString());
 
@@ -113,7 +121,7 @@ class Main {
         }).then();
 
         listen("no-open-repo", ev => {
-            self.showWelcomeView();
+            self.welcomeView.showWelcomeView();
             self.removeProcessCount();
         }).then();
 
@@ -132,7 +140,8 @@ class Main {
             self.updateFilesChangedInfo(ev.payload);
         }).then();
 
-        this.externalGitOps.setListeners();
+        this.welcomeView.setListeners();
+        this.modalManager.setListeners();
 
         listen("get-clone", ev => {
             $('#cloneModal').modal('show');
@@ -170,11 +179,7 @@ class Main {
         }).then();
 
         this.updater.setEvents();
-        this.externalGitOps.setEvents();
-
-        $('#wCloneBtn').click(() => {
-            $('#cloneModal').modal('show');
-        });
+        this.welcomeView.setEvents();
 
         $('#commits-tab').click(() => {
             self.svgManager.setVisibleCommits();
@@ -368,38 +373,7 @@ class Main {
             emit("pull").then();
         });
 
-        $('#openPushModalBtn').click(() => {
-            if (Object.hasOwn(self.generalInfo, 'head_has_upstream') && self.generalInfo['head_has_upstream'] === 'true') {
-                $('#remoteSelect').hide();
-            } else {
-                $('#remoteSelect').show();
-            }
-            $('#forcePushCheckBox').prop('checked', false);
-            $('#pushModal').modal('show');
-        });
-
-        $('#pushBtn').click(() => {
-            self.addProcessCount();
-            // Note: By default, pushing will try to use the local branch's upstream first
-            // instead of the selected remote from the front-end
-            emit("push", {
-                selectedRemote: $('#remoteSelect').val(),
-                isForcePush: $('#forcePushCheckBox').is(':checked').toString(),
-            }).then();
-            $('#pushModal').modal('hide');
-        });
-
-        $('#pushTagBtn').click(() => {
-            self.addProcessCount();
-            const $tagName = $('#tagName');
-            emit("push-tag", {
-                tagFullName: $tagName.text(),
-                selectedRemote: $('#remoteTagSelect').val(),
-                isForcePush: $('#forcePushTagCheckBox').is(':checked').toString(),
-            }).then();
-            $tagName.text('');
-            $('#pushTagModal').modal('hide');
-        });
+        self.modalManager.setEvents();
 
         $('#openStashModalBtn').click(() => {
             $('#stashModal').modal('show');
@@ -499,11 +473,6 @@ class Main {
         // TODO: if removing jQuery usage, 'text(_)' automatically escapes html characters, so that will need to be handled.
         $('#errorMessage').text(messageTxt);
         $('#errorModal').modal('show');
-    }
-
-    showWelcomeView() {
-        $('#repoView').hide();
-        $('#welcomeView').show();
     }
 
     showRepoView() {
@@ -942,12 +911,9 @@ class Main {
     }
 
     updateRemoteInfo(remote_info_list) {
+        const self = this;
         if (remote_info_list.length > 0) {
-            const $remoteSelect = $('#remoteSelect'),
-                $remoteTagSelect = $('#remoteTagSelect');
-            $remoteSelect.empty();
-            $remoteTagSelect.empty();
-
+            const options = [];
             remote_info_list.forEach((remoteResult) => {
                 let option = '';
                 if (remoteResult === 'origin') {
@@ -955,9 +921,11 @@ class Main {
                 } else {
                     option = '<option value="' + remoteResult + '">' + remoteResult + '</option>';
                 }
-                $remoteSelect.append(option);
-                $remoteTagSelect.append(option);
+                options.push(option);
             });
+
+            self.modalManager.pushModal.updateRemoteInfo(options);
+            self.modalManager.pushTagModal.updateRemoteInfo(options);
         }
     }
 

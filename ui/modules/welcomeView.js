@@ -2,7 +2,7 @@ import {emit, listen} from "@tauri-apps/api/event";
 import {open} from "@tauri-apps/api/dialog";
 import {homeDir} from "@tauri-apps/api/path";
 
-export class ExternalGitOps {
+export class WelcomeView {
     constructor(mainJS) {
         this.mainJS = mainJS;
     }
@@ -27,6 +27,15 @@ export class ExternalGitOps {
         $('#wOpenBtn').click(async function() {
             await self.doOpen();
         });
+
+        $('#wCloneBtn').click(() => {
+            $('#cloneModal').modal('show');
+        });
+    }
+
+    showWelcomeView() {
+        $('#repoView').hide();
+        $('#welcomeView').show();
     }
 
     async doInit() {
