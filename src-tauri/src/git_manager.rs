@@ -655,7 +655,7 @@ impl GitManager {
 
             let commit_from_op = repo.find_commit(Oid::from_str(sha)?)?;
 
-            let mut short_sha = String::from(sha.clone());
+            let mut short_sha = String::from(sha);
             short_sha.truncate(5);
 
             let mut head_short_sha = head_commit.id().to_string();
@@ -1557,7 +1557,7 @@ impl GitManager {
                 }
             } else if cred_type == "SSH" {
                 let username = match username_from_url {
-                    Some(s) => s.clone(),
+                    Some(s) => s,
                     None => return Err(git2::Error::from_str("No username in Remote URL, did you use an SSH URL for your remote?")),
                 };
                 let public_key_path = match config.borrow_public_key_path() {
