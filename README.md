@@ -73,7 +73,7 @@ For creating release packages, you will need:
 There are 3 places that the version number needs to be updated BEFORE pushing the version tag (which should kick off the pipelines that create a GitHub release):
 * `src-tauri/Cargo.toml`
 * `src-tauri/Cargo.lock`
-* `src-tauri/tauri.conf.json`
+* `src-tauri/tauri.conf.json5`
 
 Once the GitHub release has been created and published (which you have to do manually), you'll need to update the `version`
 field and the versions in the urls and the `signature` fields (by copying the signatures generated in the associated `.sig` files) in `current_version.json`

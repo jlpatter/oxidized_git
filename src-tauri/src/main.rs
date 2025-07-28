@@ -10,15 +10,15 @@ pub mod parseable_info;
 
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
-use tauri::{CustomMenuItem, Manager, Menu, MenuItem, Submenu, Window, WindowBuilder, WindowEvent, Wry};
-use tauri::MenuEntry::NativeItem;
+use tauri::menu::{Menu, MenuItem, MenuItemBuilder, Submenu};
+use tauri::window::Window;
 use time::UtcOffset;
 use git_manager::GitManager;
 use parseable_info::{get_parseable_repo_info, get_files_changed_info_list};
 
 fn handle_error(e: anyhow::Error, main_window: &Window<Wry>) {
     let error_string = format!("{:?}", e);
-    main_window.emit_all("error", error_string).unwrap();
+    main_window.emit("error", error_string).unwrap();
 }
 
 fn emit_update_all(git_manager: &mut MutexGuard<GitManager>, force_refresh: bool, main_window: &Window<Wry>) {
@@ -26,9 +26,9 @@ fn emit_update_all(git_manager: &mut MutexGuard<GitManager>, force_refresh: bool
     match result {
         Ok(repo_info_opt) => {
             if let Some(repo_info) = repo_info_opt {
-                main_window.emit_all("update_all", repo_info).unwrap();
+                main_window.emit("update_all", repo_info).unwrap();
             } else {
-                main_window.emit_all("no-open-repo", "").unwrap();
+                main_window.emit("no-open-repo", "").unwrap();
             }
         },
         Err(e) => handle_error(e, main_window),
@@ -40,7 +40,7 @@ fn emit_update_changes(git_manager: &MutexGuard<GitManager>, main_window: &Windo
     match result {
         Ok(changes_info_opt) => {
             if let Some(changes_info) = changes_info_opt {
-                main_window.emit_all("update_changes", changes_info).unwrap();
+                main_window.emit("update_changes", changes_info).unwrap();
             }
         },
         Err(e) => handle_error(e, main_window),
@@ -51,67 +51,67 @@ fn main() {
     let current_local_offset = UtcOffset::current_local_offset().unwrap();
     tauri::Builder::default()
     .setup(move |app| {
-        let mut menu;
-        if std::env::consts::OS == "macos" {
-            menu = Menu::with_items([
-                Submenu::new("App", Menu::with_items([
-                    CustomMenuItem::new("preferences", "Preferences").into(),
-                    NativeItem(MenuItem::Separator),
-                    NativeItem(MenuItem::Quit),
-                ])).into(),
-                Submenu::new("File", Menu::with_items([
-                    CustomMenuItem::new("init", "Init New Repo").into(),
-                    CustomMenuItem::new("open", "Open Repo").into(),
-                    CustomMenuItem::new("clone", "Clone Repo").into(),
-                ])).into(),
-                Submenu::new("Edit", Menu::with_items([
-                    NativeItem(MenuItem::Undo),
-                    NativeItem(MenuItem::Redo),
-                    NativeItem(MenuItem::Separator),
-                    NativeItem(MenuItem::Copy),
-                    NativeItem(MenuItem::Paste),
-                    NativeItem(MenuItem::SelectAll),
-                ])).into(),
-                Submenu::new("View", Menu::with_items([
-                    CustomMenuItem::new("refresh", "Refresh").accelerator("CommandOrControl+R").into(),
-                ])).into(),
-                Submenu::new("Security", Menu::with_items([
-                    CustomMenuItem::new("credentials", "Set Credentials").into(),
-                ])).into(),
-            ]);
-        } else {
-            menu = Menu::with_items([
-                Submenu::new("File", Menu::with_items([
-                    CustomMenuItem::new("init", "Init New Repo").into(),
-                    CustomMenuItem::new("open", "Open Repo").into(),
-                    CustomMenuItem::new("clone", "Clone Repo").into(),
-                    NativeItem(MenuItem::Separator),
-                    CustomMenuItem::new("preferences", "Preferences").into(),
-                    NativeItem(MenuItem::Separator),
-                    NativeItem(MenuItem::Quit),
-                ])).into(),
-            ]);
-            if std::env::consts::OS == "windows" {
-                menu = menu.add_submenu(
-                    Submenu::new("Edit", Menu::with_items([
-                        NativeItem(MenuItem::Copy),
-                        NativeItem(MenuItem::Paste),
-                    ]))
-                );
-            }
-            menu = menu.add_submenu(
-                Submenu::new("View", Menu::with_items([
-                    CustomMenuItem::new("refresh", "Refresh").accelerator("CommandOrControl+R").into(),
-                ]))
-            );
-            menu = menu.add_submenu(
-                Submenu::new("Security", Menu::with_items([
-                    CustomMenuItem::new("credentials", "Set Credentials").into(),
-                ]))
-            );
-        }
+        // let mut menu;
+        // if std::env::consts::OS == "macos" {
+        //     menu = Menu::with_items([
+        //         Submenu::new("App", Menu::with_items([
+        //             MenuItemBuilder::with_id("preferences", "Preferences").into(),
+        //             NativeItem(MenuItem::Separator),
+        //             NativeItem(MenuItem::Quit),
+        //         ])).into(),
+        //         Submenu::new("File", Menu::with_items([
+        //             CustomMenuItem::new("init", "Init New Repo").into(),
+        //             CustomMenuItem::new("open", "Open Repo").into(),
+        //             CustomMenuItem::new("clone", "Clone Repo").into(),
+        //         ])).into(),
+        //         Submenu::new("Edit", Menu::with_items([
+        //             NativeItem(MenuItem::Undo),
+        //             NativeItem(MenuItem::Redo),
+        //             NativeItem(MenuItem::Separator),
+        //             NativeItem(MenuItem::Copy),
+        //             NativeItem(MenuItem::Paste),
+        //             NativeItem(MenuItem::SelectAll),
+        //         ])).into(),
+        //         Submenu::new("View", Menu::with_items([
+        //             CustomMenuItem::new("refresh", "Refresh").accelerator("CommandOrControl+R").into(),
+        //         ])).into(),
+        //         Submenu::new("Security", Menu::with_items([
+        //             CustomMenuItem::new("credentials", "Set Credentials").into(),
+        //         ])).into(),
+        //     ]);
+        // } else {
+        //     menu = Menu::with_items([
+        //         Submenu::new("File", Menu::with_items([
+        //             CustomMenuItem::new("init", "Init New Repo").into(),
+        //             CustomMenuItem::new("open", "Open Repo").into(),
+        //             CustomMenuItem::new("clone", "Clone Repo").into(),
+        //             NativeItem(MenuItem::Separator),
+        //             CustomMenuItem::new("preferences", "Preferences").into(),
+        //             NativeItem(MenuItem::Separator),
+        //             NativeItem(MenuItem::Quit),
+        //         ])).into(),
+        //     ]);
+        //     if std::env::consts::OS == "windows" {
+        //         menu = menu.add_submenu(
+        //             Submenu::new("Edit", Menu::with_items([
+        //                 NativeItem(MenuItem::Copy),
+        //                 NativeItem(MenuItem::Paste),
+        //             ]))
+        //         );
+        //     }
+        //     menu = menu.add_submenu(
+        //         Submenu::new("View", Menu::with_items([
+        //             CustomMenuItem::new("refresh", "Refresh").accelerator("CommandOrControl+R").into(),
+        //         ]))
+        //     );
+        //     menu = menu.add_submenu(
+        //         Submenu::new("Security", Menu::with_items([
+        //             CustomMenuItem::new("credentials", "Set Credentials").into(),
+        //         ]))
+        //     );
+        // }
 
-        let main_window = WindowBuilder::new(
+        let main_window = Window::new(
             app,
             "main-window".to_string(),
             tauri::WindowUrl::App("index.html".into()),

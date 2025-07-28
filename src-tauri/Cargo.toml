@@ -12,15 +12,15 @@ rust-version = "1.69"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.5.*", features = [] }
+tauri-build = { version = "2.3.*", features = [] }
 
 [dependencies]
 serde_json = "1.0.*"
 serde = { version = "1.0.*", features = ["derive"] }
-serde_with = "3.5.*"
-tauri = { version = "1.5.*", features = ["clipboard-write-text", "dialog-open", "icon-ico", "icon-png", "path-all", "process-relaunch", "updater"] }
-git2 = "0.18.*"
-directories = "5.0.*"
+serde_with = "3.14.*"
+tauri = { version = "2.7.*", features = ["config-json5"] }
+git2 = "0.20.*"
+directories = "6.0.*"
 keytar = "0.1.*"
 html-escape = "0.2.*"
 anyhow = { version = "1.0.*", features = ["backtrace"] }
