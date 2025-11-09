@@ -63,6 +63,7 @@ Download and install the desired version from the "Releases"
 ### All
 * Run `npm install` in the project root
 * (Optional) Consider setting the environment variable `RUST_BACKTRACE` to `1` if you want a backtrace when an error occurs
+* If `webkit2gtk` is showing a blank screen, try setting `WEBKIT_DISABLE_COMPOSITING_MODE` to `1`.
 * Run `npm run tauri dev` in the project root to run the dev environment or `npm run tauri build` to package the application
 ### Making a Release
 For creating release packages, you will need:
