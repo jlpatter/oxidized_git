@@ -1,3 +1,10 @@
+## Deprecation Notice
+
+I haven't updated this project in a while and there are some security vulnerabilities that have cropped up over time,
+so I would not recommend using it in its current state.
+
+Lately, I've been using (and even contributed to!) a free and open source project called [SourceGit](https://github.com/sourcegit-scm/sourcegit) which I would recommend in place of this one.
+
 <p align="center">
     <img src="src-tauri/icons/OxidizedGitMainLogo.png" alt="Oxidized Git">
 </p>
